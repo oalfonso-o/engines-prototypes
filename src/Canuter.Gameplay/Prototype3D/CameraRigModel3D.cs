@@ -7,12 +7,12 @@ namespace Canuter
     public static class CameraRigModel3D
     {
         public static CameraRigFrame3D ComputeFrame(
-            Vector3 playerPosition,
+            Vector3 playerAnchorPosition,
             Vector3 playerForward,
+            Vector3 aimDirection,
             float orbitDistance,
-            float pitchDegrees,
             float lookAheadDistance,
-            float lookHeight)
+            float railPitchDegrees)
         {
             var horizontalForward = new Vector3(playerForward.X, 0.0f, playerForward.Z);
             if (horizontalForward.LengthSquared() <= float.Epsilon)
@@ -24,14 +24,21 @@ namespace Canuter
                 horizontalForward = Vector3.Normalize(horizontalForward);
             }
 
-            var pitchRadians = pitchDegrees * (MathF.PI / 180.0f);
-            var horizontalDistance = orbitDistance * MathF.Cos(pitchRadians);
-            var verticalHeight = orbitDistance * MathF.Sin(pitchRadians);
-            var cameraPosition = playerPosition - horizontalForward * horizontalDistance + Vector3.UnitY * verticalHeight;
-            var aimDirection = ThirdPersonAimModel3D.AimDirectionFromYawPitch(
-                MathF.Atan2(-horizontalForward.X, horizontalForward.Z),
-                pitchDegrees);
-            var lookTarget = playerPosition + Vector3.UnitY * lookHeight + aimDirection * lookAheadDistance;
+            if (aimDirection.LengthSquared() <= float.Epsilon)
+            {
+                aimDirection = Vector3.UnitZ;
+            }
+            else
+            {
+                aimDirection = Vector3.Normalize(aimDirection);
+            }
+
+            var railPitchRadians = railPitchDegrees * (MathF.PI / 180.0f);
+            var railDirection = Vector3.Normalize(
+                (-horizontalForward * MathF.Cos(railPitchRadians)) +
+                (Vector3.UnitY * MathF.Sin(railPitchRadians)));
+            var cameraPosition = playerAnchorPosition + railDirection * orbitDistance;
+            var lookTarget = playerAnchorPosition + aimDirection * lookAheadDistance;
             return new CameraRigFrame3D(cameraPosition, lookTarget);
         }
     }

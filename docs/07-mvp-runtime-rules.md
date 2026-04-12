@@ -43,15 +43,20 @@
 
 ## Camera
 
-- The camera is a 3D follow camera with the player framed low on screen.
-- Camera angle is measured in degrees from the ground plane:
-- `0` degrees: ground-level
-- `90` degrees: vertical top-down
+- The camera is a 3D follow camera with the player framed low on screen in third person.
 - Default camera pitch is `40` degrees.
 - The old fixed camera-angle setting has been removed from the runtime settings UI.
 - Camera pitch is now driven live by mouse vertical look during gameplay.
 - Mouse wheel changes camera orbit distance at runtime.
+- Pressing `V` toggles between FPS at minimum orbit distance and the last remembered TPS zoom distance.
 - Orbit distance is clamped to the current prototype min/max values in code.
+- Zoom moves the camera on a straight line toward the upper-center anchor of the player capsule.
+- That zoom line is separate from the aim line that resolves the centered crosshair.
+- The crosshair and live mouse look now define the effective camera angle.
+- The player can pitch the centered crosshair above the horizon to aim into the sky.
+- In third person, downward aim is constrained so the centered crosshair cannot move below the lowest point of the player capsule.
+- At minimum orbit distance, the camera should converge toward an FPS-like view on that same aim line.
+- When the camera enters the close zoom band, the player body fades progressively and reaches `20%` visible opacity at minimum orbit distance so the player does not block the crosshair.
 - The current prototype does not use camera ghost walls or advanced tactical darkening in the live runtime.
 
 ## Aim And Fire
@@ -81,10 +86,32 @@
 - `Exit`
 - The settings screen currently exposes:
 - heading sensitivity
-- 3D movement speed
-- 3D gravity
+- move speed
+- gravity
 - jump force
+- camera distance
+- camera rail pitch
+- camera min distance
+- camera max distance
+- camera zoom step
+- camera look-ahead
+- camera FOV
+- load defaults button
 - persistent impact-marker toggle
+- Default settings values are:
+- heading sensitivity `0.001`
+- move speed `20`
+- gravity `50`
+- jump force `20`
+- camera distance `10`
+- camera rail pitch `20`
+- camera min distance `0.6`
+- camera max distance `10`
+- camera zoom step `1`
+- camera look-ahead `100`
+- camera FOV `40`
+- keep hit markers `true`
+- Old `user://runtime_settings.cfg` files are deleted and regenerated when the settings schema changes.
 - Runtime settings are persisted locally in `user://runtime_settings.cfg`.
 
 ## Map Runtime Rules

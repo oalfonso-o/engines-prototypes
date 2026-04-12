@@ -6,57 +6,63 @@ namespace Canuter.Gameplay.Tests.Prototype3D;
 public sealed class CameraRigModel3DTests
 {
     [Fact]
-    public void CameraSitsBehindPlayerAndLooksAheadAlongForward()
+    public void ZoomMovesAlongFixedRailTowardPlayerAnchor()
     {
-        var frame = CameraRigModel3D.ComputeFrame(
-            playerPosition: new Vector3(10.0f, 0.0f, 20.0f),
+        var farFrame = CameraRigModel3D.ComputeFrame(
+            playerAnchorPosition: new Vector3(10.0f, 1.2f, 20.0f),
             playerForward: Vector3.UnitZ,
+            aimDirection: ThirdPersonAimModel3D.AimDirectionFromYawPitch(0.0f, 30.0f),
             orbitDistance: 10.0f,
-            pitchDegrees: 30.0f,
             lookAheadDistance: 10.0f,
-            lookHeight: 1.2f);
+            railPitchDegrees: 40.0f);
+        var nearFrame = CameraRigModel3D.ComputeFrame(
+            playerAnchorPosition: new Vector3(10.0f, 1.2f, 20.0f),
+            playerForward: Vector3.UnitZ,
+            aimDirection: ThirdPersonAimModel3D.AimDirectionFromYawPitch(0.0f, 30.0f),
+            orbitDistance: 4.0f,
+            lookAheadDistance: 10.0f,
+            railPitchDegrees: 40.0f);
+        var expectedRailDirection = Vector3.Normalize(new Vector3(0.0f, MathF.Sin(40.0f * MathF.PI / 180.0f), -MathF.Cos(40.0f * MathF.PI / 180.0f)));
 
-        Assert.Equal(new Vector3(10.0f, 5.0f, 11.339746f), frame.CameraPosition, new Vector3EqualityComparer(0.0001f));
-        Assert.Equal(new Vector3(10.0f, -3.8f, 28.660254f), frame.LookTarget, new Vector3EqualityComparer(0.0001f));
+        Assert.Equal(expectedRailDirection, Vector3.Normalize(farFrame.CameraPosition - new Vector3(10.0f, 1.2f, 20.0f)), new Vector3EqualityComparer(0.0001f));
+        Assert.Equal(expectedRailDirection, Vector3.Normalize(nearFrame.CameraPosition - new Vector3(10.0f, 1.2f, 20.0f)), new Vector3EqualityComparer(0.0001f));
+        Assert.True(Vector3.Distance(new Vector3(10.0f, 1.2f, 20.0f), nearFrame.CameraPosition) < Vector3.Distance(new Vector3(10.0f, 1.2f, 20.0f), farFrame.CameraPosition));
     }
 
     [Fact]
-    public void CameraUsesHorizontalForwardOnly()
+    public void LookTargetUsesAimDirectionInsteadOfZoomRailDirection()
+    {
+        var aimDirection = ThirdPersonAimModel3D.AimDirectionFromYawPitch(0.0f, 10.0f);
+        var frame = CameraRigModel3D.ComputeFrame(
+            playerAnchorPosition: new Vector3(5.0f, 1.1f, -2.0f),
+            playerForward: Vector3.UnitZ,
+            aimDirection: aimDirection,
+            orbitDistance: 18.0f,
+            lookAheadDistance: 6.0f,
+            railPitchDegrees: 55.0f);
+
+        Assert.Equal(
+            new Vector3(5.0f, 1.1f, -2.0f) + aimDirection * 6.0f,
+            frame.LookTarget,
+            new Vector3EqualityComparer(0.0001f));
+        Assert.NotEqual(
+            Vector3.Normalize(frame.LookTarget - new Vector3(5.0f, 1.1f, -2.0f)),
+            Vector3.Normalize(frame.CameraPosition - new Vector3(5.0f, 1.1f, -2.0f)));
+    }
+
+    [Fact]
+    public void ZeroForwardFallsBackToForwardZoomRail()
     {
         var frame = CameraRigModel3D.ComputeFrame(
-            playerPosition: Vector3.Zero,
-            playerForward: Vector3.Normalize(new Vector3(1.0f, 1.0f, 0.0f)),
+            playerAnchorPosition: new Vector3(0.0f, 1.0f, 0.0f),
+            playerForward: Vector3.Zero,
+            aimDirection: Vector3.Zero,
             orbitDistance: 10.0f,
-            pitchDegrees: 40.0f,
             lookAheadDistance: 4.0f,
-            lookHeight: 1.0f);
+            railPitchDegrees: 30.0f);
 
-        Assert.Equal(10.0f * MathF.Sin(40.0f * MathF.PI / 180.0f), frame.CameraPosition.Y, 4);
-        Assert.True(frame.LookTarget.Y < 1.0f);
-        Assert.True(frame.CameraPosition.X < 0.0f);
-        Assert.Equal(0.0f, frame.CameraPosition.Z, 4);
-    }
-
-    [Fact]
-    public void SteeperPitchRaisesCameraAndReducesHorizontalOffset()
-    {
-        var shallow = CameraRigModel3D.ComputeFrame(
-            Vector3.Zero,
-            Vector3.UnitZ,
-            orbitDistance: 12.0f,
-            pitchDegrees: 20.0f,
-            lookAheadDistance: 0.0f,
-            lookHeight: 0.0f);
-        var steep = CameraRigModel3D.ComputeFrame(
-            Vector3.Zero,
-            Vector3.UnitZ,
-            orbitDistance: 12.0f,
-            pitchDegrees: 70.0f,
-            lookAheadDistance: 0.0f,
-            lookHeight: 0.0f);
-
-        Assert.True(steep.CameraPosition.Y > shallow.CameraPosition.Y);
-        Assert.True(MathF.Abs(steep.CameraPosition.Z) < MathF.Abs(shallow.CameraPosition.Z));
+        Assert.Equal(new Vector3(0.0f, 6.0f, -8.660254f), frame.CameraPosition, new Vector3EqualityComparer(0.0001f));
+        Assert.Equal(new Vector3(0.0f, 1.0f, 4.0f), frame.LookTarget, new Vector3EqualityComparer(0.0001f));
     }
 
     private sealed class Vector3EqualityComparer(float tolerance) : IEqualityComparer<Vector3>

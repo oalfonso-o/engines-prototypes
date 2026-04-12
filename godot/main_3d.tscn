@@ -77,20 +77,19 @@ position = Vector3(0, 1.0, 0.9)
 
 [node name="CameraRig3D" type="Node3D" parent="."]
 script = ExtResource("4_camera")
-orbit_distance = 18.0
-pitch_degrees = 40.0
-min_orbit_distance = 6.0
-max_orbit_distance = 40.0
-zoom_step = 1.5
-look_ahead_distance = 8.0
-look_height = 1.15
+orbit_distance = 10.0
+zoom_rail_pitch_degrees = 20.0
+min_orbit_distance = 0.6
+max_orbit_distance = 10.0
+zoom_step = 2.0
+look_ahead_distance = 100.0
 
 [node name="Camera3D" type="Camera3D" parent="CameraRig3D"]
 current = true
 fov = 39.0
 near = 0.05
 far = 200.0
-v_offset = 4.0
+v_offset = 0.0
 
 [node name="Hud" type="CanvasLayer" parent="."]
 
@@ -143,9 +142,9 @@ anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
 offset_left = -160.0
-offset_top = -128.0
+offset_top = -250.0
 offset_right = 160.0
-offset_bottom = 128.0
+offset_bottom = 250.0
 grow_horizontal = 2
 grow_vertical = 2
 
@@ -176,66 +175,149 @@ text = "Settings"
 layout_mode = 2
 text = "Exit"
 
-[node name="SettingsContent" type="VBoxContainer" parent="Hud/PauseMenuOverlay/Panel/Root"]
+[node name="SettingsScroll" type="ScrollContainer" parent="Hud/PauseMenuOverlay/Panel/Root"]
 visible = false
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="SettingsContent" type="VBoxContainer" parent="Hud/PauseMenuOverlay/Panel/Root/SettingsScroll"]
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="SettingsTitle" type="Label" parent="Hud/PauseMenuOverlay/Panel/Root/SettingsContent"]
+[node name="SettingsTitle" type="Label" parent="Hud/PauseMenuOverlay/Panel/Root/SettingsScroll/SettingsContent"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 26
 text = "Settings"
 horizontal_alignment = 1
 
-[node name="HeadingSensitivityLabel" type="Label" parent="Hud/PauseMenuOverlay/Panel/Root/SettingsContent"]
+[node name="HeadingSensitivityLabel" type="Label" parent="Hud/PauseMenuOverlay/Panel/Root/SettingsScroll/SettingsContent"]
 layout_mode = 2
 text = "Heading Sensitivity"
 
-[node name="HeadingSensitivitySpinBox" type="SpinBox" parent="Hud/PauseMenuOverlay/Panel/Root/SettingsContent"]
+[node name="HeadingSensitivitySpinBox" type="SpinBox" parent="Hud/PauseMenuOverlay/Panel/Root/SettingsScroll/SettingsContent"]
 layout_mode = 2
-min_value = 0.001
+min_value = 0.0001
 max_value = 0.02
-step = 0.0005
+step = 0.0001
 
-[node name="Prototype3DMoveSpeedLabel" type="Label" parent="Hud/PauseMenuOverlay/Panel/Root/SettingsContent"]
+[node name="Prototype3DMoveSpeedLabel" type="Label" parent="Hud/PauseMenuOverlay/Panel/Root/SettingsScroll/SettingsContent"]
 layout_mode = 2
-text = "3D Move Speed"
+text = "Move Speed"
 
-[node name="Prototype3DMoveSpeedSpinBox" type="SpinBox" parent="Hud/PauseMenuOverlay/Panel/Root/SettingsContent"]
+[node name="Prototype3DMoveSpeedSpinBox" type="SpinBox" parent="Hud/PauseMenuOverlay/Panel/Root/SettingsScroll/SettingsContent"]
 layout_mode = 2
 min_value = 8.0
 max_value = 60.0
 step = 0.5
 
-[node name="Prototype3DGravityLabel" type="Label" parent="Hud/PauseMenuOverlay/Panel/Root/SettingsContent"]
+[node name="Prototype3DGravityLabel" type="Label" parent="Hud/PauseMenuOverlay/Panel/Root/SettingsScroll/SettingsContent"]
 layout_mode = 2
-text = "3D Gravity"
+text = "Gravity"
 
-[node name="Prototype3DGravitySpinBox" type="SpinBox" parent="Hud/PauseMenuOverlay/Panel/Root/SettingsContent"]
+[node name="Prototype3DGravitySpinBox" type="SpinBox" parent="Hud/PauseMenuOverlay/Panel/Root/SettingsScroll/SettingsContent"]
 layout_mode = 2
 min_value = 5.0
 max_value = 80.0
 step = 0.5
 
-[node name="Prototype3DJumpVelocityLabel" type="Label" parent="Hud/PauseMenuOverlay/Panel/Root/SettingsContent"]
+[node name="Prototype3DJumpVelocityLabel" type="Label" parent="Hud/PauseMenuOverlay/Panel/Root/SettingsScroll/SettingsContent"]
 layout_mode = 2
 text = "Jump Force"
 
-[node name="Prototype3DJumpVelocitySpinBox" type="SpinBox" parent="Hud/PauseMenuOverlay/Panel/Root/SettingsContent"]
+[node name="Prototype3DJumpVelocitySpinBox" type="SpinBox" parent="Hud/PauseMenuOverlay/Panel/Root/SettingsScroll/SettingsContent"]
 layout_mode = 2
 min_value = 2.0
 max_value = 30.0
 step = 0.25
 
-[node name="PersistentImpactMarkersCheckBox" type="CheckBox" parent="Hud/PauseMenuOverlay/Panel/Root/SettingsContent"]
+[node name="CameraSettingsLabel" type="Label" parent="Hud/PauseMenuOverlay/Panel/Root/SettingsScroll/SettingsContent"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "Camera"
+
+[node name="Prototype3DCameraOrbitDistanceLabel" type="Label" parent="Hud/PauseMenuOverlay/Panel/Root/SettingsScroll/SettingsContent"]
+layout_mode = 2
+text = "Camera Distance"
+
+[node name="Prototype3DCameraOrbitDistanceSpinBox" type="SpinBox" parent="Hud/PauseMenuOverlay/Panel/Root/SettingsScroll/SettingsContent"]
+layout_mode = 2
+min_value = 0.05
+max_value = 80.0
+step = 0.25
+
+[node name="Prototype3DCameraZoomRailPitchDegreesLabel" type="Label" parent="Hud/PauseMenuOverlay/Panel/Root/SettingsScroll/SettingsContent"]
+layout_mode = 2
+text = "Camera Rail Pitch"
+
+[node name="Prototype3DCameraZoomRailPitchDegreesSpinBox" type="SpinBox" parent="Hud/PauseMenuOverlay/Panel/Root/SettingsScroll/SettingsContent"]
+layout_mode = 2
+min_value = 0.0
+max_value = 89.0
+step = 1.0
+
+[node name="Prototype3DCameraMinOrbitDistanceLabel" type="Label" parent="Hud/PauseMenuOverlay/Panel/Root/SettingsScroll/SettingsContent"]
+layout_mode = 2
+text = "Camera Min Distance"
+
+[node name="Prototype3DCameraMinOrbitDistanceSpinBox" type="SpinBox" parent="Hud/PauseMenuOverlay/Panel/Root/SettingsScroll/SettingsContent"]
+layout_mode = 2
+min_value = 0.05
+max_value = 80.0
+step = 0.25
+
+[node name="Prototype3DCameraMaxOrbitDistanceLabel" type="Label" parent="Hud/PauseMenuOverlay/Panel/Root/SettingsScroll/SettingsContent"]
+layout_mode = 2
+text = "Camera Max Distance"
+
+[node name="Prototype3DCameraMaxOrbitDistanceSpinBox" type="SpinBox" parent="Hud/PauseMenuOverlay/Panel/Root/SettingsScroll/SettingsContent"]
+layout_mode = 2
+min_value = 0.05
+max_value = 80.0
+step = 0.5
+
+[node name="Prototype3DCameraZoomStepLabel" type="Label" parent="Hud/PauseMenuOverlay/Panel/Root/SettingsScroll/SettingsContent"]
+layout_mode = 2
+text = "Camera Zoom Step"
+
+[node name="Prototype3DCameraZoomStepSpinBox" type="SpinBox" parent="Hud/PauseMenuOverlay/Panel/Root/SettingsScroll/SettingsContent"]
+layout_mode = 2
+min_value = 0.1
+max_value = 10.0
+step = 0.1
+
+[node name="Prototype3DCameraLookAheadDistanceLabel" type="Label" parent="Hud/PauseMenuOverlay/Panel/Root/SettingsScroll/SettingsContent"]
+layout_mode = 2
+text = "Camera Look Ahead"
+
+[node name="Prototype3DCameraLookAheadDistanceSpinBox" type="SpinBox" parent="Hud/PauseMenuOverlay/Panel/Root/SettingsScroll/SettingsContent"]
+layout_mode = 2
+min_value = 1.0
+max_value = 120.0
+step = 0.5
+
+[node name="Prototype3DCameraFovLabel" type="Label" parent="Hud/PauseMenuOverlay/Panel/Root/SettingsScroll/SettingsContent"]
+layout_mode = 2
+text = "Camera FOV"
+
+[node name="Prototype3DCameraFovSpinBox" type="SpinBox" parent="Hud/PauseMenuOverlay/Panel/Root/SettingsScroll/SettingsContent"]
+layout_mode = 2
+min_value = 20.0
+max_value = 110.0
+step = 1.0
+
+[node name="PersistentImpactMarkersCheckBox" type="CheckBox" parent="Hud/PauseMenuOverlay/Panel/Root/SettingsScroll/SettingsContent"]
 layout_mode = 2
 text = "Keep hit markers"
 
-[node name="SettingsHint" type="Label" parent="Hud/PauseMenuOverlay/Panel/Root/SettingsContent"]
+[node name="SettingsHint" type="Label" parent="Hud/PauseMenuOverlay/Panel/Root/SettingsScroll/SettingsContent"]
 layout_mode = 2
-text = "Use mouse wheel to change 3D camera distance. Mouse vertical look controls pitch live during gameplay."
+text = "Use mouse wheel to change camera distance during gameplay. Mouse vertical look controls aim pitch live."
 autowrap_mode = 3
 
-[node name="BackButton" type="Button" parent="Hud/PauseMenuOverlay/Panel/Root/SettingsContent"]
+[node name="LoadDefaultsButton" type="Button" parent="Hud/PauseMenuOverlay/Panel/Root/SettingsScroll/SettingsContent"]
+layout_mode = 2
+text = "Load Defaults"
+
+[node name="BackButton" type="Button" parent="Hud/PauseMenuOverlay/Panel/Root/SettingsScroll/SettingsContent"]
 layout_mode = 2
 text = "Back"

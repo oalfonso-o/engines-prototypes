@@ -146,10 +146,11 @@
 
 - Camera style: low-angle third-person tactical follow camera.
 - The camera rotates with the player heading.
-- The controlled player stays low in frame rather than perfectly centered.
-- Camera angle is measured from the ground plane and should be configurable between:
-- `0` degrees: ground-level
-- `90` degrees: top-down
+- Mouse look and the centered crosshair define the live camera angle.
+- The controlled player stays low on screen in third person rather than centered.
+- Camera zoom should move the camera in a straight line toward the upper-center aim anchor of the player.
+- That zoom line is separate from the aim line used by the centered crosshair.
+- At minimum zoom, the framing should converge toward an FPS-like view from that same aim line.
 - Camera distance should remain zoomable in runtime.
 
 ## Vision Model

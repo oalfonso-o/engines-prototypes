@@ -10,9 +10,16 @@ func _initialize() -> void:
 
 func _run() -> void:
 	_clear_settings_file()
+	await _test_old_settings_file_is_regenerated_with_new_defaults()
 	await _test_scene_boots_and_camera_tracks_player()
 	await _test_gravity_and_jump_force_persist_and_zoom_changes_distance()
+	await _test_v_toggles_between_fps_and_last_tps_zoom()
+	await _test_camera_settings_persist()
+	await _test_load_defaults_restores_current_defaults()
+	await _test_player_body_fades_when_zoomed_in()
 	await _test_vertical_mouse_motion_changes_pitch()
+	await _test_pitch_can_aim_up_into_the_sky()
+	await _test_pitch_is_clamped_before_crosshair_moves_below_player_feet()
 	await _test_space_jumps_player()
 	await _test_manual_reload_starts_from_partial_magazine()
 	await _test_auto_reload_starts_after_emptying_magazine_and_releasing_fire()
@@ -30,6 +37,35 @@ func _run() -> void:
 		push_error(failure)
 
 	quit(1)
+
+func _test_old_settings_file_is_regenerated_with_new_defaults() -> void:
+	var config := ConfigFile.new()
+	config.set_value("meta", "schema_version", 1)
+	config.set_value("gameplay", "prototype_3d_gravity", 77.0)
+	config.set_value("gameplay", "prototype_3d_camera_orbit_distance", 3.0)
+	config.set_value("gameplay", "prototype_3d_camera_zoom_rail_pitch_degrees", 88.0)
+	config.set_value("gameplay", "prototype_3d_camera_min_orbit_distance", 0.1)
+	config.set_value("gameplay", "prototype_3d_camera_max_orbit_distance", 10.0)
+	config.set_value("gameplay", "prototype_3d_camera_zoom_step", 9.0)
+	config.set_value("gameplay", "prototype_3d_camera_look_ahead_distance", 5.0)
+	config.save("user://runtime_settings.cfg")
+
+	var main := await _spawn_main()
+	_assert_true(absf(main.call("GetPrototype3DGravity") - 50.0) < 0.001, "Old settings cfg should be discarded so gravity falls back to the new default")
+	_assert_true(absf(main.call("GetPrototype3DCameraOrbitDistance") - 10.0) < 0.001, "Old settings cfg should be discarded so camera distance falls back to the new default")
+	_assert_true(absf(main.call("GetPrototype3DCameraZoomRailPitchDegrees") - 20.0) < 0.001, "Old settings cfg should be discarded so camera rail pitch falls back to the new default")
+	_assert_true(absf(main.call("GetPrototype3DCameraMinOrbitDistance") - 0.6) < 0.001, "Old settings cfg should be discarded so camera min distance falls back to the new default")
+	_assert_true(absf(main.call("GetPrototype3DCameraMaxOrbitDistance") - 10.0) < 0.001, "Old settings cfg should be discarded so camera max distance falls back to the new default")
+	_assert_true(absf(main.call("GetPrototype3DCameraZoomStep") - 1.0) < 0.001, "Old settings cfg should be discarded so camera zoom step falls back to the new default")
+	_assert_true(absf(main.call("GetPrototype3DCameraLookAheadDistance") - 100.0) < 0.001, "Old settings cfg should be discarded so camera look-ahead falls back to the new default")
+	_assert_true(absf(main.call("GetPrototype3DCameraFov") - 40.0) < 0.001, "Old settings cfg should be discarded so camera FOV falls back to the new default")
+	_assert_true(bool(main.call("GetPersistentImpactMarkersEnabled")), "Old settings cfg should be discarded so keep hit markers falls back to the new default")
+	await _despawn_main(main)
+
+	var reloaded := ConfigFile.new()
+	var load_result := reloaded.load("user://runtime_settings.cfg")
+	_assert_true(load_result == OK, "Discarding an old settings cfg should regenerate a new settings file")
+	_assert_true(int(reloaded.get_value("meta", "schema_version", 0)) == 2, "Regenerated settings cfg should store the current schema version")
 
 func _test_scene_boots_and_camera_tracks_player() -> void:
 	var main := await _spawn_main()
@@ -54,9 +90,25 @@ func _test_scene_boots_and_camera_tracks_player() -> void:
 	_assert_true(shot_origin.y > player.global_position.y + 1.0, "3D shot origin should come from the top-center of the capsule")
 
 	var initial_camera_pos := camera.global_position
+	var initial_zoom_rail := (initial_camera_pos - shot_origin).normalized()
 	var player_screen_pos := camera.unproject_position(player.global_position + Vector3.UP * 0.9)
 	var viewport_size := camera.get_viewport().get_visible_rect().size
-	_assert_true(player_screen_pos.y > viewport_size.y * 0.80, "3D camera should keep the player low on screen to leave room for the centered crosshair")
+	_assert_true(
+		player_screen_pos.y >= 0.0 and player_screen_pos.y <= viewport_size.y,
+		"3D camera should keep the player visible on screen in third person (y=%s viewport_height=%s)" % [
+			str(player_screen_pos.y),
+			str(viewport_size.y),
+		])
+
+	var rig: Node = main.get_node("CameraRig3D")
+	rig.call("AdjustOrbitDistance", -1)
+	await process_frame
+	await physics_frame
+	var zoomed_camera_pos := camera.global_position
+	var zoomed_zoom_rail := (zoomed_camera_pos - shot_origin).normalized()
+	_assert_true(
+		initial_zoom_rail.dot(zoomed_zoom_rail) > 0.999,
+		"3D zoom should move the camera along a straight rail toward the player")
 	player.call("AddMouseDeltaForTesting", Vector2(32.0, 0.0))
 
 	await process_frame
@@ -82,7 +134,7 @@ func _test_gravity_and_jump_force_persist_and_zoom_changes_distance() -> void:
 	var zoomed_distance: float = rig.call("GetOrbitDistance")
 	_assert_true(zoomed_distance < initial_distance, "Mouse wheel up should reduce 3D camera orbit distance")
 
-	main.call("SetPrototype3DGravity", 41.5)
+	main.call("SetPrototype3DGravity", 50.0)
 	main.call("SetPrototype3DJumpVelocity", 12.5)
 	await process_frame
 	await physics_frame
@@ -93,15 +145,139 @@ func _test_gravity_and_jump_force_persist_and_zoom_changes_distance() -> void:
 	var saved_gravity: float = config.get_value("gameplay", "prototype_3d_gravity", 0.0)
 	var saved_jump_velocity: float = config.get_value("gameplay", "prototype_3d_jump_velocity", 0.0)
 	_assert_true(load_result == OK, "3D runtime settings file should be written to user://")
-	_assert_true(absf(saved_gravity - 41.5) < 0.001, "Saved settings should persist 3D gravity")
+	_assert_true(absf(saved_gravity - 50.0) < 0.001, "Saved settings should persist 3D gravity")
 	_assert_true(absf(saved_jump_velocity - 12.5) < 0.001, "Saved settings should persist 3D jump force")
 
 	var reloaded_main := await _spawn_main()
 	var loaded_gravity: float = reloaded_main.call("GetPrototype3DGravity")
 	var loaded_jump_velocity: float = reloaded_main.call("GetPrototype3DJumpVelocity")
-	_assert_true(absf(loaded_gravity - 41.5) < 0.001, "3D main should load persisted gravity on boot")
+	_assert_true(absf(loaded_gravity - 50.0) < 0.001, "3D main should load persisted gravity on boot")
 	_assert_true(absf(loaded_jump_velocity - 12.5) < 0.001, "3D main should load persisted jump force on boot")
 	await _despawn_main(reloaded_main)
+
+func _test_v_toggles_between_fps_and_last_tps_zoom() -> void:
+	var main := await _spawn_main()
+	main.call("SetPrototype3DCameraOrbitDistance", 7.4)
+
+	await process_frame
+	await physics_frame
+
+	var toggle_event := InputEventKey.new()
+	toggle_event.pressed = true
+	toggle_event.keycode = KEY_V
+	Input.parse_input_event(toggle_event)
+
+	await process_frame
+	await physics_frame
+
+	_assert_true(absf(main.call("GetPrototype3DCameraOrbitDistance") - 0.6) < 0.001, "Pressing V from TPS should switch to FPS at minimum orbit distance")
+
+	var toggle_back_event := InputEventKey.new()
+	toggle_back_event.pressed = true
+	toggle_back_event.keycode = KEY_V
+	Input.parse_input_event(toggle_back_event)
+
+	await process_frame
+	await physics_frame
+
+	_assert_true(absf(main.call("GetPrototype3DCameraOrbitDistance") - 7.4) < 0.001, "Pressing V again from FPS should restore the previous TPS zoom distance")
+	await _despawn_main(main)
+
+func _test_camera_settings_persist() -> void:
+	var main := await _spawn_main()
+	main.call("SetPrototype3DCameraMaxOrbitDistance", 34.0)
+	main.call("SetPrototype3DCameraMinOrbitDistance", 0.5)
+	main.call("SetPrototype3DCameraOrbitDistance", 14.5)
+	main.call("SetPrototype3DCameraZoomRailPitchDegrees", 72.0)
+	main.call("SetPrototype3DCameraZoomStep", 2.25)
+	main.call("SetPrototype3DCameraLookAheadDistance", 24.0)
+	main.call("SetPrototype3DCameraFov", 48.0)
+	await process_frame
+	await physics_frame
+	await _despawn_main(main)
+
+	var config := ConfigFile.new()
+	var load_result := config.load("user://runtime_settings.cfg")
+	_assert_true(load_result == OK, "3D runtime settings file should be written to user:// for camera settings")
+	_assert_true(absf(config.get_value("gameplay", "prototype_3d_camera_orbit_distance", 0.0) - 14.5) < 0.001, "Saved settings should persist camera distance")
+	_assert_true(absf(config.get_value("gameplay", "prototype_3d_camera_zoom_rail_pitch_degrees", 0.0) - 72.0) < 0.001, "Saved settings should persist camera rail pitch")
+	_assert_true(absf(config.get_value("gameplay", "prototype_3d_camera_min_orbit_distance", 0.0) - 0.5) < 0.001, "Saved settings should persist camera min distance")
+	_assert_true(absf(config.get_value("gameplay", "prototype_3d_camera_max_orbit_distance", 0.0) - 34.0) < 0.001, "Saved settings should persist camera max distance")
+	_assert_true(absf(config.get_value("gameplay", "prototype_3d_camera_zoom_step", 0.0) - 2.25) < 0.001, "Saved settings should persist camera zoom step")
+	_assert_true(absf(config.get_value("gameplay", "prototype_3d_camera_look_ahead_distance", 0.0) - 24.0) < 0.001, "Saved settings should persist camera look-ahead")
+	_assert_true(absf(config.get_value("gameplay", "prototype_3d_camera_fov", 0.0) - 48.0) < 0.001, "Saved settings should persist camera FOV")
+
+	var reloaded_main := await _spawn_main()
+	_assert_true(absf(reloaded_main.call("GetPrototype3DCameraOrbitDistance") - 14.5) < 0.001, "3D main should load persisted camera distance on boot")
+	_assert_true(absf(reloaded_main.call("GetPrototype3DCameraZoomRailPitchDegrees") - 72.0) < 0.001, "3D main should load persisted camera rail pitch on boot")
+	_assert_true(absf(reloaded_main.call("GetPrototype3DCameraMinOrbitDistance") - 0.5) < 0.001, "3D main should load persisted camera min distance on boot")
+	_assert_true(absf(reloaded_main.call("GetPrototype3DCameraMaxOrbitDistance") - 34.0) < 0.001, "3D main should load persisted camera max distance on boot")
+	_assert_true(absf(reloaded_main.call("GetPrototype3DCameraZoomStep") - 2.25) < 0.001, "3D main should load persisted camera zoom step on boot")
+	_assert_true(absf(reloaded_main.call("GetPrototype3DCameraLookAheadDistance") - 24.0) < 0.001, "3D main should load persisted camera look-ahead on boot")
+	_assert_true(absf(reloaded_main.call("GetPrototype3DCameraFov") - 48.0) < 0.001, "3D main should load persisted camera FOV on boot")
+
+	var rig: Node = reloaded_main.get_node("CameraRig3D")
+	var camera: Camera3D = reloaded_main.get_node("CameraRig3D/Camera3D")
+	_assert_true(absf(rig.call("GetOrbitDistance") - 14.5) < 0.001, "Camera rig should apply persisted camera distance")
+	_assert_true(absf(rig.call("GetZoomRailPitchDegrees") - 72.0) < 0.001, "Camera rig should apply persisted camera rail pitch")
+	_assert_true(absf(rig.call("GetMinOrbitDistance") - 0.5) < 0.001, "Camera rig should apply persisted camera min distance")
+	_assert_true(absf(rig.call("GetMaxOrbitDistance") - 34.0) < 0.001, "Camera rig should apply persisted camera max distance")
+	_assert_true(absf(rig.call("GetZoomStep") - 2.25) < 0.001, "Camera rig should apply persisted camera zoom step")
+	_assert_true(absf(rig.call("GetLookAheadDistance") - 24.0) < 0.001, "Camera rig should apply persisted camera look-ahead")
+	_assert_true(absf(camera.fov - 48.0) < 0.001, "Camera node should apply persisted camera FOV")
+	await _despawn_main(reloaded_main)
+
+func _test_load_defaults_restores_current_defaults() -> void:
+	var main := await _spawn_main()
+	main.call("SetPrototype3DGravity", 77.0)
+	main.call("SetPrototype3DCameraOrbitDistance", 5.0)
+	main.call("SetPrototype3DCameraZoomRailPitchDegrees", 60.0)
+	main.call("SetPersistentImpactMarkersEnabled", false)
+
+	await process_frame
+	await physics_frame
+
+	main.call("ResetRuntimeSettingsToDefaults")
+
+	await process_frame
+	await physics_frame
+
+	_assert_true(absf(main.call("GetPrototype3DGravity") - 50.0) < 0.001, "Load defaults should restore gravity")
+	_assert_true(absf(main.call("GetPrototype3DCameraOrbitDistance") - 10.0) < 0.001, "Load defaults should restore camera distance")
+	_assert_true(absf(main.call("GetPrototype3DCameraZoomRailPitchDegrees") - 20.0) < 0.001, "Load defaults should restore camera rail pitch")
+	_assert_true(absf(main.call("GetPrototype3DCameraMaxOrbitDistance") - 10.0) < 0.001, "Load defaults should restore camera max distance")
+	_assert_true(absf(main.call("GetPrototype3DCameraZoomStep") - 1.0) < 0.001, "Load defaults should restore camera zoom step")
+	_assert_true(absf(main.call("GetPrototype3DCameraFov") - 40.0) < 0.001, "Load defaults should restore camera FOV")
+	_assert_true(bool(main.call("GetPersistentImpactMarkersEnabled")), "Load defaults should restore persistent hit markers to enabled")
+
+	var config := ConfigFile.new()
+	var load_result := config.load("user://runtime_settings.cfg")
+	_assert_true(load_result == OK, "Load defaults should persist the regenerated cfg")
+	_assert_true(absf(config.get_value("gameplay", "prototype_3d_gravity", 0.0) - 50.0) < 0.001, "Load defaults should persist default gravity")
+	_assert_true(absf(config.get_value("gameplay", "prototype_3d_camera_orbit_distance", 0.0) - 10.0) < 0.001, "Load defaults should persist default camera distance")
+	_assert_true(absf(config.get_value("gameplay", "prototype_3d_camera_max_orbit_distance", 0.0) - 10.0) < 0.001, "Load defaults should persist default camera max distance")
+	_assert_true(absf(config.get_value("gameplay", "prototype_3d_camera_zoom_step", 0.0) - 1.0) < 0.001, "Load defaults should persist default camera zoom step")
+	_assert_true(absf(config.get_value("gameplay", "prototype_3d_camera_fov", 0.0) - 40.0) < 0.001, "Load defaults should persist default camera FOV")
+	_assert_true(bool(config.get_value("gameplay", "persistent_impact_markers_enabled", false)), "Load defaults should persist keep hit markers enabled")
+	await _despawn_main(main)
+
+func _test_player_body_fades_when_zoomed_in() -> void:
+	var main := await _spawn_main()
+	main.call("SetPrototype3DCameraOrbitDistance", 10.0)
+
+	await process_frame
+	await physics_frame
+
+	var player: Node = main.get_node("Player")
+	_assert_true(absf(player.call("GetBodyOpacityForTesting") - 1.0) < 0.001, "Player body should stay opaque when camera is not in the close zoom band")
+
+	main.call("SetPrototype3DCameraOrbitDistance", 0.6)
+
+	await process_frame
+	await physics_frame
+
+	_assert_true(absf(player.call("GetBodyOpacityForTesting") - 0.2) < 0.01, "Player body should fade to twenty percent opacity at minimum zoom distance")
+	await _despawn_main(main)
 
 func _test_manual_reload_starts_from_partial_magazine() -> void:
 	var main := await _spawn_main()
@@ -157,6 +333,40 @@ func _test_vertical_mouse_motion_changes_pitch() -> void:
 
 	var updated_pitch: float = player.call("GetCurrentPitchDegreesForTesting")
 	_assert_true(updated_pitch < initial_pitch, "Moving the mouse up should lower camera pitch in TPS aim mode")
+	await _despawn_main(main)
+
+func _test_pitch_can_aim_up_into_the_sky() -> void:
+	var main := await _spawn_main()
+	var player: Node = main.get_node("Player")
+	player.call("SetPitchDegrees", -60.0)
+
+	await process_frame
+	await physics_frame
+	await process_frame
+
+	var updated_pitch: float = player.call("GetCurrentPitchDegreesForTesting")
+	var aim_forward: Vector3 = player.call("GetCurrentAimForward3DForTesting")
+	_assert_true(updated_pitch <= -59.0, "TPS aim should allow pitching above the horizon toward the sky")
+	_assert_true(aim_forward.y > 0.5, "Negative pitch should tilt the centered crosshair aim upward")
+	await _despawn_main(main)
+
+func _test_pitch_is_clamped_before_crosshair_moves_below_player_feet() -> void:
+	var main := await _spawn_main()
+	var player: Node = main.get_node("Player")
+	var camera: Camera3D = main.get_node("CameraRig3D/Camera3D")
+	player.call("SetPitchDegrees", 89.0)
+
+	await process_frame
+	await physics_frame
+	await process_frame
+
+	var constrained_pitch: float = player.call("GetCurrentPitchDegreesForTesting")
+	var lowest_point_screen_pos := camera.unproject_position(player.call("GetLowestBodyPointForTesting"))
+	var shot_origin_screen_pos := camera.unproject_position(player.call("GetFirePointPositionForTesting"))
+	var viewport_center_y := camera.get_viewport().get_visible_rect().size.y * 0.5
+	_assert_true(constrained_pitch < 89.0, "TPS camera should clamp pitch before the centered crosshair drops below the player feet anchor")
+	_assert_true(lowest_point_screen_pos.y >= viewport_center_y - 0.5, "TPS camera should keep the player feet anchor at or below the centered crosshair")
+	_assert_true(shot_origin_screen_pos.y < viewport_center_y - 0.5, "TPS camera should allow aiming below the shot origin as long as the player feet stay below the centered crosshair")
 	await _despawn_main(main)
 
 func _test_space_jumps_player() -> void:

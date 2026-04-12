@@ -28,11 +28,11 @@ public sealed class ThirdPersonAimModel3DTests
     [Fact]
     public void PitchIsClampedIntoSupportedRange()
     {
-        var low = ThirdPersonAimModel3D.UpdatePitchDegrees(10.0f, 5000.0f, 0.0035f, 0.0f, 90.0f);
-        var high = ThirdPersonAimModel3D.UpdatePitchDegrees(80.0f, -5000.0f, 0.0035f, 0.0f, 90.0f);
+        var low = ThirdPersonAimModel3D.UpdatePitchDegrees(10.0f, 5000.0f, 0.0035f, -89.0f, 90.0f);
+        var high = ThirdPersonAimModel3D.UpdatePitchDegrees(80.0f, -5000.0f, 0.0035f, -89.0f, 90.0f);
 
         Assert.Equal(90.0f, low, 6);
-        Assert.Equal(0.0f, high, 6);
+        Assert.Equal(-89.0f, high, 6);
     }
 
     [Fact]
@@ -42,6 +42,16 @@ public sealed class ThirdPersonAimModel3DTests
 
         Assert.Equal(0.0f, aim.X, 6);
         Assert.True(aim.Y < 0.0f);
+        Assert.True(aim.Z > 0.0f);
+    }
+
+    [Fact]
+    public void NegativePitchAimsUpward()
+    {
+        var aim = ThirdPersonAimModel3D.AimDirectionFromYawPitch(0.0f, -30.0f);
+
+        Assert.Equal(0.0f, aim.X, 6);
+        Assert.True(aim.Y > 0.0f);
         Assert.True(aim.Z > 0.0f);
     }
 

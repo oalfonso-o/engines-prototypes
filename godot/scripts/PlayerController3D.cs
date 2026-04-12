@@ -8,8 +8,11 @@ namespace Canuter
     public partial class PlayerController3D : CharacterBody3D
     {
         private const float DefaultShotOriginHeight = 1.25f;
+        private const float MinAimPitchDegrees = -89.0f;
+        private const float MaxAimPitchDegrees = 90.0f;
         private Area3D _hurtbox = null!;
         private MeshInstance3D _bodyMesh = null!;
+        private StandardMaterial3D _bodyMaterial = null!;
         private CollisionShape3D _movementCollider = null!;
         private Marker3D _firePoint = null!;
         private MeshInstance3D _tracerMesh = null!;
@@ -31,6 +34,8 @@ namespace Canuter
         private Camera3D? _aimCamera;
         private float _gravity = PlayerRuntimeTuning.Prototype3DGravity;
         private float _jumpVelocity = PlayerRuntimeTuning.Prototype3DJumpVelocity;
+        private Color _bodyBaseColor;
+        private float _bodyOpacity = 1.0f;
 
         private sealed class ImpactMarkerEntry
         {
@@ -52,6 +57,7 @@ namespace Canuter
         public int CurrentHealth => 100;
         public Vector3 CurrentForward3D => new(_currentHorizontalForward2D.X, 0.0f, _currentHorizontalForward2D.Y);
         public Vector3 CurrentAimForward3D => ToGodot3(ThirdPersonAimModel3D.AimDirectionFromYawPitch(_currentYawRadians, _currentPitchDegrees));
+        public Vector3 CurrentShotOrigin3D => GetShotOrigin();
         public Vector2 CurrentAimDirection2D => _currentHorizontalForward2D;
         public float CurrentAimRotation => _currentYawRadians;
         public float CurrentPitchDegrees => _currentPitchDegrees;
@@ -64,6 +70,8 @@ namespace Canuter
             _movementCollider = GetNode<CollisionShape3D>("MovementCollider");
             _hurtbox = GetNode<Area3D>("Hurtbox");
             _bodyMesh = GetNode<MeshInstance3D>("BodyMesh");
+            _bodyMaterial = CreateBodyMaterialInstance();
+            _bodyBaseColor = _bodyMaterial.AlbedoColor;
             _firePoint = GetNode<Marker3D>("FirePoint");
             _tracerMesh = CreateTracerMesh();
             _impactRoot = new Node3D();
@@ -73,6 +81,7 @@ namespace Canuter
             SyncBodyLayout();
             SyncFirePointToShotOrigin();
             ApplyMeshRotation();
+            SetBodyOpacity(1.0f);
         }
 
         public override void _Process(double delta)
@@ -149,8 +158,8 @@ namespace Canuter
                 _currentPitchDegrees,
                 _pendingMouseDelta.Y,
                 _headingSensitivity,
-                0.0f,
-                90.0f);
+                MinAimPitchDegrees,
+                MaxAimPitchDegrees);
             _currentHorizontalForward2D = ToGodot(ThirdPersonAimModel3D.HorizontalForwardFromYaw(_currentYawRadians));
 
             var planarVelocity = HeadingLockedMovementModel3D.CalculateVelocity(
@@ -263,9 +272,20 @@ namespace Canuter
             _persistentImpactMarkersEnabled = enabled;
         }
 
+        public void SetBodyOpacity(float opacity)
+        {
+            _bodyOpacity = Mathf.Clamp(opacity, PlayerBodyFadeModel3D.MinOpacityAtMinZoom, 1.0f);
+            var color = _bodyBaseColor;
+            color.A = _bodyBaseColor.A * _bodyOpacity;
+            _bodyMaterial.AlbedoColor = color;
+            _bodyMaterial.Transparency = _bodyOpacity >= 0.999f
+                ? BaseMaterial3D.TransparencyEnum.Disabled
+                : BaseMaterial3D.TransparencyEnum.Alpha;
+        }
+
         public void SetPitchDegrees(float pitchDegrees)
         {
-            _currentPitchDegrees = float.Clamp(pitchDegrees, 0.0f, 90.0f);
+            _currentPitchDegrees = float.Clamp(pitchDegrees, MinAimPitchDegrees, MaxAimPitchDegrees);
         }
 
         public void SetGameplayInputEnabled(bool enabled)
@@ -328,6 +348,11 @@ namespace Canuter
             return GetShotOrigin();
         }
 
+        public Vector3 GetLowestBodyPointForTesting()
+        {
+            return GetLowestBodyPoint();
+        }
+
         public Vector3 GetCurrentShotDirectionForTesting(float maxDistance)
         {
             var aimPoint = ResolveAimPoint(maxDistance);
@@ -337,6 +362,11 @@ namespace Canuter
         public bool GetImpactMarkerVisibleForTesting()
         {
             return _impactRoot.GetChildCount() > 0;
+        }
+
+        public float GetBodyOpacityForTesting()
+        {
+            return _bodyOpacity;
         }
 
         public Vector3 GetImpactMarkerPositionForTesting()
@@ -388,6 +418,16 @@ namespace Canuter
                 bodyCapsuleMesh.Radius = capsule.Radius;
                 bodyCapsuleMesh.Height = capsule.Height;
             }
+        }
+
+        private StandardMaterial3D CreateBodyMaterialInstance()
+        {
+            var sourceMaterial = _bodyMesh.MaterialOverride as StandardMaterial3D;
+            var material = sourceMaterial != null
+                ? (StandardMaterial3D)sourceMaterial.Duplicate()
+                : new StandardMaterial3D();
+            _bodyMesh.MaterialOverride = material;
+            return material;
         }
 
         private void TryUseEquippedWeapon()
@@ -620,6 +660,11 @@ namespace Canuter
             return GlobalPosition + Vector3.Up * GetShotOriginHeight();
         }
 
+        private Vector3 GetLowestBodyPoint()
+        {
+            return GlobalPosition + Vector3.Up * GetLowestBodyPointHeight();
+        }
+
         private float GetCapsuleHalfHeight()
         {
             if (_movementCollider?.Shape is CapsuleShape3D capsule)
@@ -638,6 +683,16 @@ namespace Canuter
             }
 
             return DefaultShotOriginHeight;
+        }
+
+        private float GetLowestBodyPointHeight()
+        {
+            if (_movementCollider?.Shape is CapsuleShape3D capsule)
+            {
+                return _movementCollider.Position.Y - capsule.Height * 0.5f;
+            }
+
+            return 0.0f;
         }
 
         private void SyncFirePointToShotOrigin()

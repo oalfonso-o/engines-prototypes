@@ -60,7 +60,10 @@
 
 ## Camera And Visibility Requirement
 
-- The camera is a low-angle third-person follow camera with runtime-adjustable angle and distance.
+- The camera is a low-angle third-person follow camera with runtime-adjustable distance.
+- Mouse look and the centered crosshair drive the live camera angle.
+- Zoom should move the camera on a straight line toward the upper-center of the player and allow an FPS-like close view at minimum distance.
+- The zoom travel line is not the same line as the aim ray toward the centered crosshair.
 - The player does not receive unrestricted tactical information.
 - The prototype should reintroduce forward tactical visibility only after the base 3D camera and movement feel are locked.
 
