@@ -12,6 +12,7 @@ Current document set:
 - `06-mvp-offline-prototype.md`: first playable scope and explicit non-goals.
 - `07-mvp-runtime-rules.md`: implementation-facing gameplay/runtime rules for the current offline MVP branch.
 - `08-prototypes-to-test.md`: experimental ideas that should be evaluated before becoming stable runtime rules.
+- `plans/`: implementation plans for larger pivots or multi-step technical work.
 - `asset-pipeline/`: current text-map and SVG asset pipeline notes.
 - `art-bible/`: visual direction and current asset production rules.
 

@@ -1,88 +1,97 @@
-[gd_scene load_steps=14 format=3 uid="uid://cqow47bch5ocs"]
+[gd_scene load_steps=14 format=3]
 
-[ext_resource type="Script" path="res://scripts/Main.cs" id="1_rc7ef"]
-[ext_resource type="Script" path="res://scripts/PlayerController.cs" id="2_gyp8q"]
-[ext_resource type="Script" path="res://scripts/Crosshair.cs" id="3_aqcb1"]
-[ext_resource type="Script" path="res://scripts/MapView.cs" id="4_b18nv"]
-[ext_resource type="Script" path="res://scripts/GameHud.cs" id="5_6y1dm"]
-[ext_resource type="Script" path="res://scripts/VisionSystem.cs" id="6_yyrht"]
-[ext_resource type="Script" path="res://scripts/PauseMenuOverlay.cs" id="7_i6yx4"]
-[ext_resource type="Script" path="res://scripts/HeadingLockedPerspectiveDebugOverlay.cs" id="8_2n4h8"]
+[ext_resource type="Script" path="res://scripts/Main3D.cs" id="1_main"]
+[ext_resource type="Script" path="res://scripts/MapView3D.cs" id="2_map"]
+[ext_resource type="Script" path="res://scripts/PlayerController3D.cs" id="3_player"]
+[ext_resource type="Script" path="res://scripts/CameraRig3D.cs" id="4_camera"]
+[ext_resource type="Script" path="res://scripts/VisionSystem3D.cs" id="5_vision"]
+[ext_resource type="Script" path="res://scripts/GameHud3D.cs" id="6_hud"]
+[ext_resource type="Script" path="res://scripts/Crosshair.cs" id="7_crosshair"]
+[ext_resource type="Script" path="res://scripts/PauseMenuOverlay.cs" id="8_pause"]
 
-[sub_resource type="CircleShape2D" id="CircleShape2D_move"]
-radius = 24.0
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_move"]
+radius = 0.55
+height = 1.4
 
-[sub_resource type="CircleShape2D" id="CircleShape2D_head"]
-radius = 20.0
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_hurt"]
+radius = 0.55
+height = 1.4
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_shoulders"]
-size = Vector2(104, 30)
+[sub_resource type="CapsuleMesh" id="CapsuleMesh_body"]
+radius = 0.55
+mid_height = 1.35
 
-[node name="Main" type="Node2D"]
-script = ExtResource("1_rc7ef")
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_body"]
+shading_mode = 1
+albedo_color = Color(0.62, 0.68, 0.74, 1)
 
-[node name="Backdrop" type="ColorRect" parent="."]
-offset_left = -2000.0
-offset_top = -2000.0
-offset_right = 2000.0
-offset_bottom = 2000.0
-color = Color(1, 1, 1, 1)
+[sub_resource type="Environment" id="Environment_default"]
+background_mode = 2
+background_color = Color(0.74, 0.74, 0.74, 1)
+ambient_light_source = 2
+ambient_light_color = Color(1, 1, 1, 1)
+ambient_light_energy = 1.0
 
-[node name="Map" type="Node2D" parent="."]
-script = ExtResource("4_b18nv")
+[node name="Main3D" type="Node3D"]
+script = ExtResource("1_main")
 
-[node name="WallCollisions" type="StaticBody2D" parent="Map"]
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_default")
 
-[node name="WallOccluders" type="Node2D" parent="Map"]
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
+rotation = Vector3(-0.9, 0.7, 0)
+light_energy = 1.25
+shadow_enabled = true
 
-[node name="Targets" type="Node2D" parent="Map"]
+[node name="Map" type="Node3D" parent="."]
+script = ExtResource("2_map")
+cell_size = 4.0
+wall_height = 3.0
 
-[node name="Player" type="CharacterBody2D" parent="."]
-position = Vector2(640, 360)
-script = ExtResource("2_gyp8q")
+[node name="Floor" type="Node3D" parent="Map"]
 
-[node name="MovementCollider" type="CollisionShape2D" parent="Player"]
-shape = SubResource("CircleShape2D_move")
+[node name="Walls" type="Node3D" parent="Map"]
 
-[node name="Hurtbox" type="Area2D" parent="Player"]
+[node name="Targets" type="Node3D" parent="Map"]
+
+[node name="Player" type="CharacterBody3D" parent="."]
+script = ExtResource("3_player")
+
+[node name="MovementCollider" type="CollisionShape3D" parent="Player"]
+shape = SubResource("CapsuleShape3D_move")
+
+[node name="Hurtbox" type="Area3D" parent="Player"]
 monitoring = false
 monitorable = true
 
-[node name="HeadShape" type="CollisionShape2D" parent="Player/Hurtbox"]
-shape = SubResource("CircleShape2D_head")
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Player/Hurtbox"]
+shape = SubResource("CapsuleShape3D_hurt")
 
-[node name="TorsoShape" type="CollisionShape2D" parent="Player/Hurtbox"]
-position = Vector2(0, -19)
-shape = SubResource("RectangleShape2D_shoulders")
+[node name="BodyMesh" type="MeshInstance3D" parent="Player"]
+mesh = SubResource("CapsuleMesh_body")
+material_override = SubResource("StandardMaterial3D_body")
 
-[node name="VisualRoot" type="Node2D" parent="Player"]
+[node name="FirePoint" type="Marker3D" parent="Player"]
+position = Vector3(0, 1.0, 0.9)
 
-[node name="BodySprite" type="AnimatedSprite2D" parent="Player/VisualRoot"]
-centered = true
+[node name="CameraRig3D" type="Node3D" parent="."]
+script = ExtResource("4_camera")
+orbit_distance = 18.0
+pitch_degrees = 40.0
+min_orbit_distance = 6.0
+max_orbit_distance = 40.0
+zoom_step = 1.5
+look_ahead_distance = 5.5
+look_height = 1.15
 
-[node name="WeaponSprite" type="Sprite2D" parent="Player/VisualRoot"]
-centered = true
+[node name="Camera3D" type="Camera3D" parent="CameraRig3D"]
+current = true
+fov = 39.0
+near = 0.05
+far = 200.0
 
-[node name="FirePoint" type="Marker2D" parent="Player/VisualRoot"]
-position = Vector2(0, 108)
-
-[node name="Camera2D" type="Camera2D" parent="Player"]
-enabled = true
-ignore_rotation = false
-position_smoothing_enabled = true
-position_smoothing_speed = 8.0
-
-[node name="WorldDarkness" type="CanvasModulate" parent="."]
-color = Color(0.26, 0.26, 0.26, 1)
-
-[node name="VisionSystem" type="Node2D" parent="."]
-script = ExtResource("6_yyrht")
-
-[node name="VisionLight" type="PointLight2D" parent="VisionSystem"]
-color = Color(1, 1, 1, 1)
-energy = 1.0
-blend_mode = 0
-shadow_enabled = true
+[node name="VisionSystem3D" type="Node3D" parent="."]
+script = ExtResource("5_vision")
 
 [node name="Hud" type="CanvasLayer" parent="."]
 
@@ -94,18 +103,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-script = ExtResource("5_6y1dm")
-
-[node name="HeadingLockedPerspectiveDebugOverlay" type="Control" parent="Hud"]
-visible = false
-layout_mode = 3
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-mouse_filter = 2
-script = ExtResource("8_2n4h8")
+script = ExtResource("6_hud")
 
 [node name="Crosshair" type="Control" parent="Hud"]
 layout_mode = 3
@@ -115,7 +113,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-script = ExtResource("3_aqcb1")
+script = ExtResource("7_crosshair")
 
 [node name="PauseMenuOverlay" type="Control" parent="Hud"]
 visible = false
@@ -126,7 +124,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 1
-script = ExtResource("7_i6yx4")
+script = ExtResource("8_pause")
 
 [node name="Backdrop" type="ColorRect" parent="Hud/PauseMenuOverlay"]
 layout_mode = 1
@@ -229,7 +227,7 @@ step = 1.0
 
 [node name="SettingsHint" type="Label" parent="Hud/PauseMenuOverlay/Panel/Root/SettingsContent"]
 layout_mode = 2
-text = "Heading Locked captures the mouse. 3D camera angle is measured from the ground: 0 is ground-level and 90 is top-down."
+text = "Use mouse wheel to change 3D camera distance. Camera angle is measured in degrees from the ground: 0 is ground-level and 90 is top-down."
 autowrap_mode = 3
 
 [node name="BackButton" type="Button" parent="Hud/PauseMenuOverlay/Panel/Root/SettingsContent"]

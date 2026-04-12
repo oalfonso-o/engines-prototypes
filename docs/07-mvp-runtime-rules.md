@@ -12,6 +12,8 @@
 - It is intentionally narrower than the long-term design.
 - If a long-term design rule conflicts with this file, the current MVP runtime should follow this file until the prototype is intentionally expanded.
 - The target game mode is now the bomb-run objective defined in `docs/02-gameplay-core.md`, but that full objective flow is not yet implemented in the current runtime branch.
+- The current default boot scene is `main_3d.tscn`.
+- The older 2D scene `main.tscn` remains in the repo as a reference/runtime comparison path, but it is no longer the default launch target.
 
 ## Player Core
 
@@ -19,7 +21,7 @@
 - The runtime now supports two player view modes:
 - `topdown_fixed`
 - `heading_locked`
-- `topdown_fixed` remains the default runtime mode.
+- The current default player-facing runtime is the 3D `heading_locked` prototype.
 - Aim direction is mode-dependent:
 - `topdown_fixed`: aim direction is driven by mouse position.
 - `heading_locked`: aim direction is driven by relative horizontal mouse movement and remains locked forward.
@@ -29,6 +31,7 @@
 - The current body animation set has two runtime states:
 - `idle`
 - `move`
+- In the current 3D prototype, player and enemy visuals start as simple capsules rather than final character art.
 
 ## Player Movement
 
@@ -46,15 +49,19 @@
 
 ## Camera
 
-- The camera is top-down and follows the player.
+- The current default camera is a 3D follow camera with a low angle and the player framed near the bottom of the screen.
+- The current 3D prototype intentionally uses a tighter, lower follow camera and a narrower field of view than the earlier reset pass so corridors and wall silhouettes read more cleanly.
+- The current default 3D camera angle is `40` degrees measured from the ground plane toward top-down.
+- The 3D camera angle is runtime-configurable from `0` degrees (ground-level) to `90` degrees (vertical top-down).
+- The older 2D camera path still exists in `main.tscn`.
 - `topdown_fixed`: the camera does not rotate.
 - `heading_locked`: the camera rotates with the player's heading so the player remains visually upright on screen.
 - `heading_locked`: camera position follow is immediate rather than smoothed.
 - `heading_locked`: the camera is biased forward along the current heading so the player sits below screen center and more space is visible ahead than behind.
-- `heading_locked`: the runtime uses an experimental screen-space pseudo-perspective world render instead of the normal top-down map draw.
-- `heading_locked`: the current experimental pass uses a raycast fan to find first wall hits, draw the front visible floor only up to that frontier, render vertical wall slices at the blocking edge, project the rear hemisphere floor as always-readable context, and keep the wall layout visible in a darkened hidden-state volumetric pass with vertical faces and roof silhouettes so the map shape remains readable without revealing live line-of-sight information.
+- `heading_locked`: in the current default 3D prototype, the perspective comes from real 3D geometry and camera projection rather than the older fake 2.5D overlay.
+- The current simplified 3D reset does not yet apply camera ghosting or tactical visibility darkening; the immediate priority is clean movement, clean wall readability, and stable camera framing.
 - The default runtime zoom is slightly zoomed out from the original prototype baseline.
-- Mouse wheel controls zoom.
+- In the 3D prototype, mouse wheel controls camera orbit distance around the player.
 - The zoom-in limit is the current closest gameplay zoom.
 - The zoom-out limit is the current farthest gameplay zoom used by the prototype.
 
@@ -62,10 +69,14 @@
 
 - Pressing `Escape` opens a pause overlay.
 - The current pause overlay contains a `Settings` entry.
+- The current pause overlay also exposes an `Exit` action that quits the runtime.
 - The current settings screen exposes:
 - player view mode selector
 - heading-locked turn sensitivity
-- Runtime settings are persisted locally so the selected view mode and heading-locked sensitivity are restored on the next launch.
+- 3D movement speed
+- 3D camera angle
+- In the current default 3D prototype, the view mode selector is effectively pinned to `heading_locked`.
+- Runtime settings are persisted locally so the selected view mode, heading-locked sensitivity, 3D movement speed, and 3D camera angle are restored on the next launch.
 - Closing the pause overlay returns control to gameplay using the currently selected view mode.
 
 ## Weapon Slots
@@ -151,6 +162,7 @@
 - Hitscan stops at the first valid collision along the ray.
 - Walls block shots.
 - A short debug tracer is allowed as gameplay feedback in the MVP branch.
+- In the current 3D prototype, hitscan and melee both operate in 3D physics space while keeping the same weapon data and core weapon state logic.
 
 ## Melee Resolution
 
@@ -176,19 +188,16 @@
 - damage application works
 - Target visibility should obey the same visibility rules as the rest of the world.
 - Targets should not render if they are not currently visible to the player.
+- In the current 3D prototype, dummy targets are simple capsules.
 
 ## Vision Rules
 
-- The current MVP visibility model is based on:
-- camera bounds
-- a forward-facing `180` degree field of view
-- wall occlusion
-- The forward-facing direction comes from the current active player view mode heading/aim.
-- The camera bounds act as the effective maximum visibility extent for the prototype.
-- A world point is visible only if:
-- it is inside the current camera world area
-- it is inside the forward `180` degree half-space in front of the player
-- a line-of-sight query from the player to that point is not blocked by a wall
+- The current simplified 3D reset does not yet apply the intended tactical visibility model in runtime rendering.
+- The long-term target for the 3D prototype remains:
+- forward-facing `180` degree tactical visibility
+- wall occlusion in the front hemisphere
+- broader readability in the rear hemisphere
+- That visibility split should be reintroduced only after camera scale, movement, and base map readability are stable.
 
 ## Fog Of War Rules
 
@@ -199,16 +208,17 @@
 - Unexplored cells must not reveal meaningful geometry.
 - Explored cells may remain known to the player when out of sight.
 - Live targets must not remain visible just because their cell was explored before.
-- `heading_locked` currently experiments with a stronger readability rule for walls: wall layout can remain visible in a darkened hidden-state volumetric presentation, including walls outside the front tactical fan, even when floor visibility is still limited by the current vision fan.
+- The current simplified 3D reset does not yet apply fog-of-war or hidden-known darkening in the live runtime.
+- Fog/visibility presentation for the 3D prototype should be added back in a later pass once the baseline camera/readability problem is solved.
 
 ## Map Runtime Rules
 
 - The map is loaded from a text file.
 - The map renderer is part of the runtime path, not a throwaway prototype shortcut.
-- Walls are currently rendered procedurally from text-map semantics.
-- Floor is currently rendered procedurally with deterministic variation.
-- Wall collision currently uses per-cell solid blocking.
-- Wall visibility blocking is provided to the vision system through runtime occluders/collision geometry.
+- The current default 3D prototype extrudes the same text-map semantics into floor tiles and wall volumes.
+- The current 3D prototype keeps walls slightly lower relative to cell width than the first reset pass so lanes remain readable from the chosen camera angle.
+- Wall collision currently uses simple per-cell box blocking in 3D.
+- Floor is currently rendered procedurally from the same text map rather than authored as bespoke geometry.
 
 ## Minimap Rules
 
@@ -220,6 +230,7 @@
 - `heading_locked`: the minimap rotates with the player's current camera/heading orientation so forward remains up, and the orientation markers rotate with it.
 - Enemy markers should appear only for targets that are currently validly visible.
 - The minimap should not reveal hidden or merely explored enemies.
+- In the 3D prototype, the minimap remains a 2D UI projection rather than a separate rendered 3D camera.
 
 ## HUD Rules
 
@@ -235,7 +246,7 @@
 - Crosshair presentation is mode-dependent:
 - `topdown_fixed`: free mouse crosshair
 - `heading_locked`: centered forward aim hint
-- `heading_locked` currently uses an experimental pseudo-perspective world render with visible-floor area, wall slices, target markers, player-anchor cues, and darkened hidden wall layout; this is part of the mode's active world presentation rather than a secondary overlay on top of the top-down map.
+- In the current default 3D prototype, `heading_locked` uses the centered forward aim hint and the world is rendered directly as 3D geometry instead of through the older pseudo-perspective overlay.
 
 ## Runtime Source Of Truth
 

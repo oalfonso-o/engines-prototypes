@@ -11,7 +11,7 @@ namespace Canuter
         public const float ZoomStep = 0.1f;
         public const float AimDeadzoneSquared = 0.0001f;
         public const float MovingAnimationThresholdSquared = 16.0f;
-        public const float HeadingLockedMouseRadiansPerPixel = 0.0035f;
+        public const float HeadingLockedMouseRadiansPerPixel = 0.0012f;
         public const float HeadingLockedCameraUprightOffset = MathF.PI;
         public const float HeadingLockedCameraLookAheadDistance = 240.0f;
         public const float HeadingLockedStrafeTurnaroundAcceleration = 30000.0f;
@@ -29,5 +29,14 @@ namespace Canuter
         public const float HeadingLockedPerspectiveTargetHeight = 72.0f;
         public const float HeadingLockedPerspectiveTargetRadius = 22.0f;
         public const float HeadingLockedPerspectiveMaxWallSliceDepthDelta = 140.0f;
+        public const float Prototype3DMoveSpeed = 34.5f;
+        public const float Prototype3DMoveAcceleration = 132.0f;
+        public const float Prototype3DMoveDeceleration = 192.0f;
+        public const float Prototype3DStrafeTurnaroundAcceleration = 420.0f;
+        public const float Prototype3DCameraPitchDegrees = 40.0f;
+        public const float Prototype3DCameraOrbitDistance = 18.0f;
+        public const float Prototype3DCameraMinOrbitDistance = 6.0f;
+        public const float Prototype3DCameraMaxOrbitDistance = 40.0f;
+        public const float Prototype3DCameraZoomStep = 1.5f;
     }
 }

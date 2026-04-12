@@ -39,4 +39,44 @@ public sealed class GameSettingsTests
         settings.SetHeadingLockedTurnSensitivity(0.0001f);
         Assert.Equal(GameSettings.MinHeadingLockedTurnSensitivity, settings.HeadingLockedTurnSensitivity, 6);
     }
+
+    [Fact]
+    public void DefaultsToCurrentPrototype3DMoveSpeed()
+    {
+        var settings = new GameSettings();
+
+        Assert.Equal(PlayerRuntimeTuning.Prototype3DMoveSpeed, settings.Prototype3DMoveSpeed, 6);
+    }
+
+    [Fact]
+    public void Prototype3DMoveSpeedIsClamped()
+    {
+        var settings = new GameSettings();
+
+        settings.SetPrototype3DMoveSpeed(1000.0f);
+        Assert.Equal(GameSettings.MaxPrototype3DMoveSpeed, settings.Prototype3DMoveSpeed, 6);
+
+        settings.SetPrototype3DMoveSpeed(0.1f);
+        Assert.Equal(GameSettings.MinPrototype3DMoveSpeed, settings.Prototype3DMoveSpeed, 6);
+    }
+
+    [Fact]
+    public void DefaultsToCurrentPrototype3DCameraPitch()
+    {
+        var settings = new GameSettings();
+
+        Assert.Equal(PlayerRuntimeTuning.Prototype3DCameraPitchDegrees, settings.Prototype3DCameraPitchDegrees, 6);
+    }
+
+    [Fact]
+    public void Prototype3DCameraPitchIsClamped()
+    {
+        var settings = new GameSettings();
+
+        settings.SetPrototype3DCameraPitchDegrees(120.0f);
+        Assert.Equal(GameSettings.MaxPrototype3DCameraPitchDegrees, settings.Prototype3DCameraPitchDegrees, 6);
+
+        settings.SetPrototype3DCameraPitchDegrees(-5.0f);
+        Assert.Equal(GameSettings.MinPrototype3DCameraPitchDegrees, settings.Prototype3DCameraPitchDegrees, 6);
+    }
 }
