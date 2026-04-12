@@ -35,8 +35,6 @@ namespace Canuter
         public int EquippedAmmoInMagazine => _equippedWeapon.AmmoInMagazine;
         public int EquippedReserveAmmo => _equippedWeapon.ReserveAmmo;
         public bool IsReloading => _equippedWeapon.IsReloading;
-        public double ReloadRemaining => _equippedWeapon.ReloadRemaining;
-        public string CurrentAnimationName => _currentAnimation;
         public int MaxHealth => 100;
         public int CurrentHealth => 100;
         public Camera2D GameplayCamera => _camera;
@@ -56,7 +54,7 @@ namespace Canuter
             _firePoint = GetNode<Marker2D>("VisualRoot/FirePoint");
             _camera = GetNode<Camera2D>("Camera2D");
             EnsureInputMap();
-            _bodySprite.SpriteFrames = AssetRepository.LoadCharacterSpriteFrames(AssetCatalog.CharacterBaseGearbox01);
+            _bodySprite.SpriteFrames = AssetRepository.LoadCharacterSpriteFrames(AssetCatalog.CharacterBodyBase01);
             EquipWeapon(WeaponCatalog.Rifle01);
             SetZoom(DefaultZoom);
             _bodySprite.Play("idle");

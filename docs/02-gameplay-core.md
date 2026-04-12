@@ -3,12 +3,36 @@
 ## Match Structure
 
 - Default mode at the start of development: `5v5`.
+- The default mode, and the only planned mode for now, is a bomb-run objective mode.
 - Initial match structure: `10` scheduled rounds total.
 - Round duration: `2 minutes`.
 - Side switch after `5` rounds.
 - Each team plays `5` rounds on each side of the map.
-- A round is won by eliminating the entire opposing team.
+- Each map has two faction bases placed on opposite sides of the map:
+- one `Capitalist` base
+- one `Communist` base
+- Each base has `5` fixed spawn positions.
+- At the start of each round, each player is assigned randomly to one of that faction's spawn positions.
+- Each faction plants the bomb only in the enemy base, never in its own base.
+- A shared bomb spawns in the map center or equivalent contested mid-map location.
+- The bomb can be picked up, carried, dropped, equipped, planted, and defused.
+- The round objective is not elimination-only.
+- The primary objective flow is:
+- take control of the central bomb
+- carry it to the enemy base
+- plant it there
+- defend it until detonation
+- Planting the bomb starts a `5` second channel.
+- Once planted, the bomb explodes after `30` seconds unless defused.
+- Defusing the bomb also requires a `5` second channel.
+- Planting and defusing both require holding the action key and remaining stationary.
+- If the player moves, the channel is interrupted and must be restarted from the beginning.
+- A successful bomb detonation wins the round for the planting team.
+- When the bomb explodes, players close enough to the blast die.
+- A planted bomb may be defused by the defending team.
+- After the bomb explodes, a winner message is shown first and the round ends `5` seconds later.
 - If the round timer expires, the round ends in a draw.
+- Additional round-resolution edge cases around full team wipes before detonation are still `TBD` for the design layer and should be resolved explicitly before multiplayer production.
 - If the match reaches `5-5`, it is resolved with a tiebreaker round:
 - knife-only combat
 - every player also receives `1 smoke` and `1 flashbang`
@@ -23,12 +47,9 @@
 ## Factions
 
 - Two factions:
-- `Good side`: NATO-aligned military force.
-- `Bad side`: terrorists.
-- The exact presentation is still `TBD`.
-- For the military side, we may use something abstract instead of a real country-linked unit.
-- For the terrorist side, real-world identity and national/ethnic framing are not decided and should be handled carefully.
-- Current reference is "Counter-Strike style" opposing teams, not a final lore commitment.
+- `Capitalists`: the good side.
+- `Communists`: the bad side.
+- These names should be used in English throughout design and implementation-facing docs unless a later rebrand changes them intentionally.
 
 ## Equipment Model
 
@@ -38,6 +59,20 @@
 - Secondary weapon: `pistol`.
 - Melee weapon: `knife`.
 - Utility: `frag grenade`, `flashbang`, `smoke grenade`.
+- Objective item: `bomb`.
+- The bomb is carried as an equippable gameplay item rather than as a passive flag.
+
+## Pickup, Replacement, And Drop Rules
+
+- The bomb is picked up automatically by walking over it.
+- Weapons on the ground are picked up automatically when the player walks over them if the corresponding slot is empty.
+- If the slot is already occupied, the player may aim at the ground weapon and press the action key to swap:
+- the currently held slot weapon is dropped to the ground
+- the ground weapon is picked up into that slot
+- Dropped weapons should be projected slightly forward rather than falling straight down.
+- This is an intentional gameplay rule so players can throw a weapon a short distance toward a teammate.
+- All weapons except the knife can be dropped with `G`.
+- The bomb can also be dropped with `G`.
 
 ## Health And Damage
 
@@ -64,6 +99,18 @@
 - The minimap must show allies.
 - The minimap must show enemies only when they are inside the player's current valid vision state.
 
+## Kill Feed
+
+- The game should include a kill feed in the top-right area of the HUD.
+- Each kill entry should be structured like:
+- killer name on the left
+- weapon icon in the middle
+- victim name on the right
+- Kill-feed faction color coding:
+- `Capitalists`: blue
+- `Communists`: red
+- The kill feed should read similarly to a classic `Counter-Strike` style feed.
+
 ## Controls
 
 - Movement: `WASD`.
@@ -72,7 +119,10 @@
 - Secondary slot: `2`.
 - Knife: `3`.
 - Grenade: `4`.
+- Bomb: `5`.
 - Previous weapon: `Q`.
+- Action / interact / plant / defuse / contextual pickup replace: `E`.
+- Drop current weapon or bomb: `G`.
 - Reload: `R`.
 - Flashbang: `F`.
 - Smoke: `C`.
@@ -84,7 +134,7 @@
 
 ## MVP Constraints
 
-- The long-term design includes multiple weapons and utility slots.
+- The long-term design includes multiple weapons, utility slots, bomb handling, and interaction rules.
 - The first playable MVP does not include the full equipment model yet.
 - See `06-mvp-offline-prototype.md` for the explicitly reduced initial scope.
 

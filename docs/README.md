@@ -10,11 +10,12 @@ Current document set:
 - `04-maps-and-content.md`: text-based map goal and content pipeline assumptions.
 - `05-technical-decisions.md`: engine, language, testing, and platform-level decisions.
 - `06-mvp-offline-prototype.md`: first playable scope and explicit non-goals.
-- `asset-pipeline/`: map format, asset registry, metadata, and AI generation pipeline specs.
-- `art-bible/`: visual direction, asset rules, and AI-assisted art production guidance.
+- `07-mvp-runtime-rules.md`: implementation-facing gameplay/runtime rules for the current offline MVP branch.
+- `asset-pipeline/`: current text-map and SVG asset pipeline notes.
+- `art-bible/`: visual direction and current asset production rules.
 
 Status:
 
 - These notes are living documents.
 - Items marked as `TBD` are intentionally unresolved.
-- The current goal is to make the project direction explicit before implementation starts.
+- The current goal is to keep the written direction aligned with the prototype that is already being built.

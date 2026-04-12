@@ -39,9 +39,10 @@
 - Keep repository structure clean and scalable:
 - `godot/` for the game project
 - `docs/` for versioned design and technical specifications
-- `game-assets/` for approved assets, registries, specs, and source metadata
+- `game-assets/` for approved assets, specs, and source metadata
 - `maps/` for text-first map definitions
 - `tools/` for pipeline scripts
+- For the MVP, deterministic SVG outputs under `game-assets/source/generated/svg/rendered/` and `.../sheets/` are treated as the canonical runtime assets for character and weapon bases.
 - Keep systems testable by default.
 - Avoid coupling core game rules to scene-only behavior where possible.
 - Build with Steam release quality expectations in mind from the start.

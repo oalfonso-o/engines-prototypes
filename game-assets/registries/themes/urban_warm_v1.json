@@ -1,8 +1,0 @@
-{
-  "id": "urban_warm_v1",
-  "display_name": "Urban Warm v1",
-  "tile_registry": "game-assets/registries/tiles/urban_warm_v1.json",
-  "entity_registry": "game-assets/registries/entities/urban_warm_v1.json",
-  "palette": "warm_urban_v1",
-  "notes": "Default prototype theme for early urban tactical maps."
-}

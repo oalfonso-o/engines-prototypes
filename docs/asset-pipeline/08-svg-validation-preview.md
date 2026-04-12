@@ -7,6 +7,7 @@
 - render SVG frames to PNG
 - build an animated preview
 - review motion, silhouette, and readability
+- The current MVP branch validates and stores the canonical `south` source set only, because runtime rotation handles the remaining facing directions.
 
 ## Validation Stages
 
@@ -20,6 +21,12 @@
 - `tools/render_svg_sequence.py`: render a directory of SVG frames to PNG
 - `tools/build_svg_preview.py`: turn rendered PNG frames into an animated GIF
 - `tools/build_png_spritesheet.py`: pack rendered PNG frames into a spritesheet plus JSON metadata
+
+## Canonical Direction Rule
+
+- Character body animation sources are kept only for the canonical `south` direction in the current MVP branch.
+- The runtime rotates that canonical body set instead of maintaining duplicated SVG, PNG, and sheet outputs for every compass direction.
+- If we later need authored direction-specific motion, that should be added intentionally rather than reintroducing generated duplicates by default.
 
 ## Output Types
 

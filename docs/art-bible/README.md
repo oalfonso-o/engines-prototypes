@@ -5,7 +5,8 @@ This folder defines the visual direction for `canuter`.
 Current document set:
 
 - `01-visual-direction.md`: tone, references, readability goals, factions, environments, and UI style.
-- `02-asset-production.md`: practical rules for asset generation, approval, and consistency.
+- `02-asset-production.md`: practical rules for the current SVG-first gameplay asset pipeline.
+- `03-mvp-visual-rules.md`: concrete implementation-facing rules for pivots, offsets, layering, HUD, and minimap behavior.
 
 Scope:
 
@@ -15,5 +16,5 @@ Scope:
 Status:
 
 - Version `0.1`.
-- This is a first locked direction based on current design answers.
+- The current MVP direction for characters and weapons is a minimal deterministic `SVG -> PNG -> spritesheet` style.
 - Specific palettes, camera metrics, and asset templates still need refinement.

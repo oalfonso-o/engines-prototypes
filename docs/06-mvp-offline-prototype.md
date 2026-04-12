@@ -32,10 +32,11 @@
 - No online multiplayer.
 - No client/server split required yet in runtime.
 - One map is enough.
-- One primary weapon is enough.
-- The only required weapon for this milestone is a `rifle`.
-- No knife in the MVP.
-- No secondary weapon in the MVP.
+- One primary weapon is enough to prove core combat feel, but the MVP also includes a `pistol` and `knife` slot so that equipment switching and layered weapon rendering are validated early.
+- The required weapon set for this milestone is:
+- `rifle`
+- `pistol`
+- `knife`
 - No extra primary weapon classes in the MVP.
 - No economy system in the MVP.
 - No loadout system in the MVP.
@@ -43,9 +44,23 @@
 ## Required Gameplay Slice
 
 - The player uses a rifle.
+- The prototype validates the default bomb-run mode rather than an elimination-only round.
+- The map includes:
+- a `Capitalist` base
+- a `Communist` base
+- fixed spawn positions for each side
+- a central bomb spawn
+- The player can:
+- pick up the bomb by walking over it
+- equip the bomb on slot `5`
+- plant at the enemy base with `E`
+- drop valid weapons or the bomb with `G`
+- swap with weapons on the ground through the action key
 - Bots can move, perceive, and fight well enough to complete a round.
 - Players and bots can damage and kill each other.
-- The round ends correctly when one team is wiped.
+- The round supports bomb carrying, planting, and defusing.
+- A planted bomb explosion kills players close enough to the blast.
+- Bomb detonation should show the winner first and close the round `5` seconds later.
 - If the round timer expires, the result is a draw.
 
 ## AI/Bot Requirement
@@ -68,6 +83,7 @@
 - who is holding the rifle
 - how facing and aim direction are being represented
 - The prototype should already validate whether the art style works from gameplay distance.
+- The HUD should already prove the intended kill-feed placement and readability.
 
 ## Camera And Visibility Requirement
 
@@ -87,9 +103,6 @@
 - Networking
 - dedicated server runtime
 - multiple weapon classes
-- secondary weapons
-- knife combat
-- grenades and utility
 - buy menu or economy
 - cosmetics system
 - progression systems

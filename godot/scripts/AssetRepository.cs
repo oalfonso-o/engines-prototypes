@@ -25,7 +25,7 @@ namespace Canuter
             return frames;
         }
 
-        public static Texture2D LoadWeaponTexture(string weaponAssetId, string animation = "idle", string direction = "south", string frameFile = "frame_000.png")
+        public static Texture2D LoadWeaponTexture(string weaponAssetId)
         {
             var weaponPath = RepoPaths.CombineFromRepo(
                 "game-assets",
@@ -34,9 +34,9 @@ namespace Canuter
                 "svg",
                 "rendered",
                 weaponAssetId,
-                animation,
-                direction,
-                frameFile
+                "idle",
+                "south",
+                "frame_000.png"
             );
 
             if (!File.Exists(weaponPath))
@@ -50,17 +50,6 @@ namespace Canuter
         public static string GetRepoFilePath(string repoRelativePath)
         {
             return RepoPaths.CombineFromRepo(repoRelativePath);
-        }
-
-        public static string ReadRepoText(string repoRelativePath)
-        {
-            var fullPath = GetRepoFilePath(repoRelativePath);
-            if (!File.Exists(fullPath))
-            {
-                throw new FileNotFoundException($"Repo file not found: {fullPath}");
-            }
-
-            return File.ReadAllText(fullPath);
         }
 
         private static void AddAnimation(SpriteFrames frames, string animationName, string imagePath, string jsonPath)

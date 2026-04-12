@@ -3,3 +3,5 @@
 /android/
 no-commit/
 tools/.env
+__pycache__/
+*.pyc

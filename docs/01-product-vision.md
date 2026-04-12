@@ -11,6 +11,7 @@
 ## Core Pillars
 
 - Competitive round-based team shooter.
+- Objective-driven bomb-run mode built around a shared central bomb and enemy-base planting.
 - Authoritative multiplayer architecture.
 - Strong testing discipline from the beginning.
 - Player-created maps supported through a text-based map format.
@@ -23,5 +24,4 @@
 
 ## Open Questions
 
-- Exact faction identities and how grounded or abstract they should be.
 - How the project transitions from the offline prototype to the first server-backed multiplayer slice.

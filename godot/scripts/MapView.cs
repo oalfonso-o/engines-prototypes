@@ -15,7 +15,7 @@ namespace Canuter
         private static readonly Color EnemySpawn = new(0.82f, 0.48f, 0.34f, 0.9f);
 
         [Export]
-        public string RepoMapPath { get; set; } = AssetCatalog.PrototypeCrossroadsMap;
+        public string RepoMapPath { get; set; } = AssetCatalog.PrototypeCrossroadsMapPath;
 
         private readonly List<string> _layout = new();
         private readonly Dictionary<char, string> _legend = new();

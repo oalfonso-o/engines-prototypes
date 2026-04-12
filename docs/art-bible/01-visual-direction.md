@@ -7,11 +7,13 @@
 - Camera format: top-down.
 - The visual goal is not photorealism. The goal is readable tactical realism adapted to an overhead view.
 - Functional clarity is allowed to take priority over strict realism.
+- For the MVP, characters and weapons use a simplified, deterministic, vector-like visual language rather than detailed raster realism.
 
 ## Style Boundaries
 
 - The project may use `pixel art` or another stylized rendering approach if it stays consistent across the whole game.
-- The current preferred direction is detailed pixel-art-inspired sprites with modern clarity.
+- The current preferred direction for the MVP is `minimal tactical SVG/vector-like sprites` rendered to PNG/spritesheets.
+- This should feel intentional and readable, not cheap, cute, or placeholder-like.
 - The game must avoid:
 - childish presentation
 - cartoon exaggeration
@@ -27,25 +29,24 @@
 - whether the player is holding a pistol, knife, or grenade
 - broad armor or vest silhouette differences
 - faction identity at a glance
-- Exact weapon model recognition is desirable.
-- Example target: the player should often be able to tell `AK` versus `M4`, or `Glock` versus `Desert Eagle`, even if not every frame is perfectly explicit.
+- Exact real-world weapon model recognition is not a hard MVP requirement.
+- In the MVP, it is enough that players can reliably distinguish broad categories such as `rifle`, `pistol`, `knife`, and later `utility`.
 
 ## Character Proportions
 
-- Character proportions should lean toward realistic human proportions rather than chibi or arcade caricature.
-- Characters should feel grounded in tactical shooter fantasy, even though the camera is top-down.
-- Silhouettes still need to be simplified enough to remain legible at gameplay scale.
+- Character proportions should still avoid chibi or arcade caricature.
+- For the MVP, body construction is intentionally abstracted into simple tactical shapes that rotate cleanly around a stable pivot.
+- Characters should feel grounded in tactical shooter fantasy, even if the body language is much more minimal than the final target.
 
 ## Faction Identity
 
-- Good faction visual fantasy:
-- NATO-style military
-- clean tactical uniforms
-- classic military gear
-- visual association with western special forces or similar units
-- Bad faction visual fantasy:
-- terrorist faction
-- clothing references may include turbans, robes, or similar irregular-force silhouettes
+- Capitalist faction visual fantasy:
+- cleaner tactical military presentation
+- disciplined gear profile
+- stronger association with organized western-style military silhouettes
+- Communist faction visual fantasy:
+- rougher opposing-force silhouette
+- more irregular or aggressive visual read where useful for gameplay clarity
 - Visual identity should make the two sides easy to distinguish even from high-level camera framing.
 - Visual differentiation should come from:
 - body silhouette
@@ -57,11 +58,12 @@
 ## Weapon Identity
 
 - Current visual reference direction:
-- good faction associated with `M4`
-- bad faction associated with `AK-47`
+- capitalist faction associated with `M4`
+- communist faction associated with `AK-47`
 - This is a visual identity direction, not yet a final gameplay balance rule.
 - Existing gameplay notes currently say both teams start with mirrored weapons and accessories.
 - That design conflict remains `TBD` and should be resolved explicitly later.
+- For the MVP, weapon sprites should prioritize category readability and deterministic overlap with the player body over exact military detail.
 
 ## Environment Direction
 
@@ -116,18 +118,19 @@
 ## Resolution Direction
 
 - The project should target a modern level of on-screen definition.
-- The player should be able to appreciate visual details such as weapon skins and knife skins.
-- Even if pixel-art principles are used, the final presentation should not feel extremely low-resolution.
-- The asset style should support cosmetic readability without breaking overall consistency.
+- The MVP does not aim to prove detailed cosmetic skins yet.
+- The immediate goal is clean silhouette readability, stable pivots, and deterministic layering.
+- If more detailed cosmetic readability is pursued later, it should be layered on top of this stable base rather than replacing consistency with noisy detail.
 
 ## AI Asset Fit
 
 - AI-generated art can be used as final production art if the result meets quality and consistency standards.
-- The art direction must therefore be specific enough that AI-assisted generation can produce repeatable results.
+- The art direction must therefore be specific enough that AI-assisted generation can produce repeatable results where AI is used.
+- For the MVP, character and weapon bases are primarily deterministic SVG assets, not prompt-only raster generations.
 
 ## Open Items
 
 - Exact sprite size and base resolution.
 - Exact palette values.
-- Whether the final rendering style is fully pixel art or a hybrid tactical 2D style with pixel-art discipline.
-- How far faction styling should go without creating avoidable real-world sensitivity issues.
+- Whether the post-MVP direction stays fully minimal/vector-like or evolves into a richer hybrid tactical 2D style.
+- How far faction styling should go without making the two factions visually noisy or unreadable.

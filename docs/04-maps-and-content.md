@@ -27,8 +27,11 @@
 - The format should eventually be able to represent at least:
 - walls and blocking geometry
 - walkable space
-- spawn points
-- team-side relevant zones if needed
+- faction spawn points
+- capitalist base zone
+- communist base zone
+- bomb spawn point
+- plantable base zones
 - line-of-sight relevant geometry
 - minimap-relevant geometry
 - gameplay props if they affect collision or visibility

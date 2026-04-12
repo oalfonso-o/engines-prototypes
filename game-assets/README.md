@@ -1,20 +1,17 @@
 # Game Assets
 
-This folder stores approved runtime assets and their supporting registries and source metadata.
+This folder stores approved runtime assets and their supporting specs and source metadata.
 
 Structure:
 
-- `registries/`: theme, tile, and entity registries used at runtime.
 - `specs/`: structured asset specs grouped by category.
-- `sprites/`: approved in-game sprites.
-- `ui/`: approved interface assets.
-- `source/prompts/generated/`: generated prompts tied to asset ids.
-- `source/generated/`: raw or intermediate AI outputs, separated from approved runtime assets.
-- `source/manifests/`: production metadata for approved or draft assets.
-- `source/references/`: style references used to maintain consistency.
+- `source/generated/svg/raw/`: canonical SVG source for the current MVP character and weapon branch.
+- `source/generated/svg/rendered/`: rendered PNG frames from the SVG branch.
+- `source/generated/svg/sheets/`: spritesheets and JSON metadata from the SVG branch.
+- `source/generated/`: other generated or intermediate outputs that are not part of the current runtime path.
 
 Rule:
 
 - Maps and code should reference stable ids.
-- Registries resolve ids to concrete asset files and behavior.
-- Approved runtime assets live under `sprites/` and `ui/`, not under `source/generated/`.
+- For the current MVP character and weapon branch, runtime assets are loaded from the deterministic SVG outputs under `source/generated/svg/rendered/` and `source/generated/svg/sheets/`.
+- For the current MVP body pipeline, only the canonical `south` character direction is stored; the remaining facing directions are produced by runtime rotation in Godot.

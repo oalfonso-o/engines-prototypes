@@ -3,12 +3,11 @@
 ## Purpose
 
 - This document defines how visual assets should be generated, reviewed, and normalized.
-- The goal is to keep AI-assisted production usable for a real game instead of accumulating inconsistent one-off images.
+- The goal is to keep the current SVG-first gameplay asset pipeline consistent and readable.
 
 ## Production Principle
 
-- AI generation is allowed to produce final assets.
-- AI output is not automatically accepted.
+- The MVP character and weapon runtime assets are built through a deterministic SVG pipeline.
 - Every accepted asset must pass style, gameplay readability, and consistency review.
 
 ## Asset Categories
@@ -37,20 +36,17 @@
 - held item category
 - faction identity
 - Body and gear detail should be simplified only as much as needed for gameplay readability.
+- For the MVP, character bodies are intentionally minimal and built around a stable head-centered pivot and deterministic shape offsets.
 - If generated character art cannot maintain consistency across directions or animations, it should be used as a paintover/reference source rather than directly shipped.
 - Top-down character sprites are expected to support directional movement readability.
-- The player should be able to tell whether a character is moving:
-- up
-- down
-- left
-- right
-- diagonally
+- The player should be able to tell whether a character is moving even when the runtime is rotating a canonical source sprite instead of swapping per-direction art.
 - Directional animation is a real production requirement, not optional polish.
-- The exact directional set may start smaller in prototypes, but the target visual language should support diagonals cleanly.
+- For the current MVP branch, the canonical source direction is `south` and runtime rotation provides the remaining facing directions.
 
 ## Weapon Sprite Rules
 
 - Weapon silhouettes must prioritize gameplay recognition.
+- For the MVP, weapon sprites should be separate layers that overlap the body cleanly and rotate around the same gameplay pivot.
 - We should bias toward strong shape language for:
 - M4-family rifles
 - AK-family rifles
@@ -74,44 +70,22 @@
 - Background illustration can carry atmosphere.
 - Interactive elements must stay crisp, contrast-safe, and readable at a glance.
 
-## AI Workflow
+## Current Gameplay Asset Workflow
 
-- Start from text prompts using an approved style vocabulary.
-- Iterate until the image is close to target direction.
-- Use cleanup and packaging steps after generation rather than assuming the first AI output is game-ready.
-- Normalize the result for in-game use:
-- crop
-- clean up
-- re-light if needed
-- palette-correct if needed
-- scale and frame consistently
-- convert into final engine-ready asset format
-- For sprite-oriented work, Aseprite is an approved cleanup and spritesheet packaging step.
-
-## Prompting Guidance
-
-- Prompts should describe:
-- role of the asset
-- camera angle
-- material language
-- realism level
-- palette intent
-- silhouette intent
-- forbidden traits
-- Prompts should explicitly exclude:
-- cartoon
-- anime
-- mobile-game UI style
-- childish proportions
-- sexualized designs
+- The approved branch for current gameplay-critical assets is the deterministic SVG branch.
+- It should prioritize:
+- stable pivots
+- reusable geometry
+- explicit offsets documented in specs
+- scripted render/export to PNG and spritesheet data
 
 ## Consistency Strategy
 
-- Reuse stable prompt structures across asset families.
+- Maintain stable shape grammar across asset families.
 - Maintain reference sheets for factions, weapons, and environments.
 - Keep approved examples for:
-- good faction soldier
-- bad faction fighter
+- capitalist faction soldier
+- communist faction fighter
 - M4-family weapon
 - AK-family weapon
 - smoke grenade
@@ -130,13 +104,5 @@
 
 ## Open Items
 
-- Approved generation tools for image production.
-- File naming and source manifest format.
-- Whether we store raw prompts inside the repo or in `no-commit/`.
-- Animation workflow for AI-derived sprites.
-
-## Required References
-
-- Follow `docs/asset-pipeline/05-aseprite-integration-note.md` for sprite cleanup and export.
-- Follow `docs/asset-pipeline/06-asset-manifest-policy.md` for mandatory metadata and traceability.
-- Follow `docs/asset-pipeline/07-openai-local-generation-pipeline.md` for local scripted image generation and packaging flow.
+- File naming and source metadata format.
+- Post-MVP relationship between the SVG gameplay base and any richer visual overlays.

@@ -32,24 +32,19 @@
     "oversized caricature proportions"
   ],
   "animation_plan": {
-    "directions": [
-      "north",
-      "northeast",
-      "east",
-      "southeast",
-      "south",
-      "southwest",
-      "west",
-      "northwest"
+    "canonical_source_direction": "south",
+    "runtime_rotation": true,
+    "stored_source_directions": [
+      "south"
     ],
     "animations": {
       "idle": {
-        "frames": 2,
-        "description": "combat ready idle with rifle shouldered and subtle stance shift"
+        "frames": 1,
+        "description": "combat ready idle using a single canonical south-facing source frame rotated at runtime"
       },
       "move": {
         "frames": 4,
-        "description": "tactical jogging movement with the rifle kept ready"
+        "description": "tactical jogging movement using canonical south-facing source frames rotated at runtime"
       }
     }
   },
@@ -62,7 +57,8 @@
     },
     "notes": [
       "The head center is the canonical rotation pivot for the body sprite.",
-      "Small SVG geometry changes must preserve the head pivot exactly at the canvas center."
+      "Small SVG geometry changes must preserve the head pivot exactly at the canvas center.",
+      "The current MVP stores only canonical south-facing source frames for the body animation set."
     ]
   }
 }
