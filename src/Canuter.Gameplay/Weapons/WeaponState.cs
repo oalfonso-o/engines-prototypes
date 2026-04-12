@@ -72,6 +72,14 @@ namespace Canuter
             return true;
         }
 
+        public void SetAmmoForTesting(int ammoInMagazine, int reserveAmmo)
+        {
+            AmmoInMagazine = ammoInMagazine;
+            ReserveAmmo = reserveAmmo;
+            CooldownRemaining = 0.0;
+            ReloadRemaining = 0.0;
+        }
+
         private void CompleteReload()
         {
             var missingAmmo = Definition.MagazineSize - AmmoInMagazine;

@@ -31,6 +31,8 @@
 
 - If the user asks to "guardar el historial del agent" in docs, write or update a file under `docs/agents-history/`.
 - Use one file per day named with the current local date in ISO format, for example `docs/agents-history/2026-04-12.md`.
+- When writing the timestamp header for an entry, get the time from the user's machine by running `date` in the shell. Do not trust the model's internal time.
+- Use the `date` result as the source of truth for the entry time, and format the header with the label `Europe/Barcelona`.
 - Treat it as an upsert with append:
 - create the file if it does not exist
 - append a new timestamped entry if it already exists

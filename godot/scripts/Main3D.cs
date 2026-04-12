@@ -36,7 +36,9 @@ namespace Canuter
                 _pauseMenuOverlay.BackRequested += OnPauseBackRequested;
                 _pauseMenuOverlay.HeadingSensitivityChanged += OnHeadingSensitivityChanged;
                 _pauseMenuOverlay.Prototype3DMoveSpeedChanged += OnPrototype3DMoveSpeedChanged;
-                _pauseMenuOverlay.Prototype3DCameraPitchChanged += OnPrototype3DCameraPitchChanged;
+                _pauseMenuOverlay.Prototype3DGravityChanged += OnPrototype3DGravityChanged;
+                _pauseMenuOverlay.Prototype3DJumpVelocityChanged += OnPrototype3DJumpVelocityChanged;
+                _pauseMenuOverlay.PersistentImpactMarkersChanged += OnPersistentImpactMarkersChanged;
                 _pauseMenuOverlay.ExitRequested += OnExitRequested;
             }
 
@@ -52,6 +54,7 @@ namespace Canuter
             if (_cameraRig != null && _player != null)
             {
                 _cameraRig.BindPlayer(_player);
+                _player.BindAimCamera(_cameraRig.GameplayCamera);
             }
 
             if (_gameHud != null && _player != null)
@@ -128,11 +131,6 @@ namespace Canuter
             return _settings.HeadingLockedTurnSensitivity;
         }
 
-        public double GetPrototype3DCameraPitchDegrees()
-        {
-            return _settings.Prototype3DCameraPitchDegrees;
-        }
-
         public void SetHeadingLockedTurnSensitivity(double sensitivity)
         {
             _settings.SetHeadingLockedTurnSensitivity((float)sensitivity);
@@ -140,9 +138,38 @@ namespace Canuter
             ApplyRuntimeState();
         }
 
-        public void SetPrototype3DCameraPitchDegrees(double pitchDegrees)
+        public double GetPrototype3DGravity()
         {
-            _settings.SetPrototype3DCameraPitchDegrees((float)pitchDegrees);
+            return _settings.Prototype3DGravity;
+        }
+
+        public double GetPrototype3DJumpVelocity()
+        {
+            return _settings.Prototype3DJumpVelocity;
+        }
+
+        public bool GetPersistentImpactMarkersEnabled()
+        {
+            return _settings.PersistentImpactMarkersEnabled;
+        }
+
+        public void SetPersistentImpactMarkersEnabled(bool enabled)
+        {
+            _settings.SetPersistentImpactMarkersEnabled(enabled);
+            _settingsStore.Save(_settings);
+            ApplyRuntimeState();
+        }
+
+        public void SetPrototype3DGravity(double gravity)
+        {
+            _settings.SetPrototype3DGravity((float)gravity);
+            _settingsStore.Save(_settings);
+            ApplyRuntimeState();
+        }
+
+        public void SetPrototype3DJumpVelocity(double jumpVelocity)
+        {
+            _settings.SetPrototype3DJumpVelocity((float)jumpVelocity);
             _settingsStore.Save(_settings);
             ApplyRuntimeState();
         }
@@ -151,13 +178,17 @@ namespace Canuter
         {
             _player?.SetHeadingSensitivity(_settings.HeadingLockedTurnSensitivity);
             _player?.SetMoveSpeed(_settings.Prototype3DMoveSpeed);
-            _cameraRig?.SetPitchDegrees(_settings.Prototype3DCameraPitchDegrees);
+            _player?.SetGravity(_settings.Prototype3DGravity);
+            _player?.SetJumpVelocity(_settings.Prototype3DJumpVelocity);
+            _player?.SetPersistentImpactMarkersEnabled(_settings.PersistentImpactMarkersEnabled);
             _player?.SetGameplayInputEnabled(_pauseMenuState.CurrentScreen == MenuScreen.Closed);
             _pauseMenuOverlay?.ApplyState(
                 _pauseMenuState.CurrentScreen,
                 _settings.HeadingLockedTurnSensitivity,
                 _settings.Prototype3DMoveSpeed,
-                _settings.Prototype3DCameraPitchDegrees);
+                _settings.Prototype3DGravity,
+                _settings.Prototype3DJumpVelocity,
+                _settings.PersistentImpactMarkersEnabled);
 
             var allowGameplayPointer = _windowActive && _pauseMenuState.CurrentScreen == MenuScreen.Closed;
             Input.MouseMode = allowGameplayPointer ? Input.MouseModeEnum.Captured : Input.MouseModeEnum.Visible;
@@ -193,9 +224,23 @@ namespace Canuter
             ApplyRuntimeState();
         }
 
-        private void OnPrototype3DCameraPitchChanged(double pitchDegrees)
+        private void OnPrototype3DGravityChanged(double gravity)
         {
-            _settings.SetPrototype3DCameraPitchDegrees((float)pitchDegrees);
+            _settings.SetPrototype3DGravity((float)gravity);
+            _settingsStore.Save(_settings);
+            ApplyRuntimeState();
+        }
+
+        private void OnPrototype3DJumpVelocityChanged(double jumpVelocity)
+        {
+            _settings.SetPrototype3DJumpVelocity((float)jumpVelocity);
+            _settingsStore.Save(_settings);
+            ApplyRuntimeState();
+        }
+
+        private void OnPersistentImpactMarkersChanged(bool enabled)
+        {
+            _settings.SetPersistentImpactMarkersEnabled(enabled);
             _settingsStore.Save(_settings);
             ApplyRuntimeState();
         }

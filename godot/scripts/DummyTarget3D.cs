@@ -47,6 +47,16 @@ namespace Canuter
             }
         }
 
+        public int GetHealthForTesting()
+        {
+            return _health;
+        }
+
+        public void SetHealthForTesting(int health)
+        {
+            _health = health;
+        }
+
         public void SetPresentation(VisibilityPresentationState3D state)
         {
             if (_mesh == null)

@@ -22,7 +22,7 @@ mid_height = 1.35
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_body"]
 shading_mode = 1
-albedo_color = Color(0.62, 0.68, 0.74, 1)
+albedo_color = Color(0.18, 0.42, 0.86, 1)
 
 [sub_resource type="Environment" id="Environment_default"]
 background_mode = 2
@@ -55,6 +55,8 @@ wall_height = 3.0
 
 [node name="Player" type="CharacterBody3D" parent="."]
 script = ExtResource("3_player")
+collision_layer = 1
+collision_mask = 1
 
 [node name="MovementCollider" type="CollisionShape3D" parent="Player"]
 shape = SubResource("CapsuleShape3D_move")
@@ -80,7 +82,7 @@ pitch_degrees = 40.0
 min_orbit_distance = 6.0
 max_orbit_distance = 40.0
 zoom_step = 1.5
-look_ahead_distance = 5.5
+look_ahead_distance = 8.0
 look_height = 1.15
 
 [node name="Camera3D" type="Camera3D" parent="CameraRig3D"]
@@ -88,6 +90,7 @@ current = true
 fov = 39.0
 near = 0.05
 far = 200.0
+v_offset = 4.0
 
 [node name="Hud" type="CanvasLayer" parent="."]
 
@@ -204,19 +207,33 @@ min_value = 8.0
 max_value = 60.0
 step = 0.5
 
-[node name="Prototype3DCameraPitchLabel" type="Label" parent="Hud/PauseMenuOverlay/Panel/Root/SettingsContent"]
+[node name="Prototype3DGravityLabel" type="Label" parent="Hud/PauseMenuOverlay/Panel/Root/SettingsContent"]
 layout_mode = 2
-text = "3D Camera Angle"
+text = "3D Gravity"
 
-[node name="Prototype3DCameraPitchSpinBox" type="SpinBox" parent="Hud/PauseMenuOverlay/Panel/Root/SettingsContent"]
+[node name="Prototype3DGravitySpinBox" type="SpinBox" parent="Hud/PauseMenuOverlay/Panel/Root/SettingsContent"]
 layout_mode = 2
-min_value = 0.0
-max_value = 90.0
-step = 1.0
+min_value = 5.0
+max_value = 80.0
+step = 0.5
+
+[node name="Prototype3DJumpVelocityLabel" type="Label" parent="Hud/PauseMenuOverlay/Panel/Root/SettingsContent"]
+layout_mode = 2
+text = "Jump Force"
+
+[node name="Prototype3DJumpVelocitySpinBox" type="SpinBox" parent="Hud/PauseMenuOverlay/Panel/Root/SettingsContent"]
+layout_mode = 2
+min_value = 2.0
+max_value = 30.0
+step = 0.25
+
+[node name="PersistentImpactMarkersCheckBox" type="CheckBox" parent="Hud/PauseMenuOverlay/Panel/Root/SettingsContent"]
+layout_mode = 2
+text = "Keep hit markers"
 
 [node name="SettingsHint" type="Label" parent="Hud/PauseMenuOverlay/Panel/Root/SettingsContent"]
 layout_mode = 2
-text = "Use mouse wheel to change 3D camera distance. Camera angle is measured in degrees from the ground: 0 is ground-level and 90 is top-down."
+text = "Use mouse wheel to change 3D camera distance. Mouse vertical look controls pitch live during gameplay."
 autowrap_mode = 3
 
 [node name="BackButton" type="Button" parent="Hud/PauseMenuOverlay/Panel/Root/SettingsContent"]

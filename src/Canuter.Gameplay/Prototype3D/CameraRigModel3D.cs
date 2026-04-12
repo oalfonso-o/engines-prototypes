@@ -28,7 +28,10 @@ namespace Canuter
             var horizontalDistance = orbitDistance * MathF.Cos(pitchRadians);
             var verticalHeight = orbitDistance * MathF.Sin(pitchRadians);
             var cameraPosition = playerPosition - horizontalForward * horizontalDistance + Vector3.UnitY * verticalHeight;
-            var lookTarget = playerPosition + horizontalForward * lookAheadDistance + Vector3.UnitY * lookHeight;
+            var aimDirection = ThirdPersonAimModel3D.AimDirectionFromYawPitch(
+                MathF.Atan2(-horizontalForward.X, horizontalForward.Z),
+                pitchDegrees);
+            var lookTarget = playerPosition + Vector3.UnitY * lookHeight + aimDirection * lookAheadDistance;
             return new CameraRigFrame3D(cameraPosition, lookTarget);
         }
     }

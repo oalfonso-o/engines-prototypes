@@ -7,6 +7,9 @@ namespace Canuter
 {
     public partial class MapView3D : Node3D
     {
+        private const float FloorThickness = 0.08f;
+        private const float PlayerSpawnHeight = 0.05f;
+
         [Export]
         public string RepoMapPath { get; set; } = AssetCatalog.PrototypeCrossroadsMapPath;
 
@@ -49,7 +52,7 @@ namespace Canuter
                 return null;
             }
 
-            return CellCenterToWorld(_allySpawns[0]) + Vector3.Up * 0.1f;
+            return CellCenterToWorld(_allySpawns[0]) + Vector3.Up * PlayerSpawnHeight;
         }
 
         public Vector2 GetMinimapHalfWorldSize()
@@ -137,6 +140,7 @@ namespace Canuter
             }
 
             _targets.Clear();
+            BuildGroundPlane();
 
             for (var y = 0; y < _mapHeight; y++)
             {
@@ -166,18 +170,57 @@ namespace Canuter
         }
         }
 
+        private void BuildGroundPlane()
+        {
+            var size = new Vector3(_mapWidth * CellSize, FloorThickness, _mapHeight * CellSize);
+            var center = new Vector3(size.X * 0.5f, -FloorThickness * 0.5f, size.Z * 0.5f);
+            var body = new StaticBody3D
+            {
+                Position = center,
+                CollisionLayer = 1,
+                CollisionMask = 1,
+            };
+
+            var collision = new CollisionShape3D
+            {
+                Shape = new BoxShape3D
+                {
+                    Size = size,
+                },
+            };
+            body.AddChild(collision);
+            _floorRoot.AddChild(body);
+        }
+
         private void BuildFloorCell(Vector2I cell)
         {
+            var body = new StaticBody3D
+            {
+                Position = CellCenterToWorld(cell) + Vector3.Down * (FloorThickness * 0.5f),
+                CollisionLayer = 1,
+                CollisionMask = 1,
+            };
+
+            var collision = new CollisionShape3D
+            {
+                Shape = new BoxShape3D
+                {
+                    Size = new Vector3(CellSize, FloorThickness, CellSize),
+                },
+            };
+            body.AddChild(collision);
+
             var mesh = new MeshInstance3D
             {
                 Mesh = new BoxMesh
                 {
-                    Size = new Vector3(CellSize, 0.08f, CellSize),
+                    Size = new Vector3(CellSize, FloorThickness, CellSize),
                 },
-                Position = CellCenterToWorld(cell) + Vector3.Down * 0.04f,
                 MaterialOverride = _floorVisible,
             };
-            _floorRoot.AddChild(mesh);
+
+            body.AddChild(mesh);
+            _floorRoot.AddChild(body);
         }
 
         private void BuildWallCell(Vector2I cell)
@@ -185,6 +228,8 @@ namespace Canuter
             var body = new StaticBody3D
             {
                 Position = CellCenterToWorld(cell) + Vector3.Up * (WallHeight * 0.5f),
+                CollisionLayer = 1,
+                CollisionMask = 1,
             };
 
             var collision = new CollisionShape3D

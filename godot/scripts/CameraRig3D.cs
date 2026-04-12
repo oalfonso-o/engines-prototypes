@@ -47,7 +47,7 @@ namespace Canuter
                 new NumericVector3(_player.GlobalPosition.X, _player.GlobalPosition.Y, _player.GlobalPosition.Z),
                 new NumericVector3(_player.CurrentForward3D.X, _player.CurrentForward3D.Y, _player.CurrentForward3D.Z),
                 OrbitDistance,
-                PitchDegrees,
+                _player.CurrentPitchDegrees,
                 LookAheadDistance,
                 LookHeight);
 

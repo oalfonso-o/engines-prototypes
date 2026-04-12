@@ -8,7 +8,9 @@ namespace Canuter
         private const string GameplaySection = "gameplay";
         private const string HeadingSensitivityKey = "heading_locked_turn_sensitivity";
         private const string Prototype3DMoveSpeedKey = "prototype_3d_move_speed";
-        private const string Prototype3DCameraPitchDegreesKey = "prototype_3d_camera_pitch_degrees";
+        private const string Prototype3DGravityKey = "prototype_3d_gravity";
+        private const string Prototype3DJumpVelocityKey = "prototype_3d_jump_velocity";
+        private const string PersistentImpactMarkersEnabledKey = "persistent_impact_markers_enabled";
 
         public void LoadInto(GameSettings settings)
         {
@@ -35,12 +37,28 @@ namespace Canuter
                     (double)PlayerRuntimeTuning.Prototype3DMoveSpeed));
             }
 
-            if (config.HasSectionKey(GameplaySection, Prototype3DCameraPitchDegreesKey))
+            if (config.HasSectionKey(GameplaySection, Prototype3DGravityKey))
             {
-                settings.SetPrototype3DCameraPitchDegrees((float)(double)config.GetValue(
+                settings.SetPrototype3DGravity((float)(double)config.GetValue(
                     GameplaySection,
-                    Prototype3DCameraPitchDegreesKey,
-                    (double)PlayerRuntimeTuning.Prototype3DCameraPitchDegrees));
+                    Prototype3DGravityKey,
+                    (double)PlayerRuntimeTuning.Prototype3DGravity));
+            }
+
+            if (config.HasSectionKey(GameplaySection, Prototype3DJumpVelocityKey))
+            {
+                settings.SetPrototype3DJumpVelocity((float)(double)config.GetValue(
+                    GameplaySection,
+                    Prototype3DJumpVelocityKey,
+                    (double)PlayerRuntimeTuning.Prototype3DJumpVelocity));
+            }
+
+            if (config.HasSectionKey(GameplaySection, PersistentImpactMarkersEnabledKey))
+            {
+                settings.SetPersistentImpactMarkersEnabled((bool)config.GetValue(
+                    GameplaySection,
+                    PersistentImpactMarkersEnabledKey,
+                    false));
             }
         }
 
@@ -49,7 +67,9 @@ namespace Canuter
             var config = new ConfigFile();
             config.SetValue(GameplaySection, HeadingSensitivityKey, settings.HeadingLockedTurnSensitivity);
             config.SetValue(GameplaySection, Prototype3DMoveSpeedKey, settings.Prototype3DMoveSpeed);
-            config.SetValue(GameplaySection, Prototype3DCameraPitchDegreesKey, settings.Prototype3DCameraPitchDegrees);
+            config.SetValue(GameplaySection, Prototype3DGravityKey, settings.Prototype3DGravity);
+            config.SetValue(GameplaySection, Prototype3DJumpVelocityKey, settings.Prototype3DJumpVelocity);
+            config.SetValue(GameplaySection, PersistentImpactMarkersEnabledKey, settings.PersistentImpactMarkersEnabled);
             config.Save(SettingsPath);
         }
 

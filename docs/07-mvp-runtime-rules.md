@@ -29,9 +29,12 @@
 - `W` moves forward.
 - `S` moves backward.
 - `A` and `D` are strafes.
+- `Space` makes the player jump.
 - Movement uses acceleration and deceleration rather than instant snapping.
 - Strafing should reverse direction quickly enough to make repeated `ADADAD` movement responsive.
 - Movement speed is runtime-configurable from the pause/settings menu and persisted locally.
+- Gravity is runtime-configurable from the pause/settings menu and persisted locally.
+- Jump force is runtime-configurable from the pause/settings menu and persisted locally.
 
 ## Player Health
 
@@ -44,20 +47,31 @@
 - Camera angle is measured in degrees from the ground plane:
 - `0` degrees: ground-level
 - `90` degrees: vertical top-down
-- Default camera angle is `40` degrees.
-- Camera angle is configurable in settings and persisted locally.
+- Default camera pitch is `40` degrees.
+- The old fixed camera-angle setting has been removed from the runtime settings UI.
+- Camera pitch is now driven live by mouse vertical look during gameplay.
 - Mouse wheel changes camera orbit distance at runtime.
 - Orbit distance is clamped to the current prototype min/max values in code.
 - The current prototype does not use camera ghost walls or advanced tactical darkening in the live runtime.
 
 ## Aim And Fire
 
-- Aim is currently driven by horizontal mouse movement relative to the player heading.
-- The live runtime still uses a centered forward aim hint rather than a free-look TPS aim model.
+- The runtime uses a true third-person free-look aim model.
+- The crosshair stays centered on screen.
+- Mouse horizontal movement controls camera/player yaw.
+- Mouse vertical movement controls camera pitch.
+- Player movement still uses only horizontal yaw, not camera pitch.
 - Rifle and pistol use hitscan.
+- Aiming resolves from the center of the camera viewport.
+- Firing then traces from the weapon fire point toward that resolved camera-center aim point.
+- In the current 3D prototype, the hitscan origin and the visible tracer must be the same point: the top-center of the player capsule.
+- Rifle and pistol range in the 3D greybox should comfortably cover the current prototype map scale.
 - Knife uses a short 3D shape query in front of the player.
 - Shots originate from the weapon fire point.
 - A short tracer is allowed as debug/gameplay feedback.
+- On impact, the prototype may show a small translucent yellow marker at the hit point for debugging trajectory and wall blocking.
+- Settings can optionally keep those hit markers persistent so the player can inspect accumulated hit points in-world.
+- When a magazine-fed weapon is emptied, releasing primary fire should trigger an automatic reload if reserve ammo exists.
 
 ## Pause And Settings
 
@@ -68,7 +82,9 @@
 - The settings screen currently exposes:
 - heading sensitivity
 - 3D movement speed
-- 3D camera angle
+- 3D gravity
+- jump force
+- persistent impact-marker toggle
 - Runtime settings are persisted locally in `user://runtime_settings.cfg`.
 
 ## Map Runtime Rules

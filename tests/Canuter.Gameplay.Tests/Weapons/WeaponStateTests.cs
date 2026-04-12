@@ -99,6 +99,23 @@ public sealed class WeaponStateTests
     }
 
     [Fact]
+    public void EmptyMagazineCanStillStartReloadWhenReserveExists()
+    {
+        var state = new WeaponState(WeaponCatalog.Rifle01);
+
+        for (var i = 0; i < WeaponCatalog.Rifle01.MagazineSize; i++)
+        {
+            Assert.True(state.TryConsumeShot());
+            state.Tick(WeaponCatalog.Rifle01.FireIntervalSeconds);
+        }
+
+        Assert.Equal(0, state.AmmoInMagazine);
+        Assert.True(state.CanReload());
+        Assert.True(state.TryStartReload());
+        Assert.True(state.IsReloading);
+    }
+
+    [Fact]
     public void CannotFireWhileReloading()
     {
         var state = new WeaponState(WeaponCatalog.Rifle01);

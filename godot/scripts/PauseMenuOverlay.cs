@@ -18,7 +18,13 @@ namespace Canuter
         public delegate void Prototype3DMoveSpeedChangedEventHandler(double moveSpeed);
 
         [Signal]
-        public delegate void Prototype3DCameraPitchChangedEventHandler(double pitchDegrees);
+        public delegate void Prototype3DGravityChangedEventHandler(double gravity);
+
+        [Signal]
+        public delegate void Prototype3DJumpVelocityChangedEventHandler(double jumpVelocity);
+
+        [Signal]
+        public delegate void PersistentImpactMarkersChangedEventHandler(bool enabled);
 
         [Signal]
         public delegate void ExitRequestedEventHandler();
@@ -27,7 +33,9 @@ namespace Canuter
         private VBoxContainer _settingsContent = null!;
         private SpinBox _headingSensitivitySpinBox = null!;
         private SpinBox _prototype3DMoveSpeedSpinBox = null!;
-        private SpinBox _prototype3DCameraPitchSpinBox = null!;
+        private SpinBox _prototype3DGravitySpinBox = null!;
+        private SpinBox _prototype3DJumpVelocitySpinBox = null!;
+        private CheckBox _persistentImpactMarkersCheckBox = null!;
         private bool _isApplyingState;
 
         public override void _Ready()
@@ -39,7 +47,9 @@ namespace Canuter
             _settingsContent = GetNode<VBoxContainer>("Panel/Root/SettingsContent");
             _headingSensitivitySpinBox = GetNode<SpinBox>("Panel/Root/SettingsContent/HeadingSensitivitySpinBox");
             _prototype3DMoveSpeedSpinBox = GetNode<SpinBox>("Panel/Root/SettingsContent/Prototype3DMoveSpeedSpinBox");
-            _prototype3DCameraPitchSpinBox = GetNode<SpinBox>("Panel/Root/SettingsContent/Prototype3DCameraPitchSpinBox");
+            _prototype3DGravitySpinBox = GetNode<SpinBox>("Panel/Root/SettingsContent/Prototype3DGravitySpinBox");
+            _prototype3DJumpVelocitySpinBox = GetNode<SpinBox>("Panel/Root/SettingsContent/Prototype3DJumpVelocitySpinBox");
+            _persistentImpactMarkersCheckBox = GetNode<CheckBox>("Panel/Root/SettingsContent/PersistentImpactMarkersCheckBox");
 
             var settingsButton = GetNode<Button>("Panel/Root/PauseContent/SettingsButton");
             var exitButton = GetNode<Button>("Panel/Root/PauseContent/ExitButton");
@@ -57,13 +67,18 @@ namespace Canuter
             _prototype3DMoveSpeedSpinBox.MaxValue = GameSettings.MaxPrototype3DMoveSpeed;
             _prototype3DMoveSpeedSpinBox.Step = 0.5f;
             _prototype3DMoveSpeedSpinBox.ValueChanged += OnPrototype3DMoveSpeedChanged;
-            _prototype3DCameraPitchSpinBox.MinValue = GameSettings.MinPrototype3DCameraPitchDegrees;
-            _prototype3DCameraPitchSpinBox.MaxValue = GameSettings.MaxPrototype3DCameraPitchDegrees;
-            _prototype3DCameraPitchSpinBox.Step = 1.0f;
-            _prototype3DCameraPitchSpinBox.ValueChanged += OnPrototype3DCameraPitchChanged;
+            _prototype3DGravitySpinBox.MinValue = GameSettings.MinPrototype3DGravity;
+            _prototype3DGravitySpinBox.MaxValue = GameSettings.MaxPrototype3DGravity;
+            _prototype3DGravitySpinBox.Step = 0.5f;
+            _prototype3DGravitySpinBox.ValueChanged += OnPrototype3DGravityChanged;
+            _prototype3DJumpVelocitySpinBox.MinValue = GameSettings.MinPrototype3DJumpVelocity;
+            _prototype3DJumpVelocitySpinBox.MaxValue = GameSettings.MaxPrototype3DJumpVelocity;
+            _prototype3DJumpVelocitySpinBox.Step = 0.25f;
+            _prototype3DJumpVelocitySpinBox.ValueChanged += OnPrototype3DJumpVelocityChanged;
+            _persistentImpactMarkersCheckBox.Toggled += OnPersistentImpactMarkersToggled;
         }
 
-        public void ApplyState(MenuScreen screen, float headingLockedTurnSensitivity, float prototype3DMoveSpeed, float prototype3DCameraPitchDegrees)
+        public void ApplyState(MenuScreen screen, float headingLockedTurnSensitivity, float prototype3DMoveSpeed, float prototype3DGravity, float prototype3DJumpVelocity, bool persistentImpactMarkersEnabled)
         {
             Visible = screen != MenuScreen.Closed;
             _pauseContent.Visible = screen == MenuScreen.Pause;
@@ -74,7 +89,9 @@ namespace Canuter
             {
                 _headingSensitivitySpinBox.Value = headingLockedTurnSensitivity;
                 _prototype3DMoveSpeedSpinBox.Value = prototype3DMoveSpeed;
-                _prototype3DCameraPitchSpinBox.Value = prototype3DCameraPitchDegrees;
+                _prototype3DGravitySpinBox.Value = prototype3DGravity;
+                _prototype3DJumpVelocitySpinBox.Value = prototype3DJumpVelocity;
+                _persistentImpactMarkersCheckBox.ButtonPressed = persistentImpactMarkersEnabled;
             }
             finally
             {
@@ -102,14 +119,34 @@ namespace Canuter
             EmitSignal(SignalName.Prototype3DMoveSpeedChanged, value);
         }
 
-        private void OnPrototype3DCameraPitchChanged(double value)
+        private void OnPrototype3DGravityChanged(double value)
         {
             if (_isApplyingState)
             {
                 return;
             }
 
-            EmitSignal(SignalName.Prototype3DCameraPitchChanged, value);
+            EmitSignal(SignalName.Prototype3DGravityChanged, value);
+        }
+
+        private void OnPrototype3DJumpVelocityChanged(double value)
+        {
+            if (_isApplyingState)
+            {
+                return;
+            }
+
+            EmitSignal(SignalName.Prototype3DJumpVelocityChanged, value);
+        }
+
+        private void OnPersistentImpactMarkersToggled(bool pressed)
+        {
+            if (_isApplyingState)
+            {
+                return;
+            }
+
+            EmitSignal(SignalName.PersistentImpactMarkersChanged, pressed);
         }
     }
 }

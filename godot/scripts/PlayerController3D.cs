@@ -1,4 +1,5 @@
 using NumericVector2 = System.Numerics.Vector2;
+using NumericVector3 = System.Numerics.Vector3;
 using System.Collections.Generic;
 using Godot;
 
@@ -6,19 +7,42 @@ namespace Canuter
 {
     public partial class PlayerController3D : CharacterBody3D
     {
+        private const float DefaultShotOriginHeight = 1.25f;
         private Area3D _hurtbox = null!;
         private MeshInstance3D _bodyMesh = null!;
+        private CollisionShape3D _movementCollider = null!;
         private Marker3D _firePoint = null!;
         private MeshInstance3D _tracerMesh = null!;
+        private Node3D _impactRoot = null!;
+        private readonly List<ImpactMarkerEntry> _transientImpactMarkers = new();
         private readonly Dictionary<string, WeaponState> _weaponStates = new();
         private WeaponState _equippedWeapon = null!;
-        private Vector2 _currentAimDirection2D = Vector2.Up;
-        private float _currentAimRotation;
+        private Vector2 _currentHorizontalForward2D = Vector2.Up;
+        private float _currentYawRadians;
+        private float _currentPitchDegrees = PlayerRuntimeTuning.Prototype3DCameraPitchDegrees;
         private Vector2 _pendingMouseDelta;
         private bool _gameplayInputEnabled = true;
         private float _headingSensitivity = PlayerRuntimeTuning.HeadingLockedMouseRadiansPerPixel;
         private float _moveSpeed = PlayerRuntimeTuning.Prototype3DMoveSpeed;
         private double _tracerRemaining;
+        private bool _pendingAutoReloadOnPrimaryRelease;
+        private bool _pendingJump;
+        private bool _persistentImpactMarkersEnabled;
+        private Camera3D? _aimCamera;
+        private float _gravity = PlayerRuntimeTuning.Prototype3DGravity;
+        private float _jumpVelocity = PlayerRuntimeTuning.Prototype3DJumpVelocity;
+
+        private sealed class ImpactMarkerEntry
+        {
+            public MeshInstance3D Mesh { get; }
+            public double RemainingSeconds { get; set; }
+
+            public ImpactMarkerEntry(MeshInstance3D mesh, double remainingSeconds)
+            {
+                Mesh = mesh;
+                RemainingSeconds = remainingSeconds;
+            }
+        }
 
         public WeaponDefinition EquippedWeaponDefinition => _equippedWeapon.Definition;
         public int EquippedAmmoInMagazine => _equippedWeapon.AmmoInMagazine;
@@ -26,21 +50,28 @@ namespace Canuter
         public bool IsReloading => _equippedWeapon.IsReloading;
         public int MaxHealth => 100;
         public int CurrentHealth => 100;
-        public Vector3 CurrentForward3D => new(_currentAimDirection2D.X, 0.0f, _currentAimDirection2D.Y);
-        public Vector2 CurrentAimDirection2D => _currentAimDirection2D;
-        public float CurrentAimRotation => _currentAimRotation;
-        public float CurrentMinimapRotation => _currentAimRotation + Mathf.Pi;
+        public Vector3 CurrentForward3D => new(_currentHorizontalForward2D.X, 0.0f, _currentHorizontalForward2D.Y);
+        public Vector3 CurrentAimForward3D => ToGodot3(ThirdPersonAimModel3D.AimDirectionFromYawPitch(_currentYawRadians, _currentPitchDegrees));
+        public Vector2 CurrentAimDirection2D => _currentHorizontalForward2D;
+        public float CurrentAimRotation => _currentYawRadians;
+        public float CurrentPitchDegrees => _currentPitchDegrees;
+        public float CurrentMinimapRotation => _currentYawRadians + Mathf.Pi;
         public Rid HurtboxRid => _hurtbox.GetRid();
         public Vector3 VisibilityOrigin => GlobalPosition + Vector3.Up * 0.9f;
 
         public override void _Ready()
         {
+            _movementCollider = GetNode<CollisionShape3D>("MovementCollider");
             _hurtbox = GetNode<Area3D>("Hurtbox");
             _bodyMesh = GetNode<MeshInstance3D>("BodyMesh");
             _firePoint = GetNode<Marker3D>("FirePoint");
             _tracerMesh = CreateTracerMesh();
+            _impactRoot = new Node3D();
+            AddChild(_impactRoot);
             EnsureInputMap();
             EquipWeapon(WeaponCatalog.Rifle01);
+            SyncBodyLayout();
+            SyncFirePointToShotOrigin();
             ApplyMeshRotation();
         }
 
@@ -61,6 +92,17 @@ namespace Canuter
                     _tracerMesh.Visible = false;
                 }
             }
+
+            for (var index = _transientImpactMarkers.Count - 1; index >= 0; index--)
+            {
+                var marker = _transientImpactMarkers[index];
+                marker.RemainingSeconds = Mathf.Max(0.0, marker.RemainingSeconds - delta);
+                if (marker.RemainingSeconds <= 0.0)
+                {
+                    marker.Mesh.QueueFree();
+                    _transientImpactMarkers.RemoveAt(index);
+                }
+            }
         }
 
         public override void _PhysicsProcess(double delta)
@@ -70,24 +112,55 @@ namespace Canuter
                 Velocity = Vector3.Zero;
                 MoveAndSlide();
                 _pendingMouseDelta = Vector2.Zero;
+                _pendingAutoReloadOnPrimaryRelease = false;
                 return;
             }
 
             var input = Input.GetVector("move_left", "move_right", "move_up", "move_down");
-            _currentAimRotation = HeadingLockedMovementModel3D.UpdateHeadingRotation(
-                _currentAimRotation,
+            var verticalVelocity = Velocity.Y;
+            if (CanJumpFromCurrentState())
+            {
+                if (verticalVelocity < 0.0f)
+                {
+                    verticalVelocity = 0.0f;
+                }
+
+                if (Input.IsActionJustPressed("jump"))
+                {
+                    _pendingJump = true;
+                }
+
+                if (_pendingJump)
+                {
+                    verticalVelocity = _jumpVelocity;
+                    _pendingJump = false;
+                }
+            }
+            else
+            {
+                verticalVelocity -= _gravity * (float)delta;
+            }
+
+            _currentYawRadians = ThirdPersonAimModel3D.UpdateYawRadians(
+                _currentYawRadians,
                 _pendingMouseDelta.X,
                 _headingSensitivity);
-            _currentAimDirection2D = ToGodot(HeadingLockedMovementModel3D.DirectionFromRotation(_currentAimRotation));
+            _currentPitchDegrees = ThirdPersonAimModel3D.UpdatePitchDegrees(
+                _currentPitchDegrees,
+                _pendingMouseDelta.Y,
+                _headingSensitivity,
+                0.0f,
+                90.0f);
+            _currentHorizontalForward2D = ToGodot(ThirdPersonAimModel3D.HorizontalForwardFromYaw(_currentYawRadians));
 
             var planarVelocity = HeadingLockedMovementModel3D.CalculateVelocity(
                 new NumericVector2(Velocity.X, Velocity.Z),
                 ToNumeric2(input),
-                ToNumeric(_currentAimDirection2D),
+                ToNumeric(_currentHorizontalForward2D),
                 delta,
                 _moveSpeed);
 
-            Velocity = new Vector3(planarVelocity.X, 0.0f, planarVelocity.Y);
+            Velocity = new Vector3(planarVelocity.X, verticalVelocity, planarVelocity.Y);
             MoveAndSlide();
             ApplyMeshRotation();
             _pendingMouseDelta = Vector2.Zero;
@@ -109,7 +182,13 @@ namespace Canuter
 
                 if (InputMap.EventIsAction(keyEvent, "reload_weapon"))
                 {
-                    _equippedWeapon.TryStartReload();
+                    TryStartReload();
+                    return;
+                }
+
+                if (InputMap.EventIsAction(keyEvent, "jump"))
+                {
+                    _pendingJump = true;
                     return;
                 }
 
@@ -132,19 +211,30 @@ namespace Canuter
                 }
             }
 
-            if (@event is InputEventMouseMotion mouseMotion)
+            if (@event is InputEventMouseMotion mouseMotion && _gameplayInputEnabled)
             {
                 _pendingMouseDelta += mouseMotion.Relative;
             }
 
-            if (@event is not InputEventMouseButton mouseButton || !mouseButton.Pressed || !_gameplayInputEnabled)
+            if (@event is not InputEventMouseButton mouseButton || !_gameplayInputEnabled)
             {
                 return;
             }
 
-            if (mouseButton.ButtonIndex == MouseButton.Left)
+            if (mouseButton.ButtonIndex != MouseButton.Left)
+            {
+                return;
+            }
+
+            if (mouseButton.Pressed)
             {
                 TryUseEquippedWeapon();
+                return;
+            }
+
+            if (_pendingAutoReloadOnPrimaryRelease)
+            {
+                TryStartReload();
             }
         }
 
@@ -158,12 +248,33 @@ namespace Canuter
             _moveSpeed = moveSpeed;
         }
 
+        public void SetGravity(float gravity)
+        {
+            _gravity = gravity;
+        }
+
+        public void SetJumpVelocity(float jumpVelocity)
+        {
+            _jumpVelocity = jumpVelocity;
+        }
+
+        public void SetPersistentImpactMarkersEnabled(bool enabled)
+        {
+            _persistentImpactMarkersEnabled = enabled;
+        }
+
+        public void SetPitchDegrees(float pitchDegrees)
+        {
+            _currentPitchDegrees = float.Clamp(pitchDegrees, 0.0f, 90.0f);
+        }
+
         public void SetGameplayInputEnabled(bool enabled)
         {
             _gameplayInputEnabled = enabled;
             if (!enabled)
             {
                 Velocity = Vector3.Zero;
+                _pendingAutoReloadOnPrimaryRelease = false;
             }
         }
 
@@ -172,12 +283,119 @@ namespace Canuter
             _pendingMouseDelta += delta;
         }
 
+        public void SetEquippedAmmoForTesting(int ammoInMagazine, int reserveAmmo)
+        {
+            _equippedWeapon.SetAmmoForTesting(ammoInMagazine, reserveAmmo);
+        }
+
+        public int GetEquippedAmmoInMagazineForTesting()
+        {
+            return _equippedWeapon.AmmoInMagazine;
+        }
+
+        public bool GetIsReloadingForTesting()
+        {
+            return _equippedWeapon.IsReloading;
+        }
+
+        public float GetCurrentPitchDegreesForTesting()
+        {
+            return _currentPitchDegrees;
+        }
+
+        public float GetHeightForTesting()
+        {
+            return GlobalPosition.Y;
+        }
+
+        public float GetVerticalVelocityForTesting()
+        {
+            return Velocity.Y;
+        }
+
+        public bool GetIsOnFloorForTesting()
+        {
+            return IsOnFloor();
+        }
+
+        public Vector3 GetCurrentAimForward3DForTesting()
+        {
+            return CurrentAimForward3D;
+        }
+
+        public Vector3 GetFirePointPositionForTesting()
+        {
+            return GetShotOrigin();
+        }
+
+        public Vector3 GetCurrentShotDirectionForTesting(float maxDistance)
+        {
+            var aimPoint = ResolveAimPoint(maxDistance);
+            return (aimPoint - GetShotOrigin()).Normalized();
+        }
+
+        public bool GetImpactMarkerVisibleForTesting()
+        {
+            return _impactRoot.GetChildCount() > 0;
+        }
+
+        public Vector3 GetImpactMarkerPositionForTesting()
+        {
+            if (_impactRoot.GetChildCount() == 0)
+            {
+                return Vector3.Zero;
+            }
+
+            return ((Node3D)_impactRoot.GetChild(_impactRoot.GetChildCount() - 1)).GlobalPosition;
+        }
+
+        public void FireEquippedWeaponForTesting()
+        {
+            TryUseEquippedWeapon(ignoreFullAutoHeldCheck: true);
+        }
+
+        public void RequestJumpForTesting()
+        {
+            _pendingJump = true;
+        }
+
+        public void BindAimCamera(Camera3D camera)
+        {
+            _aimCamera = camera;
+        }
+
+        private bool CanJumpFromCurrentState()
+        {
+            return IsOnFloor();
+        }
+
         private void ApplyMeshRotation()
         {
-            Rotation = new Vector3(0.0f, _currentAimRotation, 0.0f);
+            Rotation = new Vector3(0.0f, _currentYawRadians, 0.0f);
+            SyncFirePointToShotOrigin();
+        }
+
+        private void SyncBodyLayout()
+        {
+            var capsuleHalfHeight = GetCapsuleHalfHeight();
+            var colliderOffset = new Vector3(0.0f, capsuleHalfHeight, 0.0f);
+            _movementCollider.Position = colliderOffset;
+            _hurtbox.Position = colliderOffset;
+            _bodyMesh.Position = colliderOffset;
+
+            if (_movementCollider.Shape is CapsuleShape3D capsule && _bodyMesh.Mesh is CapsuleMesh bodyCapsuleMesh)
+            {
+                bodyCapsuleMesh.Radius = capsule.Radius;
+                bodyCapsuleMesh.Height = capsule.Height;
+            }
         }
 
         private void TryUseEquippedWeapon()
+        {
+            TryUseEquippedWeapon(ignoreFullAutoHeldCheck: false);
+        }
+
+        private void TryUseEquippedWeapon(bool ignoreFullAutoHeldCheck)
         {
             if (_equippedWeapon.Definition.FireMode == WeaponFireMode.Melee)
             {
@@ -185,19 +403,29 @@ namespace Canuter
                 return;
             }
 
-            if (_equippedWeapon.Definition.FireMode == WeaponFireMode.FullAuto && !Input.IsMouseButtonPressed(MouseButton.Left))
+            if (!ignoreFullAutoHeldCheck &&
+                _equippedWeapon.Definition.FireMode == WeaponFireMode.FullAuto &&
+                !Input.IsMouseButtonPressed(MouseButton.Left))
             {
                 return;
             }
 
             if (!_equippedWeapon.TryConsumeShot())
             {
+                QueueAutoReloadIfMagazineEmpty();
                 return;
             }
 
-            var origin = _firePoint.GlobalPosition;
-            var direction = CurrentForward3D.Normalized();
+            QueueAutoReloadIfMagazineEmpty();
+
+            var origin = GetShotOrigin();
             var maxDistance = PrototypeRangeTo3D(_equippedWeapon.Definition.Range);
+            var aimPoint = ResolveAimPoint(maxDistance);
+            var direction = (aimPoint - origin).Normalized();
+            if (direction.LengthSquared() <= 0.0001f)
+            {
+                direction = CurrentAimForward3D.Normalized();
+            }
             var target = origin + direction * maxDistance;
             var query = PhysicsRayQueryParameters3D.Create(origin, target);
             query.CollideWithBodies = true;
@@ -213,6 +441,7 @@ namespace Canuter
 
             tracerEnd = (Vector3)result["position"];
             ShowTracer(origin, tracerEnd);
+            ShowImpactMarker(tracerEnd, result.ContainsKey("normal") ? (Vector3)result["normal"] : Vector3.Zero);
 
             if (result["collider"].AsGodotObject() is DummyTarget3D dummyTarget)
             {
@@ -260,11 +489,49 @@ namespace Canuter
             }
 
             _equippedWeapon = state;
+            _pendingAutoReloadOnPrimaryRelease = false;
+        }
+
+        private void QueueAutoReloadIfMagazineEmpty()
+        {
+            if (!_equippedWeapon.Definition.UsesMagazine || _equippedWeapon.AmmoInMagazine > 0 || _equippedWeapon.ReserveAmmo <= 0)
+            {
+                return;
+            }
+
+            _pendingAutoReloadOnPrimaryRelease = true;
+        }
+
+        private void TryStartReload()
+        {
+            if (_equippedWeapon.TryStartReload())
+            {
+                _pendingAutoReloadOnPrimaryRelease = false;
+            }
         }
 
         private static float PrototypeRangeTo3D(float prototypeRange)
         {
-            return prototypeRange / 64.0f * 4.0f;
+            return prototypeRange / 64.0f * 8.0f;
+        }
+
+        private Vector3 ResolveAimPoint(float maxDistance)
+        {
+            if (_aimCamera == null)
+            {
+                return _firePoint.GlobalPosition + CurrentAimForward3D * maxDistance;
+            }
+
+            var viewportCenter = _aimCamera.GetViewport().GetVisibleRect().Size * 0.5f;
+            var rayOrigin = _aimCamera.ProjectRayOrigin(viewportCenter);
+            var rayNormal = _aimCamera.ProjectRayNormal(viewportCenter);
+            var rayTarget = rayOrigin + rayNormal * maxDistance;
+            var query = PhysicsRayQueryParameters3D.Create(rayOrigin, rayTarget);
+            query.CollideWithBodies = true;
+            query.CollideWithAreas = true;
+            query.Exclude = new Godot.Collections.Array<Rid> { GetRid(), HurtboxRid };
+            var result = GetWorld3D().DirectSpaceState.IntersectRay(query);
+            return result.Count == 0 ? rayTarget : (Vector3)result["position"];
         }
 
         private void ShowTracer(Vector3 origin, Vector3 end)
@@ -285,6 +552,20 @@ namespace Canuter
             _tracerMesh.LookAt(end, Vector3.Up);
             _tracerMesh.Visible = true;
             _tracerRemaining = 0.05;
+        }
+
+        private void ShowImpactMarker(Vector3 position, Vector3 normal)
+        {
+            var offsetNormal = normal.LengthSquared() > 0.0001f ? normal.Normalized() : Vector3.Up;
+            var impactMesh = CreateImpactMesh();
+            _impactRoot.AddChild(impactMesh);
+            impactMesh.GlobalPosition = position + offsetNormal * 0.03f;
+            impactMesh.Visible = true;
+
+            if (!_persistentImpactMarkersEnabled)
+            {
+                _transientImpactMarkers.Add(new ImpactMarkerEntry(impactMesh, 0.12));
+            }
         }
 
         private MeshInstance3D CreateTracerMesh()
@@ -311,12 +592,66 @@ namespace Canuter
             return mesh;
         }
 
+        private MeshInstance3D CreateImpactMesh()
+        {
+            return new MeshInstance3D
+            {
+                TopLevel = true,
+                Visible = false,
+                CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+                Mesh = new SphereMesh
+                {
+                    Radius = 0.12f,
+                    Height = 0.24f,
+                },
+                MaterialOverride = new StandardMaterial3D
+                {
+                    ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
+                    Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
+                    AlbedoColor = new Color(0.98f, 0.88f, 0.18f, 0.45f),
+                    EmissionEnabled = true,
+                    Emission = new Color(0.98f, 0.88f, 0.18f, 1.0f),
+                },
+            };
+        }
+
+        private Vector3 GetShotOrigin()
+        {
+            return GlobalPosition + Vector3.Up * GetShotOriginHeight();
+        }
+
+        private float GetCapsuleHalfHeight()
+        {
+            if (_movementCollider?.Shape is CapsuleShape3D capsule)
+            {
+                return capsule.Height * 0.5f;
+            }
+
+            return DefaultShotOriginHeight;
+        }
+
+        private float GetShotOriginHeight()
+        {
+            if (_movementCollider?.Shape is CapsuleShape3D capsule)
+            {
+                return _movementCollider.Position.Y + capsule.Height * 0.5f;
+            }
+
+            return DefaultShotOriginHeight;
+        }
+
+        private void SyncFirePointToShotOrigin()
+        {
+            _firePoint.Position = new Vector3(0.0f, GetShotOriginHeight(), 0.0f);
+        }
+
         private static void EnsureInputMap()
         {
             EnsureAction("move_up", Key.W, Key.Up);
             EnsureAction("move_down", Key.S, Key.Down);
             EnsureAction("move_left", Key.A, Key.Left);
             EnsureAction("move_right", Key.D, Key.Right);
+            EnsureAction("jump", Key.Space);
             EnsureAction("reload_weapon", Key.R);
             EnsureAction("weapon_slot_1", Key.Key1);
             EnsureAction("weapon_slot_2", Key.Key2);
@@ -394,6 +729,11 @@ namespace Canuter
         private static Vector2 ToGodot(NumericVector2 value)
         {
             return new Vector2(value.X, value.Y);
+        }
+
+        private static Vector3 ToGodot3(NumericVector3 value)
+        {
+            return new Vector3(value.X, value.Y, value.Z);
         }
     }
 }

@@ -17,7 +17,7 @@ public sealed class CameraRigModel3DTests
             lookHeight: 1.2f);
 
         Assert.Equal(new Vector3(10.0f, 5.0f, 11.339746f), frame.CameraPosition, new Vector3EqualityComparer(0.0001f));
-        Assert.Equal(new Vector3(10.0f, 1.2f, 30.0f), frame.LookTarget);
+        Assert.Equal(new Vector3(10.0f, -3.8f, 28.660254f), frame.LookTarget, new Vector3EqualityComparer(0.0001f));
     }
 
     [Fact]
@@ -32,7 +32,7 @@ public sealed class CameraRigModel3DTests
             lookHeight: 1.0f);
 
         Assert.Equal(10.0f * MathF.Sin(40.0f * MathF.PI / 180.0f), frame.CameraPosition.Y, 4);
-        Assert.Equal(1.0f, frame.LookTarget.Y, 4);
+        Assert.True(frame.LookTarget.Y < 1.0f);
         Assert.True(frame.CameraPosition.X < 0.0f);
         Assert.Equal(0.0f, frame.CameraPosition.Z, 4);
     }
