@@ -1,4 +1,4 @@
-[gd_scene load_steps=13 format=3 uid="uid://cqow47bch5ocs"]
+[gd_scene load_steps=14 format=3 uid="uid://cqow47bch5ocs"]
 
 [ext_resource type="Script" path="res://scripts/Main.cs" id="1_rc7ef"]
 [ext_resource type="Script" path="res://scripts/PlayerController.cs" id="2_gyp8q"]
@@ -7,6 +7,7 @@
 [ext_resource type="Script" path="res://scripts/GameHud.cs" id="5_6y1dm"]
 [ext_resource type="Script" path="res://scripts/VisionSystem.cs" id="6_yyrht"]
 [ext_resource type="Script" path="res://scripts/PauseMenuOverlay.cs" id="7_i6yx4"]
+[ext_resource type="Script" path="res://scripts/HeadingLockedPerspectiveDebugOverlay.cs" id="8_2n4h8"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_move"]
 radius = 24.0
@@ -94,6 +95,17 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 script = ExtResource("5_6y1dm")
+
+[node name="HeadingLockedPerspectiveDebugOverlay" type="Control" parent="Hud"]
+visible = false
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("8_2n4h8")
 
 [node name="Crosshair" type="Control" parent="Hud"]
 layout_mode = 3

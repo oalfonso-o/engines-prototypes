@@ -12,6 +12,7 @@ func _run() -> void:
 	_clear_settings_file()
 	await _test_pause_menu_opens_with_escape()
 	await _test_heading_locked_rotates_camera_and_disables_smoothing()
+	await _test_heading_locked_perspective_debug_overlay_visibility()
 	await _test_settings_persist_between_scene_boots()
 
 	if _failures.is_empty():
@@ -70,6 +71,30 @@ func _test_heading_locked_rotates_camera_and_disables_smoothing() -> void:
 	await physics_frame
 	_assert_true(camera.position_smoothing_enabled, "TopDownFixed camera smoothing should be enabled")
 	_assert_true(camera.position.length() < 0.001, "TopDownFixed camera should return to a centered follow position")
+
+	await _despawn_main(main)
+
+func _test_heading_locked_perspective_debug_overlay_visibility() -> void:
+	var main := await _spawn_main()
+	var overlay: Control = main.get_node("Hud/HeadingLockedPerspectiveDebugOverlay")
+	var map: CanvasItem = main.get_node("Map")
+
+	await process_frame
+	await physics_frame
+	_assert_true(not overlay.visible, "Perspective debug overlay should stay hidden in TopDownFixed")
+	_assert_true(map.visible, "TopDownFixed should keep the top-down map visible")
+
+	main.call("SetViewModeById", 1)
+	await process_frame
+	await physics_frame
+	_assert_true(overlay.visible, "Perspective debug overlay should become visible in HeadingLocked")
+	_assert_true(not map.visible, "HeadingLocked should hide the top-down map renderer")
+
+	main.call("SetViewModeById", 0)
+	await process_frame
+	await physics_frame
+	_assert_true(not overlay.visible, "Perspective debug overlay should hide again after returning to TopDownFixed")
+	_assert_true(map.visible, "Returning to TopDownFixed should restore the top-down map renderer")
 
 	await _despawn_main(main)
 

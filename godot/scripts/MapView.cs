@@ -96,6 +96,102 @@ namespace Canuter
             return CellCenterToWorld(_allySpawns[0]);
         }
 
+        public IEnumerable<Vector2I> GetExploredFloorCells()
+        {
+            for (var y = 0; y < _mapHeight; y++)
+            {
+                for (var x = 0; x < _mapWidth; x++)
+                {
+                    var cell = new Vector2I(x, y);
+                    if (!IsExplored(cell) || IsWall(cell))
+                    {
+                        continue;
+                    }
+
+                    yield return cell;
+                }
+            }
+        }
+
+        public IEnumerable<Vector2I> GetFloorCells()
+        {
+            for (var y = 0; y < _mapHeight; y++)
+            {
+                for (var x = 0; x < _mapWidth; x++)
+                {
+                    var cell = new Vector2I(x, y);
+                    if (IsWall(cell))
+                    {
+                        continue;
+                    }
+
+                    yield return cell;
+                }
+            }
+        }
+
+        public IEnumerable<Vector2I> GetExploredWallCells()
+        {
+            for (var y = 0; y < _mapHeight; y++)
+            {
+                for (var x = 0; x < _mapWidth; x++)
+                {
+                    var cell = new Vector2I(x, y);
+                    if (!IsExplored(cell) || !IsWall(cell))
+                    {
+                        continue;
+                    }
+
+                    yield return cell;
+                }
+            }
+        }
+
+        public IEnumerable<Vector2I> GetWallCells()
+        {
+            for (var y = 0; y < _mapHeight; y++)
+            {
+                for (var x = 0; x < _mapWidth; x++)
+                {
+                    var cell = new Vector2I(x, y);
+                    if (!IsWall(cell))
+                    {
+                        continue;
+                    }
+
+                    yield return cell;
+                }
+            }
+        }
+
+        public Color GetProjectedFloorColor(Vector2I cell)
+        {
+            return FloorColorForCell(cell);
+        }
+
+        public Color GetProjectedWallColor(Vector2I cell)
+        {
+            return WallFillColorForCell(cell);
+        }
+
+        public bool HasWallAt(Vector2I cell)
+        {
+            return IsWall(cell);
+        }
+
+        public Vector2[] GetCellWorldCorners(Vector2I cell)
+        {
+            var x = cell.X * _tileSize;
+            var y = cell.Y * _tileSize;
+            return new[]
+            {
+                new Vector2(x, y),
+                new Vector2(x + _tileSize, y),
+                new Vector2(x + _tileSize, y + _tileSize),
+                new Vector2(x, y + _tileSize),
+            };
+        }
+
         public override void _Draw()
         {
             if (_mapWidth == 0 || _mapHeight == 0)

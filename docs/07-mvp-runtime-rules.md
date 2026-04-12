@@ -51,6 +51,8 @@
 - `heading_locked`: the camera rotates with the player's heading so the player remains visually upright on screen.
 - `heading_locked`: camera position follow is immediate rather than smoothed.
 - `heading_locked`: the camera is biased forward along the current heading so the player sits below screen center and more space is visible ahead than behind.
+- `heading_locked`: the runtime uses an experimental screen-space pseudo-perspective world render instead of the normal top-down map draw.
+- `heading_locked`: the current experimental pass uses a raycast fan to find first wall hits, draw the front visible floor only up to that frontier, render vertical wall slices at the blocking edge, project the rear hemisphere floor as always-readable context, and keep the wall layout visible in a darkened hidden-state volumetric pass with vertical faces and roof silhouettes so the map shape remains readable without revealing live line-of-sight information.
 - The default runtime zoom is slightly zoomed out from the original prototype baseline.
 - Mouse wheel controls zoom.
 - The zoom-in limit is the current closest gameplay zoom.
@@ -197,6 +199,7 @@
 - Unexplored cells must not reveal meaningful geometry.
 - Explored cells may remain known to the player when out of sight.
 - Live targets must not remain visible just because their cell was explored before.
+- `heading_locked` currently experiments with a stronger readability rule for walls: wall layout can remain visible in a darkened hidden-state volumetric presentation, including walls outside the front tactical fan, even when floor visibility is still limited by the current vision fan.
 
 ## Map Runtime Rules
 
@@ -232,6 +235,7 @@
 - Crosshair presentation is mode-dependent:
 - `topdown_fixed`: free mouse crosshair
 - `heading_locked`: centered forward aim hint
+- `heading_locked` currently uses an experimental pseudo-perspective world render with visible-floor area, wall slices, target markers, player-anchor cues, and darkened hidden wall layout; this is part of the mode's active world presentation rather than a secondary overlay on top of the top-down map.
 
 ## Runtime Source Of Truth
 

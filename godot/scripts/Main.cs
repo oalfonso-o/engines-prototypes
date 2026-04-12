@@ -8,6 +8,7 @@ namespace Canuter
         private PlayerController? _player;
         private GameHud? _gameHud;
         private VisionSystem? _visionSystem;
+        private HeadingLockedPerspectiveDebugOverlay? _perspectiveDebugOverlay;
         private PauseMenuOverlay? _pauseMenuOverlay;
         private readonly GameSettings _settings = new();
         private readonly GameSettingsStore _settingsStore = new();
@@ -23,6 +24,7 @@ namespace Canuter
 
             _crosshair = GetNodeOrNull<Crosshair>("Hud/Crosshair");
             _gameHud = GetNodeOrNull<GameHud>("Hud/GameHud");
+            _perspectiveDebugOverlay = GetNodeOrNull<HeadingLockedPerspectiveDebugOverlay>("Hud/HeadingLockedPerspectiveDebugOverlay");
             _pauseMenuOverlay = GetNodeOrNull<PauseMenuOverlay>("Hud/PauseMenuOverlay");
             _visionSystem = GetNodeOrNull<VisionSystem>("VisionSystem");
             _settingsStore.LoadInto(_settings);
@@ -54,7 +56,14 @@ namespace Canuter
                 _visionSystem.BindPlayer(_player);
                 _gameHud?.BindVisionSystem(_visionSystem);
                 map?.BindVisionSystem(_visionSystem);
+                _perspectiveDebugOverlay?.BindVisionSystem(_visionSystem);
             }
+
+            if (map != null)
+            {
+                _perspectiveDebugOverlay?.BindMap(map);
+            }
+            _perspectiveDebugOverlay?.BindPlayer(_player);
 
             ApplyRuntimeState();
         }
@@ -123,10 +132,16 @@ namespace Canuter
         {
             _headingLockedController.MouseRadiansPerPixel = _settings.HeadingLockedTurnSensitivity;
             var controller = GetActiveViewModeController();
+            var isHeadingLocked = _settings.ViewMode == PlayerViewMode.HeadingLocked;
             _player?.SetViewModeController(controller);
             _player?.SetGameplayInputEnabled(_pauseMenuState.CurrentScreen == MenuScreen.Closed);
             _crosshair?.SetPresentation(controller.PointerPresentation);
             _pauseMenuOverlay?.ApplyState(_pauseMenuState.CurrentScreen, _settings.ViewMode, _settings.HeadingLockedTurnSensitivity);
+            var map = GetNodeOrNull<CanvasItem>("Map");
+            if (map != null)
+            {
+                map.Visible = !isHeadingLocked;
+            }
 
             var allowGameplayPointer = _windowActive && _pauseMenuState.CurrentScreen == MenuScreen.Closed;
             if (!allowGameplayPointer)
