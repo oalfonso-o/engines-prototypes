@@ -123,18 +123,19 @@ namespace Canuter
             var viewport = GetViewportRect().Size;
             var radius = 88.0f;
             var center = new Vector2(viewport.X - 116, 116);
+            var minimapRotation = camera.Rotation;
 
             DrawCircle(center, radius, MinimapFill);
             DrawArc(center, radius, 0.0f, Mathf.Tau, 48, MinimapStroke, 3.0f, true);
             DrawArc(center, radius * 0.72f, 0.0f, Mathf.Tau, 32, new Color(1, 1, 1, 0.08f), 1.5f, true);
 
             var font = GetThemeDefaultFont();
-            DrawString(font, center + new Vector2(-6, -radius - 10), "N", HorizontalAlignment.Left, -1, 14, PrimaryText);
-            DrawString(font, center + new Vector2(-6, radius + 18), "S", HorizontalAlignment.Left, -1, 14, PrimaryText);
-            DrawString(font, center + new Vector2(radius + 10, 5), "E", HorizontalAlignment.Left, -1, 14, PrimaryText);
-            DrawString(font, center + new Vector2(-radius - 20, 5), "W", HorizontalAlignment.Left, -1, 14, PrimaryText);
+            DrawOrientationMarker(font, center, radius, minimapRotation, "N", MinimapOrientationMarker.North);
+            DrawOrientationMarker(font, center, radius, minimapRotation, "E", MinimapOrientationMarker.East);
+            DrawOrientationMarker(font, center, radius, minimapRotation, "S", MinimapOrientationMarker.South);
+            DrawOrientationMarker(font, center, radius, minimapRotation, "W", MinimapOrientationMarker.West);
 
-            DrawCircle(center, 5.0f, FriendlyMarker);
+            DrawPlayerMarker(center, minimapRotation);
 
             var viewportWorld = CameraViewportModel.Create(
                 ToNumeric(camera.GlobalPosition),
@@ -158,7 +159,8 @@ namespace Canuter
                     viewportWorld,
                     ToNumeric(center),
                     radius,
-                    ToNumeric(target.GlobalPosition));
+                    ToNumeric(target.GlobalPosition),
+                    minimapRotation);
 
                 if (projection == null)
                 {
@@ -167,6 +169,35 @@ namespace Canuter
 
                 DrawCircle(ToGodot(projection.Value.MarkerPosition), 4.0f, EnemyMarker);
             }
+        }
+
+        private void DrawOrientationMarker(Font font, Vector2 center, float radius, float minimapRotation, string label, MinimapOrientationMarker marker)
+        {
+            var position = ToGodot(MinimapProjector.ProjectOrientationMarker(
+                ToNumeric(center),
+                radius + 14.0f,
+                marker,
+                minimapRotation));
+
+            DrawString(font, position + new Vector2(-6.0f, 5.0f), label, HorizontalAlignment.Left, -1, 14, PrimaryText);
+        }
+
+        private void DrawPlayerMarker(Vector2 center, float minimapRotation)
+        {
+            var marker = MinimapProjector.ProjectPlayerMarker(
+                ToNumeric(center),
+                ToNumeric(_player!.CurrentAimDirection),
+                minimapRotation);
+
+            var points = new Vector2[]
+            {
+                ToGodot(marker.Tip),
+                ToGodot(marker.RightBase),
+                ToGodot(marker.LeftBase),
+            };
+
+            DrawColoredPolygon(points, FriendlyMarker);
+            DrawPolyline(points, new Color(0.04f, 0.10f, 0.16f, 0.95f), 2.0f, true);
         }
 
         private static NumericVector2 ToNumeric(Vector2 value)

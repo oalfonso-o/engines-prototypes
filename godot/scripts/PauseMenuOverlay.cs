@@ -14,9 +14,13 @@ namespace Canuter
         [Signal]
         public delegate void ViewModeSelectedEventHandler(long viewMode);
 
+        [Signal]
+        public delegate void HeadingSensitivityChangedEventHandler(double sensitivity);
+
         private VBoxContainer _pauseContent = null!;
         private VBoxContainer _settingsContent = null!;
         private OptionButton _viewModeOption = null!;
+        private SpinBox _headingSensitivitySpinBox = null!;
         private bool _isApplyingState;
 
         public override void _Ready()
@@ -27,6 +31,7 @@ namespace Canuter
             _pauseContent = GetNode<VBoxContainer>("Panel/Root/PauseContent");
             _settingsContent = GetNode<VBoxContainer>("Panel/Root/SettingsContent");
             _viewModeOption = GetNode<OptionButton>("Panel/Root/SettingsContent/ViewModeOption");
+            _headingSensitivitySpinBox = GetNode<SpinBox>("Panel/Root/SettingsContent/HeadingSensitivitySpinBox");
 
             var settingsButton = GetNode<Button>("Panel/Root/PauseContent/SettingsButton");
             var backButton = GetNode<Button>("Panel/Root/SettingsContent/BackButton");
@@ -38,9 +43,13 @@ namespace Canuter
             _viewModeOption.AddItem("TopDown Fixed", (int)PlayerViewMode.TopDownFixed);
             _viewModeOption.AddItem("Heading Locked", (int)PlayerViewMode.HeadingLocked);
             _viewModeOption.ItemSelected += OnViewModeItemSelected;
+            _headingSensitivitySpinBox.MinValue = GameSettings.MinHeadingLockedTurnSensitivity;
+            _headingSensitivitySpinBox.MaxValue = GameSettings.MaxHeadingLockedTurnSensitivity;
+            _headingSensitivitySpinBox.Step = 0.0005f;
+            _headingSensitivitySpinBox.ValueChanged += OnHeadingSensitivityChanged;
         }
 
-        public void ApplyState(MenuScreen screen, PlayerViewMode viewMode)
+        public void ApplyState(MenuScreen screen, PlayerViewMode viewMode, float headingLockedTurnSensitivity)
         {
             Visible = screen != MenuScreen.Closed;
             _pauseContent.Visible = screen == MenuScreen.Pause;
@@ -59,6 +68,8 @@ namespace Canuter
                     _viewModeOption.Select(i);
                     break;
                 }
+
+                _headingSensitivitySpinBox.Value = headingLockedTurnSensitivity;
             }
             finally
             {
@@ -75,6 +86,16 @@ namespace Canuter
 
             var itemId = _viewModeOption.GetItemId((int)index);
             EmitSignal(SignalName.ViewModeSelected, itemId);
+        }
+
+        private void OnHeadingSensitivityChanged(double value)
+        {
+            if (_isApplyingState)
+            {
+                return;
+            }
+
+            EmitSignal(SignalName.HeadingSensitivityChanged, value);
         }
     }
 }

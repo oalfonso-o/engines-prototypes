@@ -3,13 +3,16 @@ extends SceneTree
 const MAIN_SCENE := preload("res://main.tscn")
 
 var _failures: Array[String] = []
+var _settings_path := ProjectSettings.globalize_path("user://runtime_settings.cfg")
 
 func _initialize() -> void:
 	call_deferred("_run")
 
 func _run() -> void:
+	_clear_settings_file()
 	await _test_pause_menu_opens_with_escape()
 	await _test_heading_locked_rotates_camera_and_disables_smoothing()
+	await _test_settings_persist_between_scene_boots()
 
 	if _failures.is_empty():
 		print("Godot integration tests passed")
@@ -84,3 +87,26 @@ func _assert_true(condition: bool, message: String) -> void:
 		return
 
 	_failures.append(message)
+
+func _test_settings_persist_between_scene_boots() -> void:
+	var main := await _spawn_main()
+	main.call("SetViewModeById", 1)
+	main.call("SetHeadingLockedTurnSensitivity", 0.0065)
+	await process_frame
+	await physics_frame
+	await _despawn_main(main)
+
+	var config := ConfigFile.new()
+	var load_result := config.load("user://runtime_settings.cfg")
+	_assert_true(load_result == OK, "Runtime settings file should be written to user://")
+	_assert_true(int(config.get_value("gameplay", "view_mode", 0)) == 1, "Saved settings should persist HeadingLocked view mode")
+	_assert_true(absf(float(config.get_value("gameplay", "heading_locked_turn_sensitivity", 0.0)) - 0.0065) < 0.0001, "Saved settings should persist heading sensitivity")
+
+	var reloaded_main := await _spawn_main()
+	_assert_true(reloaded_main.call("GetCurrentViewModeId") == 1, "Main should load persisted view mode on boot")
+	_assert_true(absf(float(reloaded_main.call("GetHeadingLockedTurnSensitivity")) - 0.0065) < 0.0001, "Main should load persisted heading sensitivity on boot")
+	await _despawn_main(reloaded_main)
+
+func _clear_settings_file() -> void:
+	if FileAccess.file_exists("user://runtime_settings.cfg"):
+		DirAccess.remove_absolute(_settings_path)

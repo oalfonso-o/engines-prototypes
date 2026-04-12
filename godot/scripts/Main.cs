@@ -10,6 +10,7 @@ namespace Canuter
         private VisionSystem? _visionSystem;
         private PauseMenuOverlay? _pauseMenuOverlay;
         private readonly GameSettings _settings = new();
+        private readonly GameSettingsStore _settingsStore = new();
         private PauseMenuState _pauseMenuState = null!;
         private readonly TopDownFixedViewModeController _topDownFixedController = new();
         private readonly HeadingLockedViewModeController _headingLockedController = new();
@@ -24,6 +25,7 @@ namespace Canuter
             _gameHud = GetNodeOrNull<GameHud>("Hud/GameHud");
             _pauseMenuOverlay = GetNodeOrNull<PauseMenuOverlay>("Hud/PauseMenuOverlay");
             _visionSystem = GetNodeOrNull<VisionSystem>("VisionSystem");
+            _settingsStore.LoadInto(_settings);
             _pauseMenuState = new PauseMenuState(_settings);
 
             if (_pauseMenuOverlay != null)
@@ -31,6 +33,7 @@ namespace Canuter
                 _pauseMenuOverlay.SettingsRequested += OnPauseSettingsRequested;
                 _pauseMenuOverlay.BackRequested += OnPauseBackRequested;
                 _pauseMenuOverlay.ViewModeSelected += OnPauseViewModeSelected;
+                _pauseMenuOverlay.HeadingSensitivityChanged += OnHeadingSensitivityChanged;
             }
 
             var map = GetNodeOrNull<MapView>("Map");
@@ -90,6 +93,7 @@ namespace Canuter
         public void SetViewModeById(long viewModeId)
         {
             _settings.SetViewMode((PlayerViewMode)viewModeId);
+            _settingsStore.Save(_settings);
             ApplyRuntimeState();
         }
 
@@ -98,13 +102,31 @@ namespace Canuter
             return (long)_pauseMenuState.CurrentScreen;
         }
 
+        public long GetCurrentViewModeId()
+        {
+            return (long)_settings.ViewMode;
+        }
+
+        public void SetHeadingLockedTurnSensitivity(double sensitivity)
+        {
+            _settings.SetHeadingLockedTurnSensitivity((float)sensitivity);
+            _settingsStore.Save(_settings);
+            ApplyRuntimeState();
+        }
+
+        public double GetHeadingLockedTurnSensitivity()
+        {
+            return _settings.HeadingLockedTurnSensitivity;
+        }
+
         private void ApplyRuntimeState()
         {
+            _headingLockedController.MouseRadiansPerPixel = _settings.HeadingLockedTurnSensitivity;
             var controller = GetActiveViewModeController();
             _player?.SetViewModeController(controller);
             _player?.SetGameplayInputEnabled(_pauseMenuState.CurrentScreen == MenuScreen.Closed);
             _crosshair?.SetPresentation(controller.PointerPresentation);
-            _pauseMenuOverlay?.ApplyState(_pauseMenuState.CurrentScreen, _settings.ViewMode);
+            _pauseMenuOverlay?.ApplyState(_pauseMenuState.CurrentScreen, _settings.ViewMode, _settings.HeadingLockedTurnSensitivity);
 
             var allowGameplayPointer = _windowActive && _pauseMenuState.CurrentScreen == MenuScreen.Closed;
             if (!allowGameplayPointer)
@@ -149,6 +171,14 @@ namespace Canuter
         private void OnPauseViewModeSelected(long viewMode)
         {
             _pauseMenuState.SelectViewMode((PlayerViewMode)viewMode);
+            _settingsStore.Save(_settings);
+            ApplyRuntimeState();
+        }
+
+        private void OnHeadingSensitivityChanged(double sensitivity)
+        {
+            _settings.SetHeadingLockedTurnSensitivity((float)sensitivity);
+            _settingsStore.Save(_settings);
             ApplyRuntimeState();
         }
     }

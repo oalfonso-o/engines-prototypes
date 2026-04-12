@@ -43,6 +43,7 @@
 - For Godot-specific behavior that cannot be covered well with pure unit tests, add a small number of targeted headless integration checks instead of broad brittle UI automation.
 - Before refactoring an existing gameplay path, add characterization tests that lock the current behavior so regressions are visible immediately.
 - When a task changes runtime behavior, run the relevant automated tests before considering the task complete.
+- Do not run `dotnet build`, `dotnet test`, and the Godot integration runner in parallel against the same workspace outputs. They can contend on shared `obj/bin` files. Run them in sequence.
 
 ## Agent History Rule
 

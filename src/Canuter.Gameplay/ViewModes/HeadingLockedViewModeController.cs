@@ -4,6 +4,8 @@ namespace Canuter
 {
     public sealed class HeadingLockedViewModeController : IPlayerViewModeController
     {
+        public float MouseRadiansPerPixel { get; set; } = PlayerRuntimeTuning.HeadingLockedMouseRadiansPerPixel;
+
         public PlayerViewMode Mode => PlayerViewMode.HeadingLocked;
 
         public PlayerPointerPresentation PointerPresentation => new(
@@ -13,7 +15,7 @@ namespace Canuter
 
         public PlayerViewFrameResult Update(PlayerViewFrameInput input)
         {
-            var headingRotation = input.CurrentAimRotation + input.MouseDelta.X * PlayerRuntimeTuning.HeadingLockedMouseRadiansPerPixel;
+            var headingRotation = input.CurrentAimRotation + input.MouseDelta.X * MouseRadiansPerPixel;
             var headingDirection = DirectionFromRotation(headingRotation);
             var movementInput = RotateMovementInputIntoWorld(input.MovementInput, headingDirection);
             var velocity = TopDownMovementModel.CalculateVelocity(

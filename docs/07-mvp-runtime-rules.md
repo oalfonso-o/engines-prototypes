@@ -59,7 +59,10 @@
 
 - Pressing `Escape` opens a pause overlay.
 - The current pause overlay contains a `Settings` entry.
-- The current settings screen exposes the player view mode selector.
+- The current settings screen exposes:
+- player view mode selector
+- heading-locked turn sensitivity
+- Runtime settings are persisted locally so the selected view mode and heading-locked sensitivity are restored on the next launch.
 - Closing the pause overlay returns control to gameplay using the currently selected view mode.
 
 ## Weapon Slots
@@ -207,7 +210,10 @@
 
 - The minimap is screen-space UI.
 - The player marker stays centered in the minimap.
+- The player marker should communicate orientation explicitly rather than as a directionless dot.
 - Orientation markers should remain visible.
+- `topdown_fixed`: the minimap uses the default north-up presentation.
+- `heading_locked`: the minimap rotates with the player's current camera/heading orientation so forward remains up, and the orientation markers rotate with it.
 - Enemy markers should appear only for targets that are currently validly visible.
 - The minimap should not reveal hidden or merely explored enemies.
 
