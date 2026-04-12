@@ -33,6 +33,7 @@ public sealed class TopDownFixedViewModeControllerTests
         Assert.Equal(0.0f, result.AimRotation, 6);
         Assert.Equal(new Vector2(0.0f, 1.0f), result.FireDirection);
         Assert.Equal(0.0f, result.CameraRotation, 6);
+        Assert.Equal(Vector2.Zero, result.CameraFollowOffset);
         Assert.Equal(result.AimRotation, result.VisualRotation, 6);
         Assert.Equal(result.AimRotation, result.HurtboxRotation, 6);
     }
@@ -57,6 +58,7 @@ public sealed class TopDownFixedViewModeControllerTests
         Assert.Equal(previousRotation, result.AimRotation, 6);
         Assert.Equal(previousDirection, result.FireDirection);
         Assert.Equal(0.0f, result.CameraRotation, 6);
+        Assert.Equal(Vector2.Zero, result.CameraFollowOffset);
     }
 
     [Fact]

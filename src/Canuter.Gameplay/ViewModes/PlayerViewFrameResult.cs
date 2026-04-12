@@ -8,6 +8,7 @@ namespace Canuter
         float AimRotation,
         Vector2 FireDirection,
         float CameraRotation,
+        Vector2 CameraFollowOffset,
         float VisualRotation,
         float HurtboxRotation);
 }

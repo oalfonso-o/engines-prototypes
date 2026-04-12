@@ -53,6 +53,8 @@ func _test_heading_locked_rotates_camera_and_disables_smoothing() -> void:
 	var camera: Camera2D = player.get_node("Camera2D")
 	_assert_true(not camera.ignore_rotation, "HeadingLocked camera should respect rotation")
 	_assert_true(not camera.position_smoothing_enabled, "HeadingLocked camera smoothing should be disabled")
+	_assert_true(camera.position.length() > 0.001, "HeadingLocked camera should start with a forward look-ahead offset")
+	_assert_true(camera.position.y > 0.0, "HeadingLocked camera should bias forward from the player origin")
 
 	var initial_rotation := camera.rotation
 	player.call("AddMouseDeltaForTesting", Vector2(20.0, 0.0))
@@ -61,11 +63,13 @@ func _test_heading_locked_rotates_camera_and_disables_smoothing() -> void:
 	await physics_frame
 
 	_assert_true(absf(camera.rotation - initial_rotation) > 0.0001, "HeadingLocked mouse movement should rotate the Camera2D")
+	_assert_true(camera.position.length() > 0.001, "HeadingLocked camera should remain offset away from the player origin")
 
 	main.call("SetViewModeById", 0)
 	await process_frame
 	await physics_frame
 	_assert_true(camera.position_smoothing_enabled, "TopDownFixed camera smoothing should be enabled")
+	_assert_true(camera.position.length() < 0.001, "TopDownFixed camera should return to a centered follow position")
 
 	await _despawn_main(main)
 

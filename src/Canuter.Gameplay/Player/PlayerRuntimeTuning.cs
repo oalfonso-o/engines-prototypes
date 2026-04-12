@@ -13,5 +13,7 @@ namespace Canuter
         public const float MovingAnimationThresholdSquared = 16.0f;
         public const float HeadingLockedMouseRadiansPerPixel = 0.0035f;
         public const float HeadingLockedCameraUprightOffset = MathF.PI;
+        public const float HeadingLockedCameraLookAheadDistance = 240.0f;
+        public const float HeadingLockedStrafeTurnaroundAcceleration = 30000.0f;
     }
 }

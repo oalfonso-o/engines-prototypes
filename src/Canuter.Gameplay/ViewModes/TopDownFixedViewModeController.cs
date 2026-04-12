@@ -28,6 +28,7 @@ namespace Canuter
                 AimRotation: aimState.Rotation,
                 FireDirection: aimState.Direction,
                 CameraRotation: 0.0f,
+                CameraFollowOffset: System.Numerics.Vector2.Zero,
                 VisualRotation: aimState.Rotation,
                 HurtboxRotation: aimState.Rotation);
         }

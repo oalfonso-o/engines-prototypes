@@ -297,6 +297,7 @@ namespace Canuter
             _visualRoot.Rotation = frameResult.VisualRotation;
             _hurtbox.Rotation = frameResult.HurtboxRotation;
             _camera.Rotation = frameResult.CameraRotation;
+            _camera.Position = ToGodot(frameResult.CameraFollowOffset);
         }
 
         private static NumericVector2 ToNumeric(Vector2 value)

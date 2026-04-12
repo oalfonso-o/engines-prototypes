@@ -49,7 +49,8 @@
 - The camera is top-down and follows the player.
 - `topdown_fixed`: the camera does not rotate.
 - `heading_locked`: the camera rotates with the player's heading so the player remains visually upright on screen.
-- `heading_locked`: camera position follow is immediate rather than smoothed so the player stays hard-locked to screen center while rotating and strafing.
+- `heading_locked`: camera position follow is immediate rather than smoothed.
+- `heading_locked`: the camera is biased forward along the current heading so the player sits below screen center and more space is visible ahead than behind.
 - The default runtime zoom is slightly zoomed out from the original prototype baseline.
 - Mouse wheel controls zoom.
 - The zoom-in limit is the current closest gameplay zoom.

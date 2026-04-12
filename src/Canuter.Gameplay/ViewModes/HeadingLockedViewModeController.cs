@@ -17,10 +17,10 @@ namespace Canuter
         {
             var headingRotation = input.CurrentAimRotation + input.MouseDelta.X * MouseRadiansPerPixel;
             var headingDirection = DirectionFromRotation(headingRotation);
-            var movementInput = RotateMovementInputIntoWorld(input.MovementInput, headingDirection);
-            var velocity = TopDownMovementModel.CalculateVelocity(
+            var velocity = CalculateHeadingLockedVelocity(
                 input.CurrentVelocity,
-                movementInput,
+                input.MovementInput,
+                headingDirection,
                 input.DeltaSeconds);
 
             return new PlayerViewFrameResult(
@@ -29,6 +29,7 @@ namespace Canuter
                 AimRotation: headingRotation,
                 FireDirection: headingDirection,
                 CameraRotation: headingRotation + PlayerRuntimeTuning.HeadingLockedCameraUprightOffset,
+                CameraFollowOffset: headingDirection * PlayerRuntimeTuning.HeadingLockedCameraLookAheadDistance,
                 VisualRotation: headingRotation,
                 HurtboxRotation: headingRotation);
         }
@@ -38,10 +39,59 @@ namespace Canuter
             return Vector2.Normalize(new Vector2(-MathF.Sin(rotation), MathF.Cos(rotation)));
         }
 
-        private static Vector2 RotateMovementInputIntoWorld(Vector2 movementInput, Vector2 forward)
+        private static Vector2 CalculateHeadingLockedVelocity(Vector2 currentVelocity, Vector2 movementInput, Vector2 forward, double delta)
         {
             var right = new Vector2(-forward.Y, forward.X);
-            return right * movementInput.X + forward * -movementInput.Y;
+            var currentStrafeSpeed = Vector2.Dot(currentVelocity, right);
+            var currentForwardSpeed = Vector2.Dot(currentVelocity, forward);
+            var targetStrafeSpeed = movementInput.X * PlayerRuntimeTuning.MoveSpeed;
+            var targetForwardSpeed = -movementInput.Y * PlayerRuntimeTuning.MoveSpeed;
+
+            var nextStrafeSpeed = MoveAxisToward(
+                currentStrafeSpeed,
+                targetStrafeSpeed,
+                movementInput.X,
+                delta,
+                allowFastTurnaround: true);
+            var nextForwardSpeed = MoveAxisToward(
+                currentForwardSpeed,
+                targetForwardSpeed,
+                movementInput.Y,
+                delta,
+                allowFastTurnaround: false);
+
+            return right * nextStrafeSpeed + forward * nextForwardSpeed;
+        }
+
+        private static float MoveAxisToward(float current, float target, float inputAxis, double delta, bool allowFastTurnaround)
+        {
+            var acceleration = PlayerRuntimeTuning.MoveAcceleration;
+            var deceleration = PlayerRuntimeTuning.MoveDeceleration;
+
+            if (MathF.Abs(inputAxis) <= 0.0001f)
+            {
+                return MoveToward(current, 0.0f, (float)delta * deceleration);
+            }
+
+            if (allowFastTurnaround &&
+                MathF.Abs(current) > 0.0001f &&
+                MathF.Sign(current) != MathF.Sign(target))
+            {
+                acceleration = PlayerRuntimeTuning.HeadingLockedStrafeTurnaroundAcceleration;
+            }
+
+            return MoveToward(current, target, (float)delta * acceleration);
+        }
+
+        private static float MoveToward(float current, float target, float maxDelta)
+        {
+            var delta = target - current;
+            if (MathF.Abs(delta) <= maxDelta)
+            {
+                return target;
+            }
+
+            return current + MathF.Sign(delta) * maxDelta;
         }
     }
 }
