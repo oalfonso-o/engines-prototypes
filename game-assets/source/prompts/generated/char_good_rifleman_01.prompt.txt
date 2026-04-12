@@ -1,0 +1,4 @@
+top-down tactical shooter character sprite, realistic-tactical style, warm urban palette, muted olive tactical fabrics, tan webbing, charcoal shadows palette, clean readable silhouette, grounded materials, consistent with SOCOM and Counter-Strike inspired overhead combat, NATO-style military rifleman seen from above, realistic proportions, helmet, tactical vest, M4-style rifle, readable combat silhouette, good faction identity, matte tactical fabric, ceramic armor plates, polymer rifle furniture, combat boots, M4-style rifle, ballistic helmet, tactical vest, combat gloves, top-down military operator silhouette with a clearly readable rifle and vest profile, high readability from gameplay distance, transparent background
+
+Negative prompt:
+cartoon, anime, childish, mobile game style, sexualized, exaggerated proportions, cute, toy-like, glossy fantasy, low readability, oversized caricature proportions

@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" fill="none">
+  <title>Canuter weapon knife body - idle south - frame 000</title>
+  <desc>Minimal top-down knife layer aligned to overlap the south-facing gearbox body.</desc>
+
+  <g id="weapon_knife_body_01_south" stroke="#111111" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" transform="translate(-14 0) rotate(208 128 184)">
+    <g id="handle">
+      <rect x="120" y="180" width="16" height="28" rx="7" ry="7" />
+    </g>
+    <g id="guard">
+      <line x1="116" y1="180" x2="140" y2="180" />
+    </g>
+    <g id="blade">
+      <path d="M128 146 L136 180 L120 180 Z" />
+    </g>
+    <g id="tip">
+      <line x1="128" y1="140" x2="128" y2="146" />
+    </g>
+  </g>
+</svg>

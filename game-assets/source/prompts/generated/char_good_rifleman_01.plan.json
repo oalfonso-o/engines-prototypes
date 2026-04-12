@@ -1,0 +1,386 @@
+[
+  {
+    "asset_id": "char_good_rifleman_01",
+    "animation": "idle",
+    "direction": "north",
+    "frame_index": 0,
+    "filename": "idle/north/frame_000.png",
+    "prompt": "top-down tactical shooter character sprite, realistic-tactical style, warm urban palette, muted olive tactical fabrics, tan webbing, charcoal shadows palette, clean readable silhouette, grounded materials, consistent with SOCOM and Counter-Strike inspired overhead combat, NATO-style military rifleman seen from above, realistic proportions, helmet, tactical vest, M4-style rifle, readable combat silhouette, good faction identity, matte tactical fabric, ceramic armor plates, polymer rifle furniture, combat boots, M4-style rifle, ballistic helmet, tactical vest, combat gloves, top-down military operator silhouette with a clearly readable rifle and vest profile, high readability from gameplay distance, transparent background, top-down view, facing and moving north, back mostly visible, idle animation, combat ready idle with rifle shouldered and subtle stance shift, frame 1 of 2, same character design as previous frames, no background elements, transparent background"
+  },
+  {
+    "asset_id": "char_good_rifleman_01",
+    "animation": "idle",
+    "direction": "north",
+    "frame_index": 1,
+    "filename": "idle/north/frame_001.png",
+    "prompt": "top-down tactical shooter character sprite, realistic-tactical style, warm urban palette, muted olive tactical fabrics, tan webbing, charcoal shadows palette, clean readable silhouette, grounded materials, consistent with SOCOM and Counter-Strike inspired overhead combat, NATO-style military rifleman seen from above, realistic proportions, helmet, tactical vest, M4-style rifle, readable combat silhouette, good faction identity, matte tactical fabric, ceramic armor plates, polymer rifle furniture, combat boots, M4-style rifle, ballistic helmet, tactical vest, combat gloves, top-down military operator silhouette with a clearly readable rifle and vest profile, high readability from gameplay distance, transparent background, top-down view, facing and moving north, back mostly visible, idle animation, combat ready idle with rifle shouldered and subtle stance shift, frame 2 of 2, same character design as previous frames, no background elements, transparent background"
+  },
+  {
+    "asset_id": "char_good_rifleman_01",
+    "animation": "idle",
+    "direction": "northeast",
+    "frame_index": 0,
+    "filename": "idle/northeast/frame_000.png",
+    "prompt": "top-down tactical shooter character sprite, realistic-tactical style, warm urban palette, muted olive tactical fabrics, tan webbing, charcoal shadows palette, clean readable silhouette, grounded materials, consistent with SOCOM and Counter-Strike inspired overhead combat, NATO-style military rifleman seen from above, realistic proportions, helmet, tactical vest, M4-style rifle, readable combat silhouette, good faction identity, matte tactical fabric, ceramic armor plates, polymer rifle furniture, combat boots, M4-style rifle, ballistic helmet, tactical vest, combat gloves, top-down military operator silhouette with a clearly readable rifle and vest profile, high readability from gameplay distance, transparent background, top-down view, facing and moving northeast, readable up-right diagonal stride, idle animation, combat ready idle with rifle shouldered and subtle stance shift, frame 1 of 2, same character design as previous frames, no background elements, transparent background"
+  },
+  {
+    "asset_id": "char_good_rifleman_01",
+    "animation": "idle",
+    "direction": "northeast",
+    "frame_index": 1,
+    "filename": "idle/northeast/frame_001.png",
+    "prompt": "top-down tactical shooter character sprite, realistic-tactical style, warm urban palette, muted olive tactical fabrics, tan webbing, charcoal shadows palette, clean readable silhouette, grounded materials, consistent with SOCOM and Counter-Strike inspired overhead combat, NATO-style military rifleman seen from above, realistic proportions, helmet, tactical vest, M4-style rifle, readable combat silhouette, good faction identity, matte tactical fabric, ceramic armor plates, polymer rifle furniture, combat boots, M4-style rifle, ballistic helmet, tactical vest, combat gloves, top-down military operator silhouette with a clearly readable rifle and vest profile, high readability from gameplay distance, transparent background, top-down view, facing and moving northeast, readable up-right diagonal stride, idle animation, combat ready idle with rifle shouldered and subtle stance shift, frame 2 of 2, same character design as previous frames, no background elements, transparent background"
+  },
+  {
+    "asset_id": "char_good_rifleman_01",
+    "animation": "idle",
+    "direction": "east",
+    "frame_index": 0,
+    "filename": "idle/east/frame_000.png",
+    "prompt": "top-down tactical shooter character sprite, realistic-tactical style, warm urban palette, muted olive tactical fabrics, tan webbing, charcoal shadows palette, clean readable silhouette, grounded materials, consistent with SOCOM and Counter-Strike inspired overhead combat, NATO-style military rifleman seen from above, realistic proportions, helmet, tactical vest, M4-style rifle, readable combat silhouette, good faction identity, matte tactical fabric, ceramic armor plates, polymer rifle furniture, combat boots, M4-style rifle, ballistic helmet, tactical vest, combat gloves, top-down military operator silhouette with a clearly readable rifle and vest profile, high readability from gameplay distance, transparent background, top-down view, facing and moving east, readable rightward motion, idle animation, combat ready idle with rifle shouldered and subtle stance shift, frame 1 of 2, same character design as previous frames, no background elements, transparent background"
+  },
+  {
+    "asset_id": "char_good_rifleman_01",
+    "animation": "idle",
+    "direction": "east",
+    "frame_index": 1,
+    "filename": "idle/east/frame_001.png",
+    "prompt": "top-down tactical shooter character sprite, realistic-tactical style, warm urban palette, muted olive tactical fabrics, tan webbing, charcoal shadows palette, clean readable silhouette, grounded materials, consistent with SOCOM and Counter-Strike inspired overhead combat, NATO-style military rifleman seen from above, realistic proportions, helmet, tactical vest, M4-style rifle, readable combat silhouette, good faction identity, matte tactical fabric, ceramic armor plates, polymer rifle furniture, combat boots, M4-style rifle, ballistic helmet, tactical vest, combat gloves, top-down military operator silhouette with a clearly readable rifle and vest profile, high readability from gameplay distance, transparent background, top-down view, facing and moving east, readable rightward motion, idle animation, combat ready idle with rifle shouldered and subtle stance shift, frame 2 of 2, same character design as previous frames, no background elements, transparent background"
+  },
+  {
+    "asset_id": "char_good_rifleman_01",
+    "animation": "idle",
+    "direction": "southeast",
+    "frame_index": 0,
+    "filename": "idle/southeast/frame_000.png",
+    "prompt": "top-down tactical shooter character sprite, realistic-tactical style, warm urban palette, muted olive tactical fabrics, tan webbing, charcoal shadows palette, clean readable silhouette, grounded materials, consistent with SOCOM and Counter-Strike inspired overhead combat, NATO-style military rifleman seen from above, realistic proportions, helmet, tactical vest, M4-style rifle, readable combat silhouette, good faction identity, matte tactical fabric, ceramic armor plates, polymer rifle furniture, combat boots, M4-style rifle, ballistic helmet, tactical vest, combat gloves, top-down military operator silhouette with a clearly readable rifle and vest profile, high readability from gameplay distance, transparent background, top-down view, facing and moving southeast, readable down-right diagonal stride, idle animation, combat ready idle with rifle shouldered and subtle stance shift, frame 1 of 2, same character design as previous frames, no background elements, transparent background"
+  },
+  {
+    "asset_id": "char_good_rifleman_01",
+    "animation": "idle",
+    "direction": "southeast",
+    "frame_index": 1,
+    "filename": "idle/southeast/frame_001.png",
+    "prompt": "top-down tactical shooter character sprite, realistic-tactical style, warm urban palette, muted olive tactical fabrics, tan webbing, charcoal shadows palette, clean readable silhouette, grounded materials, consistent with SOCOM and Counter-Strike inspired overhead combat, NATO-style military rifleman seen from above, realistic proportions, helmet, tactical vest, M4-style rifle, readable combat silhouette, good faction identity, matte tactical fabric, ceramic armor plates, polymer rifle furniture, combat boots, M4-style rifle, ballistic helmet, tactical vest, combat gloves, top-down military operator silhouette with a clearly readable rifle and vest profile, high readability from gameplay distance, transparent background, top-down view, facing and moving southeast, readable down-right diagonal stride, idle animation, combat ready idle with rifle shouldered and subtle stance shift, frame 2 of 2, same character design as previous frames, no background elements, transparent background"
+  },
+  {
+    "asset_id": "char_good_rifleman_01",
+    "animation": "idle",
+    "direction": "south",
+    "frame_index": 0,
+    "filename": "idle/south/frame_000.png",
+    "prompt": "top-down tactical shooter character sprite, realistic-tactical style, warm urban palette, muted olive tactical fabrics, tan webbing, charcoal shadows palette, clean readable silhouette, grounded materials, consistent with SOCOM and Counter-Strike inspired overhead combat, NATO-style military rifleman seen from above, realistic proportions, helmet, tactical vest, M4-style rifle, readable combat silhouette, good faction identity, matte tactical fabric, ceramic armor plates, polymer rifle furniture, combat boots, M4-style rifle, ballistic helmet, tactical vest, combat gloves, top-down military operator silhouette with a clearly readable rifle and vest profile, high readability from gameplay distance, transparent background, top-down view, facing and moving south, front torso more visible, idle animation, combat ready idle with rifle shouldered and subtle stance shift, frame 1 of 2, same character design as previous frames, no background elements, transparent background"
+  },
+  {
+    "asset_id": "char_good_rifleman_01",
+    "animation": "idle",
+    "direction": "south",
+    "frame_index": 1,
+    "filename": "idle/south/frame_001.png",
+    "prompt": "top-down tactical shooter character sprite, realistic-tactical style, warm urban palette, muted olive tactical fabrics, tan webbing, charcoal shadows palette, clean readable silhouette, grounded materials, consistent with SOCOM and Counter-Strike inspired overhead combat, NATO-style military rifleman seen from above, realistic proportions, helmet, tactical vest, M4-style rifle, readable combat silhouette, good faction identity, matte tactical fabric, ceramic armor plates, polymer rifle furniture, combat boots, M4-style rifle, ballistic helmet, tactical vest, combat gloves, top-down military operator silhouette with a clearly readable rifle and vest profile, high readability from gameplay distance, transparent background, top-down view, facing and moving south, front torso more visible, idle animation, combat ready idle with rifle shouldered and subtle stance shift, frame 2 of 2, same character design as previous frames, no background elements, transparent background"
+  },
+  {
+    "asset_id": "char_good_rifleman_01",
+    "animation": "idle",
+    "direction": "southwest",
+    "frame_index": 0,
+    "filename": "idle/southwest/frame_000.png",
+    "prompt": "top-down tactical shooter character sprite, realistic-tactical style, warm urban palette, muted olive tactical fabrics, tan webbing, charcoal shadows palette, clean readable silhouette, grounded materials, consistent with SOCOM and Counter-Strike inspired overhead combat, NATO-style military rifleman seen from above, realistic proportions, helmet, tactical vest, M4-style rifle, readable combat silhouette, good faction identity, matte tactical fabric, ceramic armor plates, polymer rifle furniture, combat boots, M4-style rifle, ballistic helmet, tactical vest, combat gloves, top-down military operator silhouette with a clearly readable rifle and vest profile, high readability from gameplay distance, transparent background, top-down view, facing and moving southwest, readable down-left diagonal stride, idle animation, combat ready idle with rifle shouldered and subtle stance shift, frame 1 of 2, same character design as previous frames, no background elements, transparent background"
+  },
+  {
+    "asset_id": "char_good_rifleman_01",
+    "animation": "idle",
+    "direction": "southwest",
+    "frame_index": 1,
+    "filename": "idle/southwest/frame_001.png",
+    "prompt": "top-down tactical shooter character sprite, realistic-tactical style, warm urban palette, muted olive tactical fabrics, tan webbing, charcoal shadows palette, clean readable silhouette, grounded materials, consistent with SOCOM and Counter-Strike inspired overhead combat, NATO-style military rifleman seen from above, realistic proportions, helmet, tactical vest, M4-style rifle, readable combat silhouette, good faction identity, matte tactical fabric, ceramic armor plates, polymer rifle furniture, combat boots, M4-style rifle, ballistic helmet, tactical vest, combat gloves, top-down military operator silhouette with a clearly readable rifle and vest profile, high readability from gameplay distance, transparent background, top-down view, facing and moving southwest, readable down-left diagonal stride, idle animation, combat ready idle with rifle shouldered and subtle stance shift, frame 2 of 2, same character design as previous frames, no background elements, transparent background"
+  },
+  {
+    "asset_id": "char_good_rifleman_01",
+    "animation": "idle",
+    "direction": "west",
+    "frame_index": 0,
+    "filename": "idle/west/frame_000.png",
+    "prompt": "top-down tactical shooter character sprite, realistic-tactical style, warm urban palette, muted olive tactical fabrics, tan webbing, charcoal shadows palette, clean readable silhouette, grounded materials, consistent with SOCOM and Counter-Strike inspired overhead combat, NATO-style military rifleman seen from above, realistic proportions, helmet, tactical vest, M4-style rifle, readable combat silhouette, good faction identity, matte tactical fabric, ceramic armor plates, polymer rifle furniture, combat boots, M4-style rifle, ballistic helmet, tactical vest, combat gloves, top-down military operator silhouette with a clearly readable rifle and vest profile, high readability from gameplay distance, transparent background, top-down view, facing and moving west, readable leftward motion, idle animation, combat ready idle with rifle shouldered and subtle stance shift, frame 1 of 2, same character design as previous frames, no background elements, transparent background"
+  },
+  {
+    "asset_id": "char_good_rifleman_01",
+    "animation": "idle",
+    "direction": "west",
+    "frame_index": 1,
+    "filename": "idle/west/frame_001.png",
+    "prompt": "top-down tactical shooter character sprite, realistic-tactical style, warm urban palette, muted olive tactical fabrics, tan webbing, charcoal shadows palette, clean readable silhouette, grounded materials, consistent with SOCOM and Counter-Strike inspired overhead combat, NATO-style military rifleman seen from above, realistic proportions, helmet, tactical vest, M4-style rifle, readable combat silhouette, good faction identity, matte tactical fabric, ceramic armor plates, polymer rifle furniture, combat boots, M4-style rifle, ballistic helmet, tactical vest, combat gloves, top-down military operator silhouette with a clearly readable rifle and vest profile, high readability from gameplay distance, transparent background, top-down view, facing and moving west, readable leftward motion, idle animation, combat ready idle with rifle shouldered and subtle stance shift, frame 2 of 2, same character design as previous frames, no background elements, transparent background"
+  },
+  {
+    "asset_id": "char_good_rifleman_01",
+    "animation": "idle",
+    "direction": "northwest",
+    "frame_index": 0,
+    "filename": "idle/northwest/frame_000.png",
+    "prompt": "top-down tactical shooter character sprite, realistic-tactical style, warm urban palette, muted olive tactical fabrics, tan webbing, charcoal shadows palette, clean readable silhouette, grounded materials, consistent with SOCOM and Counter-Strike inspired overhead combat, NATO-style military rifleman seen from above, realistic proportions, helmet, tactical vest, M4-style rifle, readable combat silhouette, good faction identity, matte tactical fabric, ceramic armor plates, polymer rifle furniture, combat boots, M4-style rifle, ballistic helmet, tactical vest, combat gloves, top-down military operator silhouette with a clearly readable rifle and vest profile, high readability from gameplay distance, transparent background, top-down view, facing and moving northwest, readable up-left diagonal stride, idle animation, combat ready idle with rifle shouldered and subtle stance shift, frame 1 of 2, same character design as previous frames, no background elements, transparent background"
+  },
+  {
+    "asset_id": "char_good_rifleman_01",
+    "animation": "idle",
+    "direction": "northwest",
+    "frame_index": 1,
+    "filename": "idle/northwest/frame_001.png",
+    "prompt": "top-down tactical shooter character sprite, realistic-tactical style, warm urban palette, muted olive tactical fabrics, tan webbing, charcoal shadows palette, clean readable silhouette, grounded materials, consistent with SOCOM and Counter-Strike inspired overhead combat, NATO-style military rifleman seen from above, realistic proportions, helmet, tactical vest, M4-style rifle, readable combat silhouette, good faction identity, matte tactical fabric, ceramic armor plates, polymer rifle furniture, combat boots, M4-style rifle, ballistic helmet, tactical vest, combat gloves, top-down military operator silhouette with a clearly readable rifle and vest profile, high readability from gameplay distance, transparent background, top-down view, facing and moving northwest, readable up-left diagonal stride, idle animation, combat ready idle with rifle shouldered and subtle stance shift, frame 2 of 2, same character design as previous frames, no background elements, transparent background"
+  },
+  {
+    "asset_id": "char_good_rifleman_01",
+    "animation": "move",
+    "direction": "north",
+    "frame_index": 0,
+    "filename": "move/north/frame_000.png",
+    "prompt": "top-down tactical shooter character sprite, realistic-tactical style, warm urban palette, muted olive tactical fabrics, tan webbing, charcoal shadows palette, clean readable silhouette, grounded materials, consistent with SOCOM and Counter-Strike inspired overhead combat, NATO-style military rifleman seen from above, realistic proportions, helmet, tactical vest, M4-style rifle, readable combat silhouette, good faction identity, matte tactical fabric, ceramic armor plates, polymer rifle furniture, combat boots, M4-style rifle, ballistic helmet, tactical vest, combat gloves, top-down military operator silhouette with a clearly readable rifle and vest profile, high readability from gameplay distance, transparent background, top-down view, facing and moving north, back mostly visible, move animation, tactical jogging movement with the rifle kept ready, frame 1 of 4, same character design as previous frames, no background elements, transparent background"
+  },
+  {
+    "asset_id": "char_good_rifleman_01",
+    "animation": "move",
+    "direction": "north",
+    "frame_index": 1,
+    "filename": "move/north/frame_001.png",
+    "prompt": "top-down tactical shooter character sprite, realistic-tactical style, warm urban palette, muted olive tactical fabrics, tan webbing, charcoal shadows palette, clean readable silhouette, grounded materials, consistent with SOCOM and Counter-Strike inspired overhead combat, NATO-style military rifleman seen from above, realistic proportions, helmet, tactical vest, M4-style rifle, readable combat silhouette, good faction identity, matte tactical fabric, ceramic armor plates, polymer rifle furniture, combat boots, M4-style rifle, ballistic helmet, tactical vest, combat gloves, top-down military operator silhouette with a clearly readable rifle and vest profile, high readability from gameplay distance, transparent background, top-down view, facing and moving north, back mostly visible, move animation, tactical jogging movement with the rifle kept ready, frame 2 of 4, same character design as previous frames, no background elements, transparent background"
+  },
+  {
+    "asset_id": "char_good_rifleman_01",
+    "animation": "move",
+    "direction": "north",
+    "frame_index": 2,
+    "filename": "move/north/frame_002.png",
+    "prompt": "top-down tactical shooter character sprite, realistic-tactical style, warm urban palette, muted olive tactical fabrics, tan webbing, charcoal shadows palette, clean readable silhouette, grounded materials, consistent with SOCOM and Counter-Strike inspired overhead combat, NATO-style military rifleman seen from above, realistic proportions, helmet, tactical vest, M4-style rifle, readable combat silhouette, good faction identity, matte tactical fabric, ceramic armor plates, polymer rifle furniture, combat boots, M4-style rifle, ballistic helmet, tactical vest, combat gloves, top-down military operator silhouette with a clearly readable rifle and vest profile, high readability from gameplay distance, transparent background, top-down view, facing and moving north, back mostly visible, move animation, tactical jogging movement with the rifle kept ready, frame 3 of 4, same character design as previous frames, no background elements, transparent background"
+  },
+  {
+    "asset_id": "char_good_rifleman_01",
+    "animation": "move",
+    "direction": "north",
+    "frame_index": 3,
+    "filename": "move/north/frame_003.png",
+    "prompt": "top-down tactical shooter character sprite, realistic-tactical style, warm urban palette, muted olive tactical fabrics, tan webbing, charcoal shadows palette, clean readable silhouette, grounded materials, consistent with SOCOM and Counter-Strike inspired overhead combat, NATO-style military rifleman seen from above, realistic proportions, helmet, tactical vest, M4-style rifle, readable combat silhouette, good faction identity, matte tactical fabric, ceramic armor plates, polymer rifle furniture, combat boots, M4-style rifle, ballistic helmet, tactical vest, combat gloves, top-down military operator silhouette with a clearly readable rifle and vest profile, high readability from gameplay distance, transparent background, top-down view, facing and moving north, back mostly visible, move animation, tactical jogging movement with the rifle kept ready, frame 4 of 4, same character design as previous frames, no background elements, transparent background"
+  },
+  {
+    "asset_id": "char_good_rifleman_01",
+    "animation": "move",
+    "direction": "northeast",
+    "frame_index": 0,
+    "filename": "move/northeast/frame_000.png",
+    "prompt": "top-down tactical shooter character sprite, realistic-tactical style, warm urban palette, muted olive tactical fabrics, tan webbing, charcoal shadows palette, clean readable silhouette, grounded materials, consistent with SOCOM and Counter-Strike inspired overhead combat, NATO-style military rifleman seen from above, realistic proportions, helmet, tactical vest, M4-style rifle, readable combat silhouette, good faction identity, matte tactical fabric, ceramic armor plates, polymer rifle furniture, combat boots, M4-style rifle, ballistic helmet, tactical vest, combat gloves, top-down military operator silhouette with a clearly readable rifle and vest profile, high readability from gameplay distance, transparent background, top-down view, facing and moving northeast, readable up-right diagonal stride, move animation, tactical jogging movement with the rifle kept ready, frame 1 of 4, same character design as previous frames, no background elements, transparent background"
+  },
+  {
+    "asset_id": "char_good_rifleman_01",
+    "animation": "move",
+    "direction": "northeast",
+    "frame_index": 1,
+    "filename": "move/northeast/frame_001.png",
+    "prompt": "top-down tactical shooter character sprite, realistic-tactical style, warm urban palette, muted olive tactical fabrics, tan webbing, charcoal shadows palette, clean readable silhouette, grounded materials, consistent with SOCOM and Counter-Strike inspired overhead combat, NATO-style military rifleman seen from above, realistic proportions, helmet, tactical vest, M4-style rifle, readable combat silhouette, good faction identity, matte tactical fabric, ceramic armor plates, polymer rifle furniture, combat boots, M4-style rifle, ballistic helmet, tactical vest, combat gloves, top-down military operator silhouette with a clearly readable rifle and vest profile, high readability from gameplay distance, transparent background, top-down view, facing and moving northeast, readable up-right diagonal stride, move animation, tactical jogging movement with the rifle kept ready, frame 2 of 4, same character design as previous frames, no background elements, transparent background"
+  },
+  {
+    "asset_id": "char_good_rifleman_01",
+    "animation": "move",
+    "direction": "northeast",
+    "frame_index": 2,
+    "filename": "move/northeast/frame_002.png",
+    "prompt": "top-down tactical shooter character sprite, realistic-tactical style, warm urban palette, muted olive tactical fabrics, tan webbing, charcoal shadows palette, clean readable silhouette, grounded materials, consistent with SOCOM and Counter-Strike inspired overhead combat, NATO-style military rifleman seen from above, realistic proportions, helmet, tactical vest, M4-style rifle, readable combat silhouette, good faction identity, matte tactical fabric, ceramic armor plates, polymer rifle furniture, combat boots, M4-style rifle, ballistic helmet, tactical vest, combat gloves, top-down military operator silhouette with a clearly readable rifle and vest profile, high readability from gameplay distance, transparent background, top-down view, facing and moving northeast, readable up-right diagonal stride, move animation, tactical jogging movement with the rifle kept ready, frame 3 of 4, same character design as previous frames, no background elements, transparent background"
+  },
+  {
+    "asset_id": "char_good_rifleman_01",
+    "animation": "move",
+    "direction": "northeast",
+    "frame_index": 3,
+    "filename": "move/northeast/frame_003.png",
+    "prompt": "top-down tactical shooter character sprite, realistic-tactical style, warm urban palette, muted olive tactical fabrics, tan webbing, charcoal shadows palette, clean readable silhouette, grounded materials, consistent with SOCOM and Counter-Strike inspired overhead combat, NATO-style military rifleman seen from above, realistic proportions, helmet, tactical vest, M4-style rifle, readable combat silhouette, good faction identity, matte tactical fabric, ceramic armor plates, polymer rifle furniture, combat boots, M4-style rifle, ballistic helmet, tactical vest, combat gloves, top-down military operator silhouette with a clearly readable rifle and vest profile, high readability from gameplay distance, transparent background, top-down view, facing and moving northeast, readable up-right diagonal stride, move animation, tactical jogging movement with the rifle kept ready, frame 4 of 4, same character design as previous frames, no background elements, transparent background"
+  },
+  {
+    "asset_id": "char_good_rifleman_01",
+    "animation": "move",
+    "direction": "east",
+    "frame_index": 0,
+    "filename": "move/east/frame_000.png",
+    "prompt": "top-down tactical shooter character sprite, realistic-tactical style, warm urban palette, muted olive tactical fabrics, tan webbing, charcoal shadows palette, clean readable silhouette, grounded materials, consistent with SOCOM and Counter-Strike inspired overhead combat, NATO-style military rifleman seen from above, realistic proportions, helmet, tactical vest, M4-style rifle, readable combat silhouette, good faction identity, matte tactical fabric, ceramic armor plates, polymer rifle furniture, combat boots, M4-style rifle, ballistic helmet, tactical vest, combat gloves, top-down military operator silhouette with a clearly readable rifle and vest profile, high readability from gameplay distance, transparent background, top-down view, facing and moving east, readable rightward motion, move animation, tactical jogging movement with the rifle kept ready, frame 1 of 4, same character design as previous frames, no background elements, transparent background"
+  },
+  {
+    "asset_id": "char_good_rifleman_01",
+    "animation": "move",
+    "direction": "east",
+    "frame_index": 1,
+    "filename": "move/east/frame_001.png",
+    "prompt": "top-down tactical shooter character sprite, realistic-tactical style, warm urban palette, muted olive tactical fabrics, tan webbing, charcoal shadows palette, clean readable silhouette, grounded materials, consistent with SOCOM and Counter-Strike inspired overhead combat, NATO-style military rifleman seen from above, realistic proportions, helmet, tactical vest, M4-style rifle, readable combat silhouette, good faction identity, matte tactical fabric, ceramic armor plates, polymer rifle furniture, combat boots, M4-style rifle, ballistic helmet, tactical vest, combat gloves, top-down military operator silhouette with a clearly readable rifle and vest profile, high readability from gameplay distance, transparent background, top-down view, facing and moving east, readable rightward motion, move animation, tactical jogging movement with the rifle kept ready, frame 2 of 4, same character design as previous frames, no background elements, transparent background"
+  },
+  {
+    "asset_id": "char_good_rifleman_01",
+    "animation": "move",
+    "direction": "east",
+    "frame_index": 2,
+    "filename": "move/east/frame_002.png",
+    "prompt": "top-down tactical shooter character sprite, realistic-tactical style, warm urban palette, muted olive tactical fabrics, tan webbing, charcoal shadows palette, clean readable silhouette, grounded materials, consistent with SOCOM and Counter-Strike inspired overhead combat, NATO-style military rifleman seen from above, realistic proportions, helmet, tactical vest, M4-style rifle, readable combat silhouette, good faction identity, matte tactical fabric, ceramic armor plates, polymer rifle furniture, combat boots, M4-style rifle, ballistic helmet, tactical vest, combat gloves, top-down military operator silhouette with a clearly readable rifle and vest profile, high readability from gameplay distance, transparent background, top-down view, facing and moving east, readable rightward motion, move animation, tactical jogging movement with the rifle kept ready, frame 3 of 4, same character design as previous frames, no background elements, transparent background"
+  },
+  {
+    "asset_id": "char_good_rifleman_01",
+    "animation": "move",
+    "direction": "east",
+    "frame_index": 3,
+    "filename": "move/east/frame_003.png",
+    "prompt": "top-down tactical shooter character sprite, realistic-tactical style, warm urban palette, muted olive tactical fabrics, tan webbing, charcoal shadows palette, clean readable silhouette, grounded materials, consistent with SOCOM and Counter-Strike inspired overhead combat, NATO-style military rifleman seen from above, realistic proportions, helmet, tactical vest, M4-style rifle, readable combat silhouette, good faction identity, matte tactical fabric, ceramic armor plates, polymer rifle furniture, combat boots, M4-style rifle, ballistic helmet, tactical vest, combat gloves, top-down military operator silhouette with a clearly readable rifle and vest profile, high readability from gameplay distance, transparent background, top-down view, facing and moving east, readable rightward motion, move animation, tactical jogging movement with the rifle kept ready, frame 4 of 4, same character design as previous frames, no background elements, transparent background"
+  },
+  {
+    "asset_id": "char_good_rifleman_01",
+    "animation": "move",
+    "direction": "southeast",
+    "frame_index": 0,
+    "filename": "move/southeast/frame_000.png",
+    "prompt": "top-down tactical shooter character sprite, realistic-tactical style, warm urban palette, muted olive tactical fabrics, tan webbing, charcoal shadows palette, clean readable silhouette, grounded materials, consistent with SOCOM and Counter-Strike inspired overhead combat, NATO-style military rifleman seen from above, realistic proportions, helmet, tactical vest, M4-style rifle, readable combat silhouette, good faction identity, matte tactical fabric, ceramic armor plates, polymer rifle furniture, combat boots, M4-style rifle, ballistic helmet, tactical vest, combat gloves, top-down military operator silhouette with a clearly readable rifle and vest profile, high readability from gameplay distance, transparent background, top-down view, facing and moving southeast, readable down-right diagonal stride, move animation, tactical jogging movement with the rifle kept ready, frame 1 of 4, same character design as previous frames, no background elements, transparent background"
+  },
+  {
+    "asset_id": "char_good_rifleman_01",
+    "animation": "move",
+    "direction": "southeast",
+    "frame_index": 1,
+    "filename": "move/southeast/frame_001.png",
+    "prompt": "top-down tactical shooter character sprite, realistic-tactical style, warm urban palette, muted olive tactical fabrics, tan webbing, charcoal shadows palette, clean readable silhouette, grounded materials, consistent with SOCOM and Counter-Strike inspired overhead combat, NATO-style military rifleman seen from above, realistic proportions, helmet, tactical vest, M4-style rifle, readable combat silhouette, good faction identity, matte tactical fabric, ceramic armor plates, polymer rifle furniture, combat boots, M4-style rifle, ballistic helmet, tactical vest, combat gloves, top-down military operator silhouette with a clearly readable rifle and vest profile, high readability from gameplay distance, transparent background, top-down view, facing and moving southeast, readable down-right diagonal stride, move animation, tactical jogging movement with the rifle kept ready, frame 2 of 4, same character design as previous frames, no background elements, transparent background"
+  },
+  {
+    "asset_id": "char_good_rifleman_01",
+    "animation": "move",
+    "direction": "southeast",
+    "frame_index": 2,
+    "filename": "move/southeast/frame_002.png",
+    "prompt": "top-down tactical shooter character sprite, realistic-tactical style, warm urban palette, muted olive tactical fabrics, tan webbing, charcoal shadows palette, clean readable silhouette, grounded materials, consistent with SOCOM and Counter-Strike inspired overhead combat, NATO-style military rifleman seen from above, realistic proportions, helmet, tactical vest, M4-style rifle, readable combat silhouette, good faction identity, matte tactical fabric, ceramic armor plates, polymer rifle furniture, combat boots, M4-style rifle, ballistic helmet, tactical vest, combat gloves, top-down military operator silhouette with a clearly readable rifle and vest profile, high readability from gameplay distance, transparent background, top-down view, facing and moving southeast, readable down-right diagonal stride, move animation, tactical jogging movement with the rifle kept ready, frame 3 of 4, same character design as previous frames, no background elements, transparent background"
+  },
+  {
+    "asset_id": "char_good_rifleman_01",
+    "animation": "move",
+    "direction": "southeast",
+    "frame_index": 3,
+    "filename": "move/southeast/frame_003.png",
+    "prompt": "top-down tactical shooter character sprite, realistic-tactical style, warm urban palette, muted olive tactical fabrics, tan webbing, charcoal shadows palette, clean readable silhouette, grounded materials, consistent with SOCOM and Counter-Strike inspired overhead combat, NATO-style military rifleman seen from above, realistic proportions, helmet, tactical vest, M4-style rifle, readable combat silhouette, good faction identity, matte tactical fabric, ceramic armor plates, polymer rifle furniture, combat boots, M4-style rifle, ballistic helmet, tactical vest, combat gloves, top-down military operator silhouette with a clearly readable rifle and vest profile, high readability from gameplay distance, transparent background, top-down view, facing and moving southeast, readable down-right diagonal stride, move animation, tactical jogging movement with the rifle kept ready, frame 4 of 4, same character design as previous frames, no background elements, transparent background"
+  },
+  {
+    "asset_id": "char_good_rifleman_01",
+    "animation": "move",
+    "direction": "south",
+    "frame_index": 0,
+    "filename": "move/south/frame_000.png",
+    "prompt": "top-down tactical shooter character sprite, realistic-tactical style, warm urban palette, muted olive tactical fabrics, tan webbing, charcoal shadows palette, clean readable silhouette, grounded materials, consistent with SOCOM and Counter-Strike inspired overhead combat, NATO-style military rifleman seen from above, realistic proportions, helmet, tactical vest, M4-style rifle, readable combat silhouette, good faction identity, matte tactical fabric, ceramic armor plates, polymer rifle furniture, combat boots, M4-style rifle, ballistic helmet, tactical vest, combat gloves, top-down military operator silhouette with a clearly readable rifle and vest profile, high readability from gameplay distance, transparent background, top-down view, facing and moving south, front torso more visible, move animation, tactical jogging movement with the rifle kept ready, frame 1 of 4, same character design as previous frames, no background elements, transparent background"
+  },
+  {
+    "asset_id": "char_good_rifleman_01",
+    "animation": "move",
+    "direction": "south",
+    "frame_index": 1,
+    "filename": "move/south/frame_001.png",
+    "prompt": "top-down tactical shooter character sprite, realistic-tactical style, warm urban palette, muted olive tactical fabrics, tan webbing, charcoal shadows palette, clean readable silhouette, grounded materials, consistent with SOCOM and Counter-Strike inspired overhead combat, NATO-style military rifleman seen from above, realistic proportions, helmet, tactical vest, M4-style rifle, readable combat silhouette, good faction identity, matte tactical fabric, ceramic armor plates, polymer rifle furniture, combat boots, M4-style rifle, ballistic helmet, tactical vest, combat gloves, top-down military operator silhouette with a clearly readable rifle and vest profile, high readability from gameplay distance, transparent background, top-down view, facing and moving south, front torso more visible, move animation, tactical jogging movement with the rifle kept ready, frame 2 of 4, same character design as previous frames, no background elements, transparent background"
+  },
+  {
+    "asset_id": "char_good_rifleman_01",
+    "animation": "move",
+    "direction": "south",
+    "frame_index": 2,
+    "filename": "move/south/frame_002.png",
+    "prompt": "top-down tactical shooter character sprite, realistic-tactical style, warm urban palette, muted olive tactical fabrics, tan webbing, charcoal shadows palette, clean readable silhouette, grounded materials, consistent with SOCOM and Counter-Strike inspired overhead combat, NATO-style military rifleman seen from above, realistic proportions, helmet, tactical vest, M4-style rifle, readable combat silhouette, good faction identity, matte tactical fabric, ceramic armor plates, polymer rifle furniture, combat boots, M4-style rifle, ballistic helmet, tactical vest, combat gloves, top-down military operator silhouette with a clearly readable rifle and vest profile, high readability from gameplay distance, transparent background, top-down view, facing and moving south, front torso more visible, move animation, tactical jogging movement with the rifle kept ready, frame 3 of 4, same character design as previous frames, no background elements, transparent background"
+  },
+  {
+    "asset_id": "char_good_rifleman_01",
+    "animation": "move",
+    "direction": "south",
+    "frame_index": 3,
+    "filename": "move/south/frame_003.png",
+    "prompt": "top-down tactical shooter character sprite, realistic-tactical style, warm urban palette, muted olive tactical fabrics, tan webbing, charcoal shadows palette, clean readable silhouette, grounded materials, consistent with SOCOM and Counter-Strike inspired overhead combat, NATO-style military rifleman seen from above, realistic proportions, helmet, tactical vest, M4-style rifle, readable combat silhouette, good faction identity, matte tactical fabric, ceramic armor plates, polymer rifle furniture, combat boots, M4-style rifle, ballistic helmet, tactical vest, combat gloves, top-down military operator silhouette with a clearly readable rifle and vest profile, high readability from gameplay distance, transparent background, top-down view, facing and moving south, front torso more visible, move animation, tactical jogging movement with the rifle kept ready, frame 4 of 4, same character design as previous frames, no background elements, transparent background"
+  },
+  {
+    "asset_id": "char_good_rifleman_01",
+    "animation": "move",
+    "direction": "southwest",
+    "frame_index": 0,
+    "filename": "move/southwest/frame_000.png",
+    "prompt": "top-down tactical shooter character sprite, realistic-tactical style, warm urban palette, muted olive tactical fabrics, tan webbing, charcoal shadows palette, clean readable silhouette, grounded materials, consistent with SOCOM and Counter-Strike inspired overhead combat, NATO-style military rifleman seen from above, realistic proportions, helmet, tactical vest, M4-style rifle, readable combat silhouette, good faction identity, matte tactical fabric, ceramic armor plates, polymer rifle furniture, combat boots, M4-style rifle, ballistic helmet, tactical vest, combat gloves, top-down military operator silhouette with a clearly readable rifle and vest profile, high readability from gameplay distance, transparent background, top-down view, facing and moving southwest, readable down-left diagonal stride, move animation, tactical jogging movement with the rifle kept ready, frame 1 of 4, same character design as previous frames, no background elements, transparent background"
+  },
+  {
+    "asset_id": "char_good_rifleman_01",
+    "animation": "move",
+    "direction": "southwest",
+    "frame_index": 1,
+    "filename": "move/southwest/frame_001.png",
+    "prompt": "top-down tactical shooter character sprite, realistic-tactical style, warm urban palette, muted olive tactical fabrics, tan webbing, charcoal shadows palette, clean readable silhouette, grounded materials, consistent with SOCOM and Counter-Strike inspired overhead combat, NATO-style military rifleman seen from above, realistic proportions, helmet, tactical vest, M4-style rifle, readable combat silhouette, good faction identity, matte tactical fabric, ceramic armor plates, polymer rifle furniture, combat boots, M4-style rifle, ballistic helmet, tactical vest, combat gloves, top-down military operator silhouette with a clearly readable rifle and vest profile, high readability from gameplay distance, transparent background, top-down view, facing and moving southwest, readable down-left diagonal stride, move animation, tactical jogging movement with the rifle kept ready, frame 2 of 4, same character design as previous frames, no background elements, transparent background"
+  },
+  {
+    "asset_id": "char_good_rifleman_01",
+    "animation": "move",
+    "direction": "southwest",
+    "frame_index": 2,
+    "filename": "move/southwest/frame_002.png",
+    "prompt": "top-down tactical shooter character sprite, realistic-tactical style, warm urban palette, muted olive tactical fabrics, tan webbing, charcoal shadows palette, clean readable silhouette, grounded materials, consistent with SOCOM and Counter-Strike inspired overhead combat, NATO-style military rifleman seen from above, realistic proportions, helmet, tactical vest, M4-style rifle, readable combat silhouette, good faction identity, matte tactical fabric, ceramic armor plates, polymer rifle furniture, combat boots, M4-style rifle, ballistic helmet, tactical vest, combat gloves, top-down military operator silhouette with a clearly readable rifle and vest profile, high readability from gameplay distance, transparent background, top-down view, facing and moving southwest, readable down-left diagonal stride, move animation, tactical jogging movement with the rifle kept ready, frame 3 of 4, same character design as previous frames, no background elements, transparent background"
+  },
+  {
+    "asset_id": "char_good_rifleman_01",
+    "animation": "move",
+    "direction": "southwest",
+    "frame_index": 3,
+    "filename": "move/southwest/frame_003.png",
+    "prompt": "top-down tactical shooter character sprite, realistic-tactical style, warm urban palette, muted olive tactical fabrics, tan webbing, charcoal shadows palette, clean readable silhouette, grounded materials, consistent with SOCOM and Counter-Strike inspired overhead combat, NATO-style military rifleman seen from above, realistic proportions, helmet, tactical vest, M4-style rifle, readable combat silhouette, good faction identity, matte tactical fabric, ceramic armor plates, polymer rifle furniture, combat boots, M4-style rifle, ballistic helmet, tactical vest, combat gloves, top-down military operator silhouette with a clearly readable rifle and vest profile, high readability from gameplay distance, transparent background, top-down view, facing and moving southwest, readable down-left diagonal stride, move animation, tactical jogging movement with the rifle kept ready, frame 4 of 4, same character design as previous frames, no background elements, transparent background"
+  },
+  {
+    "asset_id": "char_good_rifleman_01",
+    "animation": "move",
+    "direction": "west",
+    "frame_index": 0,
+    "filename": "move/west/frame_000.png",
+    "prompt": "top-down tactical shooter character sprite, realistic-tactical style, warm urban palette, muted olive tactical fabrics, tan webbing, charcoal shadows palette, clean readable silhouette, grounded materials, consistent with SOCOM and Counter-Strike inspired overhead combat, NATO-style military rifleman seen from above, realistic proportions, helmet, tactical vest, M4-style rifle, readable combat silhouette, good faction identity, matte tactical fabric, ceramic armor plates, polymer rifle furniture, combat boots, M4-style rifle, ballistic helmet, tactical vest, combat gloves, top-down military operator silhouette with a clearly readable rifle and vest profile, high readability from gameplay distance, transparent background, top-down view, facing and moving west, readable leftward motion, move animation, tactical jogging movement with the rifle kept ready, frame 1 of 4, same character design as previous frames, no background elements, transparent background"
+  },
+  {
+    "asset_id": "char_good_rifleman_01",
+    "animation": "move",
+    "direction": "west",
+    "frame_index": 1,
+    "filename": "move/west/frame_001.png",
+    "prompt": "top-down tactical shooter character sprite, realistic-tactical style, warm urban palette, muted olive tactical fabrics, tan webbing, charcoal shadows palette, clean readable silhouette, grounded materials, consistent with SOCOM and Counter-Strike inspired overhead combat, NATO-style military rifleman seen from above, realistic proportions, helmet, tactical vest, M4-style rifle, readable combat silhouette, good faction identity, matte tactical fabric, ceramic armor plates, polymer rifle furniture, combat boots, M4-style rifle, ballistic helmet, tactical vest, combat gloves, top-down military operator silhouette with a clearly readable rifle and vest profile, high readability from gameplay distance, transparent background, top-down view, facing and moving west, readable leftward motion, move animation, tactical jogging movement with the rifle kept ready, frame 2 of 4, same character design as previous frames, no background elements, transparent background"
+  },
+  {
+    "asset_id": "char_good_rifleman_01",
+    "animation": "move",
+    "direction": "west",
+    "frame_index": 2,
+    "filename": "move/west/frame_002.png",
+    "prompt": "top-down tactical shooter character sprite, realistic-tactical style, warm urban palette, muted olive tactical fabrics, tan webbing, charcoal shadows palette, clean readable silhouette, grounded materials, consistent with SOCOM and Counter-Strike inspired overhead combat, NATO-style military rifleman seen from above, realistic proportions, helmet, tactical vest, M4-style rifle, readable combat silhouette, good faction identity, matte tactical fabric, ceramic armor plates, polymer rifle furniture, combat boots, M4-style rifle, ballistic helmet, tactical vest, combat gloves, top-down military operator silhouette with a clearly readable rifle and vest profile, high readability from gameplay distance, transparent background, top-down view, facing and moving west, readable leftward motion, move animation, tactical jogging movement with the rifle kept ready, frame 3 of 4, same character design as previous frames, no background elements, transparent background"
+  },
+  {
+    "asset_id": "char_good_rifleman_01",
+    "animation": "move",
+    "direction": "west",
+    "frame_index": 3,
+    "filename": "move/west/frame_003.png",
+    "prompt": "top-down tactical shooter character sprite, realistic-tactical style, warm urban palette, muted olive tactical fabrics, tan webbing, charcoal shadows palette, clean readable silhouette, grounded materials, consistent with SOCOM and Counter-Strike inspired overhead combat, NATO-style military rifleman seen from above, realistic proportions, helmet, tactical vest, M4-style rifle, readable combat silhouette, good faction identity, matte tactical fabric, ceramic armor plates, polymer rifle furniture, combat boots, M4-style rifle, ballistic helmet, tactical vest, combat gloves, top-down military operator silhouette with a clearly readable rifle and vest profile, high readability from gameplay distance, transparent background, top-down view, facing and moving west, readable leftward motion, move animation, tactical jogging movement with the rifle kept ready, frame 4 of 4, same character design as previous frames, no background elements, transparent background"
+  },
+  {
+    "asset_id": "char_good_rifleman_01",
+    "animation": "move",
+    "direction": "northwest",
+    "frame_index": 0,
+    "filename": "move/northwest/frame_000.png",
+    "prompt": "top-down tactical shooter character sprite, realistic-tactical style, warm urban palette, muted olive tactical fabrics, tan webbing, charcoal shadows palette, clean readable silhouette, grounded materials, consistent with SOCOM and Counter-Strike inspired overhead combat, NATO-style military rifleman seen from above, realistic proportions, helmet, tactical vest, M4-style rifle, readable combat silhouette, good faction identity, matte tactical fabric, ceramic armor plates, polymer rifle furniture, combat boots, M4-style rifle, ballistic helmet, tactical vest, combat gloves, top-down military operator silhouette with a clearly readable rifle and vest profile, high readability from gameplay distance, transparent background, top-down view, facing and moving northwest, readable up-left diagonal stride, move animation, tactical jogging movement with the rifle kept ready, frame 1 of 4, same character design as previous frames, no background elements, transparent background"
+  },
+  {
+    "asset_id": "char_good_rifleman_01",
+    "animation": "move",
+    "direction": "northwest",
+    "frame_index": 1,
+    "filename": "move/northwest/frame_001.png",
+    "prompt": "top-down tactical shooter character sprite, realistic-tactical style, warm urban palette, muted olive tactical fabrics, tan webbing, charcoal shadows palette, clean readable silhouette, grounded materials, consistent with SOCOM and Counter-Strike inspired overhead combat, NATO-style military rifleman seen from above, realistic proportions, helmet, tactical vest, M4-style rifle, readable combat silhouette, good faction identity, matte tactical fabric, ceramic armor plates, polymer rifle furniture, combat boots, M4-style rifle, ballistic helmet, tactical vest, combat gloves, top-down military operator silhouette with a clearly readable rifle and vest profile, high readability from gameplay distance, transparent background, top-down view, facing and moving northwest, readable up-left diagonal stride, move animation, tactical jogging movement with the rifle kept ready, frame 2 of 4, same character design as previous frames, no background elements, transparent background"
+  },
+  {
+    "asset_id": "char_good_rifleman_01",
+    "animation": "move",
+    "direction": "northwest",
+    "frame_index": 2,
+    "filename": "move/northwest/frame_002.png",
+    "prompt": "top-down tactical shooter character sprite, realistic-tactical style, warm urban palette, muted olive tactical fabrics, tan webbing, charcoal shadows palette, clean readable silhouette, grounded materials, consistent with SOCOM and Counter-Strike inspired overhead combat, NATO-style military rifleman seen from above, realistic proportions, helmet, tactical vest, M4-style rifle, readable combat silhouette, good faction identity, matte tactical fabric, ceramic armor plates, polymer rifle furniture, combat boots, M4-style rifle, ballistic helmet, tactical vest, combat gloves, top-down military operator silhouette with a clearly readable rifle and vest profile, high readability from gameplay distance, transparent background, top-down view, facing and moving northwest, readable up-left diagonal stride, move animation, tactical jogging movement with the rifle kept ready, frame 3 of 4, same character design as previous frames, no background elements, transparent background"
+  },
+  {
+    "asset_id": "char_good_rifleman_01",
+    "animation": "move",
+    "direction": "northwest",
+    "frame_index": 3,
+    "filename": "move/northwest/frame_003.png",
+    "prompt": "top-down tactical shooter character sprite, realistic-tactical style, warm urban palette, muted olive tactical fabrics, tan webbing, charcoal shadows palette, clean readable silhouette, grounded materials, consistent with SOCOM and Counter-Strike inspired overhead combat, NATO-style military rifleman seen from above, realistic proportions, helmet, tactical vest, M4-style rifle, readable combat silhouette, good faction identity, matte tactical fabric, ceramic armor plates, polymer rifle furniture, combat boots, M4-style rifle, ballistic helmet, tactical vest, combat gloves, top-down military operator silhouette with a clearly readable rifle and vest profile, high readability from gameplay distance, transparent background, top-down view, facing and moving northwest, readable up-left diagonal stride, move animation, tactical jogging movement with the rifle kept ready, frame 4 of 4, same character design as previous frames, no background elements, transparent background"
+  }
+]

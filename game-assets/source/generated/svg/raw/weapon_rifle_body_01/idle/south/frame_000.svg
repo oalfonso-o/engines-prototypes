@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" fill="none">
+  <title>Canuter weapon rifle body - idle south - frame 000</title>
+  <desc>Minimal top-down rifle layer aligned to overlap the south-facing gearbox body.</desc>
+
+  <g id="weapon_rifle_body_01_south" stroke="#111111" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" transform="translate(-18 0)">
+    <g id="stock">
+      <rect x="108" y="150" width="40" height="24" rx="10" ry="10" />
+    </g>
+    <g id="receiver">
+      <rect x="114" y="174" width="28" height="28" rx="8" ry="8" />
+    </g>
+    <g id="magazine">
+      <path d="M118 202 L138 202 L134 220 L122 220 Z" />
+    </g>
+    <g id="barrel">
+      <rect x="122" y="202" width="12" height="30" rx="5" ry="5" />
+    </g>
+    <g id="muzzle">
+      <line x1="128" y1="232" x2="128" y2="244" />
+    </g>
+    <g id="front_sight">
+      <line x1="122" y1="228" x2="134" y2="228" />
+    </g>
+  </g>
+</svg>

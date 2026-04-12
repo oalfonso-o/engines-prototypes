@@ -1,0 +1,4 @@
+top-down tactical shooter prop sprite, realistic-tactical style, warm urban palette, clean readable silhouette, grounded materials, consistent with SOCOM and Counter-Strike inspired overhead combat, street bench, weathered painted metal, aged wood slats, high readability from gameplay distance, transparent background
+
+Negative prompt:
+cartoon, anime, childish, mobile game style, sexualized, exaggerated proportions, cute, toy-like, glossy fantasy, low readability

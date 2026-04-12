@@ -1,0 +1,29 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.5.2.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "godot", "godot", "{8D4FAABC-C56A-6D5C-8531-6A6B417F5DBA}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "canuter", "godot\canuter.csproj", "{1639F0AC-551F-2D0C-728A-916BDF0B866D}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{1639F0AC-551F-2D0C-728A-916BDF0B866D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1639F0AC-551F-2D0C-728A-916BDF0B866D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1639F0AC-551F-2D0C-728A-916BDF0B866D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1639F0AC-551F-2D0C-728A-916BDF0B866D}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{1639F0AC-551F-2D0C-728A-916BDF0B866D} = {8D4FAABC-C56A-6D5C-8531-6A6B417F5DBA}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {640718CE-E45A-45E3-BE26-98A41566D387}
+	EndGlobalSection
+EndGlobal

@@ -1,0 +1,104 @@
+[gd_scene load_steps=12 format=3 uid="uid://cqow47bch5ocs"]
+
+[ext_resource type="Script" path="res://scripts/Main.cs" id="1_rc7ef"]
+[ext_resource type="Script" path="res://scripts/PlayerController.cs" id="2_gyp8q"]
+[ext_resource type="Script" path="res://scripts/Crosshair.cs" id="3_aqcb1"]
+[ext_resource type="Script" path="res://scripts/MapView.cs" id="4_b18nv"]
+[ext_resource type="Script" path="res://scripts/GameHud.cs" id="5_6y1dm"]
+[ext_resource type="Script" path="res://scripts/VisionSystem.cs" id="6_yyrht"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_move"]
+radius = 24.0
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_head"]
+radius = 20.0
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_shoulders"]
+size = Vector2(104, 30)
+
+[node name="Main" type="Node2D"]
+script = ExtResource("1_rc7ef")
+
+[node name="Backdrop" type="ColorRect" parent="."]
+offset_left = -2000.0
+offset_top = -2000.0
+offset_right = 2000.0
+offset_bottom = 2000.0
+color = Color(1, 1, 1, 1)
+
+[node name="Map" type="Node2D" parent="."]
+script = ExtResource("4_b18nv")
+
+[node name="WallCollisions" type="StaticBody2D" parent="Map"]
+
+[node name="WallOccluders" type="Node2D" parent="Map"]
+
+[node name="Targets" type="Node2D" parent="Map"]
+
+[node name="Player" type="CharacterBody2D" parent="."]
+position = Vector2(640, 360)
+script = ExtResource("2_gyp8q")
+
+[node name="MovementCollider" type="CollisionShape2D" parent="Player"]
+shape = SubResource("CircleShape2D_move")
+
+[node name="Hurtbox" type="Area2D" parent="Player"]
+monitoring = false
+monitorable = true
+
+[node name="HeadShape" type="CollisionShape2D" parent="Player/Hurtbox"]
+shape = SubResource("CircleShape2D_head")
+
+[node name="TorsoShape" type="CollisionShape2D" parent="Player/Hurtbox"]
+position = Vector2(0, -19)
+shape = SubResource("RectangleShape2D_shoulders")
+
+[node name="VisualRoot" type="Node2D" parent="Player"]
+
+[node name="BodySprite" type="AnimatedSprite2D" parent="Player/VisualRoot"]
+centered = true
+
+[node name="WeaponSprite" type="Sprite2D" parent="Player/VisualRoot"]
+centered = true
+
+[node name="FirePoint" type="Marker2D" parent="Player/VisualRoot"]
+position = Vector2(0, 108)
+
+[node name="Camera2D" type="Camera2D" parent="Player"]
+enabled = true
+position_smoothing_enabled = true
+position_smoothing_speed = 8.0
+
+[node name="WorldDarkness" type="CanvasModulate" parent="."]
+color = Color(0.26, 0.26, 0.26, 1)
+
+[node name="VisionSystem" type="Node2D" parent="."]
+script = ExtResource("6_yyrht")
+
+[node name="VisionLight" type="PointLight2D" parent="VisionSystem"]
+color = Color(1, 1, 1, 1)
+energy = 1.0
+blend_mode = 0
+shadow_enabled = true
+
+[node name="Hud" type="CanvasLayer" parent="."]
+
+[node name="GameHud" type="Control" parent="Hud"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("5_6y1dm")
+
+[node name="Crosshair" type="Control" parent="Hud"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("3_aqcb1")

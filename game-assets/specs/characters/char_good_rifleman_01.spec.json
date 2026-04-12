@@ -1,0 +1,68 @@
+{
+  "asset_id": "char_good_rifleman_01",
+  "category": "character",
+  "theme": "urban_warm",
+  "style": "realistic_tactical",
+  "camera": "top_down",
+  "palette": "warm urban palette, muted olive tactical fabrics, tan webbing, charcoal shadows",
+  "subject": "good faction rifleman",
+  "base_description": "NATO-style military rifleman seen from above, realistic proportions, helmet, tactical vest, M4-style rifle, readable combat silhouette",
+  "faction": "good",
+  "silhouette": "top-down military operator silhouette with a clearly readable rifle and vest profile",
+  "materials": [
+    "matte tactical fabric",
+    "ceramic armor plates",
+    "polymer rifle furniture",
+    "combat boots"
+  ],
+  "equipment": [
+    "M4-style rifle",
+    "ballistic helmet",
+    "tactical vest",
+    "combat gloves"
+  ],
+  "readability": "high",
+  "transparent_background": true,
+  "forbidden_traits": [
+    "cartoon",
+    "anime",
+    "childish",
+    "mobile game style",
+    "sexualized",
+    "oversized caricature proportions"
+  ],
+  "animation_plan": {
+    "directions": [
+      "north",
+      "northeast",
+      "east",
+      "southeast",
+      "south",
+      "southwest",
+      "west",
+      "northwest"
+    ],
+    "animations": {
+      "idle": {
+        "frames": 2,
+        "description": "combat ready idle with rifle shouldered and subtle stance shift"
+      },
+      "move": {
+        "frames": 4,
+        "description": "tactical jogging movement with the rifle kept ready"
+      }
+    }
+  },
+  "geometry_contract": {
+    "canvas_size": [256, 256],
+    "head_pivot_px": [128, 128],
+    "idle_south": {
+      "head_center_px": [128, 128],
+      "shoulders_center_offset_from_head_px": [0, -19]
+    },
+    "notes": [
+      "The head center is the canonical rotation pivot for the body sprite.",
+      "Small SVG geometry changes must preserve the head pivot exactly at the canvas center."
+    ]
+  }
+}

@@ -1,0 +1,50 @@
+[
+  {
+    "id": "floor_street",
+    "kind": "tile",
+    "category": "floor",
+    "sprite_set": "game-assets/sprites/environment/urban_warm/floor_street_01.png",
+    "blocks_movement": false,
+    "blocks_vision": false,
+    "blocks_projectiles": false,
+    "render_layer": "ground",
+    "minimap_color": "#B48E6A",
+    "tags": ["urban", "warm", "ground"]
+  },
+  {
+    "id": "wall_concrete",
+    "kind": "tile",
+    "category": "wall",
+    "sprite_set": "game-assets/sprites/environment/urban_warm/wall_concrete_01.png",
+    "blocks_movement": true,
+    "blocks_vision": true,
+    "blocks_projectiles": true,
+    "render_layer": "walls",
+    "minimap_color": "#6F6258",
+    "tags": ["urban", "warm", "structural"]
+  },
+  {
+    "id": "spawn_allies",
+    "kind": "tile",
+    "category": "spawn",
+    "sprite_set": null,
+    "blocks_movement": false,
+    "blocks_vision": false,
+    "blocks_projectiles": false,
+    "render_layer": "markers",
+    "minimap_color": "#5AA7D8",
+    "tags": ["spawn", "allies"]
+  },
+  {
+    "id": "spawn_enemies",
+    "kind": "tile",
+    "category": "spawn",
+    "sprite_set": null,
+    "blocks_movement": false,
+    "blocks_vision": false,
+    "blocks_projectiles": false,
+    "render_layer": "markers",
+    "minimap_color": "#C9825E",
+    "tags": ["spawn", "enemies"]
+  }
+]

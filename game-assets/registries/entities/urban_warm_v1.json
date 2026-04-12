@@ -1,0 +1,58 @@
+[
+  {
+    "id": "prop_bench",
+    "kind": "entity",
+    "category": "prop",
+    "sprite": "game-assets/sprites/props/urban_warm/prop_bench_urban_01.png",
+    "footprint": [2, 1],
+    "anchor": "bottom_left",
+    "blocks_movement": false,
+    "blocks_vision": false,
+    "blocks_projectiles": false,
+    "render_layer": "props",
+    "minimap_icon": null,
+    "tags": ["urban", "street", "bench"]
+  },
+  {
+    "id": "prop_crate",
+    "kind": "entity",
+    "category": "prop",
+    "sprite": "game-assets/sprites/props/urban_warm/prop_crate_urban_01.png",
+    "footprint": [1, 1],
+    "anchor": "bottom_left",
+    "blocks_movement": true,
+    "blocks_vision": false,
+    "blocks_projectiles": true,
+    "render_layer": "props",
+    "minimap_icon": null,
+    "tags": ["urban", "crate", "cover_light"]
+  },
+  {
+    "id": "bench_long",
+    "kind": "entity",
+    "category": "prop",
+    "sprite": "game-assets/sprites/props/urban_warm/prop_bench_long_urban_01.png",
+    "footprint": [2, 1],
+    "anchor": "bottom_left",
+    "blocks_movement": false,
+    "blocks_vision": false,
+    "blocks_projectiles": false,
+    "render_layer": "props",
+    "minimap_icon": null,
+    "tags": ["urban", "street", "bench"]
+  },
+  {
+    "id": "street_light",
+    "kind": "entity",
+    "category": "prop",
+    "sprite": "game-assets/sprites/props/urban_warm/prop_street_light_urban_01.png",
+    "footprint": [1, 1],
+    "anchor": "bottom_center",
+    "blocks_movement": true,
+    "blocks_vision": false,
+    "blocks_projectiles": true,
+    "render_layer": "props",
+    "minimap_icon": null,
+    "tags": ["urban", "street", "light"]
+  }
+]
