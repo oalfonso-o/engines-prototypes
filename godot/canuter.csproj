@@ -1,4 +1,7 @@
 <Project Sdk="Godot.NET.Sdk/4.6.2">
+  <ItemGroup>
+    <ProjectReference Include="..\src\Canuter.Gameplay\Canuter.Gameplay.csproj" />
+  </ItemGroup>
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
     <RootNamespace>Canuter</RootNamespace>

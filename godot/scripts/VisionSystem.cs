@@ -1,3 +1,4 @@
+using NumericVector2 = System.Numerics.Vector2;
 using Godot;
 
 namespace Canuter
@@ -47,54 +48,12 @@ namespace Canuter
                 return false;
             }
 
-            if (!IsWithinCamera(point))
-            {
-                return false;
-            }
-
-            var toPoint = point - _player.GlobalPosition;
-            if (toPoint.LengthSquared() <= 0.0001f)
-            {
-                return true;
-            }
-
-            var direction = toPoint.Normalized();
-            if (_player.CurrentAimDirection.Dot(direction) < 0.0f)
-            {
-                return false;
-            }
-
-            var query = PhysicsRayQueryParameters2D.Create(_player.GlobalPosition, point);
-            query.CollideWithBodies = true;
-            query.CollideWithAreas = true;
-            query.Exclude = new Godot.Collections.Array<Rid> { _player.GetRid(), _player.HurtboxRid };
-            var result = GetWorld2D().DirectSpaceState.IntersectRay(query);
-            if (result.Count == 0)
-            {
-                return true;
-            }
-
-            if (result["collider"].AsGodotObject() is DummyTarget dummyTarget)
-            {
-                return dummyTarget.GlobalPosition.DistanceTo(point) < 1.0f;
-            }
-
-            return false;
-        }
-
-        private bool IsWithinCamera(Vector2 point)
-        {
-            if (_player == null)
-            {
-                return false;
-            }
-
-            var camera = _player.GameplayCamera;
-            var viewport = GetViewportRect().Size;
-            var zoom = camera.Zoom;
-            var halfWorld = new Vector2(viewport.X * 0.5f / zoom.X, viewport.Y * 0.5f / zoom.Y);
-            var delta = point - camera.GetScreenCenterPosition();
-            return Mathf.Abs(delta.X) <= halfWorld.X && Mathf.Abs(delta.Y) <= halfWorld.Y;
+            return VisionEvaluator.CanSeeWorldPoint(
+                ToNumeric(_player.GlobalPosition),
+                ToNumeric(_player.CurrentAimDirection),
+                ToNumeric(point),
+                GetCameraViewport(),
+                GetOcclusionState(point));
         }
 
         private float GetVisionRadiusFromCamera()
@@ -104,11 +63,52 @@ namespace Canuter
                 return 512.0f;
             }
 
+            return GetCameraViewport().Radius;
+        }
+
+        private CameraViewport GetCameraViewport()
+        {
+            if (_player == null)
+            {
+                return new CameraViewport(NumericVector2.Zero, new NumericVector2(512.0f, 512.0f));
+            }
+
             var camera = _player.GameplayCamera;
-            var viewport = GetViewportRect().Size;
-            var zoom = camera.Zoom;
-            var halfWorld = new Vector2(viewport.X * 0.5f / zoom.X, viewport.Y * 0.5f / zoom.Y);
-            return halfWorld.Length();
+            return CameraViewportModel.Create(
+                ToNumeric(camera.GetScreenCenterPosition()),
+                ToNumeric(GetViewportRect().Size),
+                ToNumeric(camera.Zoom));
+        }
+
+        private VisionOcclusion GetOcclusionState(Vector2 point)
+        {
+            if (_player == null)
+            {
+                return VisionOcclusion.Blocked;
+            }
+
+            var query = PhysicsRayQueryParameters2D.Create(_player.GlobalPosition, point);
+            query.CollideWithBodies = true;
+            query.CollideWithAreas = true;
+            query.Exclude = new Godot.Collections.Array<Rid> { _player.GetRid(), _player.HurtboxRid };
+            var result = GetWorld2D().DirectSpaceState.IntersectRay(query);
+            if (result.Count == 0)
+            {
+                return VisionOcclusion.Clear;
+            }
+
+            if (result["collider"].AsGodotObject() is DummyTarget dummyTarget &&
+                dummyTarget.GlobalPosition.DistanceTo(point) < 1.0f)
+            {
+                return VisionOcclusion.TargetAtPoint;
+            }
+
+            return VisionOcclusion.Blocked;
+        }
+
+        private static NumericVector2 ToNumeric(Vector2 value)
+        {
+            return new NumericVector2(value.X, value.Y);
         }
 
         private static ImageTexture CreateVisionTexture()

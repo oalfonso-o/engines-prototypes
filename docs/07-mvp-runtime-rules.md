@@ -16,8 +16,15 @@
 ## Player Core
 
 - The player is controlled with `WASD`.
-- Aim direction is driven by mouse position.
+- The runtime now supports two player view modes:
+- `topdown_fixed`
+- `heading_locked`
+- `topdown_fixed` remains the default runtime mode.
+- Aim direction is mode-dependent:
+- `topdown_fixed`: aim direction is driven by mouse position.
+- `heading_locked`: aim direction is driven by relative horizontal mouse movement and remains locked forward.
 - The player can move independently of where they are aiming.
+- `heading_locked` horizontal turn speed uses one shared runtime sensitivity value for the heading that body, weapon, fire direction, and rotating camera all follow together.
 - Body animation uses the canonical `south` source set and is rotated in runtime.
 - The current body animation set has two runtime states:
 - `idle`
@@ -40,11 +47,20 @@
 ## Camera
 
 - The camera is top-down and follows the player.
-- The camera does not rotate.
+- `topdown_fixed`: the camera does not rotate.
+- `heading_locked`: the camera rotates with the player's heading so the player remains visually upright on screen.
+- `heading_locked`: camera position follow is immediate rather than smoothed so the player stays hard-locked to screen center while rotating and strafing.
 - The default runtime zoom is slightly zoomed out from the original prototype baseline.
 - Mouse wheel controls zoom.
 - The zoom-in limit is the current closest gameplay zoom.
 - The zoom-out limit is the current farthest gameplay zoom used by the prototype.
+
+## Pause And Settings
+
+- Pressing `Escape` opens a pause overlay.
+- The current pause overlay contains a `Settings` entry.
+- The current settings screen exposes the player view mode selector.
+- Closing the pause overlay returns control to gameplay using the currently selected view mode.
 
 ## Weapon Slots
 
@@ -123,7 +139,9 @@
 
 - The current rifle and pistol implementation use hitscan, not physical projectiles.
 - Shot origin comes from the equipped weapon fire point.
-- The shot direction is derived from the fire point toward the mouse.
+- Shot direction is mode-dependent:
+- `topdown_fixed`: the shot direction is derived from the fire point toward the mouse.
+- `heading_locked`: the shot direction is derived from the current forward heading.
 - Hitscan stops at the first valid collision along the ray.
 - Walls block shots.
 - A short debug tracer is allowed as gameplay feedback in the MVP branch.
@@ -159,6 +177,7 @@
 - camera bounds
 - a forward-facing `180` degree field of view
 - wall occlusion
+- The forward-facing direction comes from the current active player view mode heading/aim.
 - The camera bounds act as the effective maximum visibility extent for the prototype.
 - A world point is visible only if:
 - it is inside the current camera world area
@@ -203,6 +222,9 @@
 - top-right kill feed
 - HUD layout should remain stable while values change.
 - Placeholder text is acceptable in the prototype if the placement and meaning are already correct.
+- Crosshair presentation is mode-dependent:
+- `topdown_fixed`: free mouse crosshair
+- `heading_locked`: centered forward aim hint
 
 ## Runtime Source Of Truth
 

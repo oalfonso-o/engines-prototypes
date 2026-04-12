@@ -1,3 +1,4 @@
+using NumericVector2 = System.Numerics.Vector2;
 using System.Collections.Generic;
 using Godot;
 
@@ -135,10 +136,10 @@ namespace Canuter
 
             DrawCircle(center, 5.0f, FriendlyMarker);
 
-            var cameraPosition = camera.GlobalPosition;
-            var viewportPixels = GetViewportRect().Size;
-            var zoom = camera.Zoom;
-            var halfWorldSize = new Vector2(viewportPixels.X * 0.5f / zoom.X, viewportPixels.Y * 0.5f / zoom.Y);
+            var viewportWorld = CameraViewportModel.Create(
+                ToNumeric(camera.GlobalPosition),
+                ToNumeric(GetViewportRect().Size),
+                ToNumeric(camera.Zoom));
             var targets = GetTree().GetNodesInGroup("damageable_targets");
 
             foreach (var node in targets)
@@ -148,26 +149,34 @@ namespace Canuter
                     continue;
                 }
 
-                var delta = target.GlobalPosition - cameraPosition;
-                if (Mathf.Abs(delta.X) > halfWorldSize.X || Mathf.Abs(delta.Y) > halfWorldSize.Y)
-                {
-                    continue;
-                }
-
                 if (_visionSystem != null && !_visionSystem.CanSeeWorldPoint(target.GlobalPosition))
                 {
                     continue;
                 }
 
-                var normalized = new Vector2(delta.X / halfWorldSize.X, delta.Y / halfWorldSize.Y);
-                var marker = center + new Vector2(normalized.X * radius * 0.70f, normalized.Y * radius * 0.70f);
-                if ((marker - center).Length() > radius - 10.0f)
+                var projection = MinimapProjector.ProjectMarker(
+                    viewportWorld,
+                    ToNumeric(center),
+                    radius,
+                    ToNumeric(target.GlobalPosition));
+
+                if (projection == null)
                 {
                     continue;
                 }
 
-                DrawCircle(marker, 4.0f, EnemyMarker);
+                DrawCircle(ToGodot(projection.Value.MarkerPosition), 4.0f, EnemyMarker);
             }
+        }
+
+        private static NumericVector2 ToNumeric(Vector2 value)
+        {
+            return new NumericVector2(value.X, value.Y);
+        }
+
+        private static Vector2 ToGodot(NumericVector2 value)
+        {
+            return new Vector2(value.X, value.Y);
         }
 
         private void DrawPanel(Rect2 rect)

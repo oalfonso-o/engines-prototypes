@@ -1,3 +1,4 @@
+using NumericVector2 = System.Numerics.Vector2;
 using System.Collections.Generic;
 using Godot;
 
@@ -8,14 +9,6 @@ namespace Canuter
         [Signal]
         public delegate void AnimationChangedEventHandler(string animationName);
 
-        private const float MoveSpeed = 720.0f;
-        private const float MoveAcceleration = 3000.0f;
-        private const float MoveDeceleration = 14000.0f;
-        private const float DefaultZoom = 0.82f;
-        private const float MinZoom = 1.0f / 3.0f;
-        private const float MaxZoom = 1.0f;
-        private const float ZoomStep = 0.1f;
-
         private Area2D _hurtbox = null!;
         private Node2D _visualRoot = null!;
         private AnimatedSprite2D _bodySprite = null!;
@@ -24,12 +17,16 @@ namespace Canuter
         private Camera2D _camera = null!;
         private readonly Dictionary<string, WeaponState> _weaponStates = new();
         private WeaponState _equippedWeapon = null!;
+        private IPlayerViewModeController _viewModeController = new TopDownFixedViewModeController();
         private string _currentAnimation = string.Empty;
         private double _tracerRemaining;
         private Vector2 _tracerStart;
         private Vector2 _tracerEnd;
         private Vector2 _currentAimDirection = Vector2.Down;
+        private Vector2 _currentFireDirection = Vector2.Down;
         private float _currentAimRotation;
+        private Vector2 _pendingMouseDelta;
+        private bool _gameplayInputEnabled = true;
 
         public WeaponDefinition EquippedWeaponDefinition => _equippedWeapon.Definition;
         public int EquippedAmmoInMagazine => _equippedWeapon.AmmoInMagazine;
@@ -39,7 +36,9 @@ namespace Canuter
         public int CurrentHealth => 100;
         public Camera2D GameplayCamera => _camera;
         public Vector2 CurrentAimDirection => _currentAimDirection;
+        public Vector2 CurrentFireDirection => _currentFireDirection;
         public float CurrentAimRotation => _currentAimRotation;
+        public PlayerViewMode CurrentViewMode => _viewModeController.Mode;
         public Rid HurtboxRid => _hurtbox.GetRid();
 
         public override void _Ready()
@@ -53,16 +52,22 @@ namespace Canuter
             _weaponSprite = GetNode<Sprite2D>("VisualRoot/WeaponSprite");
             _firePoint = GetNode<Marker2D>("VisualRoot/FirePoint");
             _camera = GetNode<Camera2D>("Camera2D");
+            _camera.IgnoreRotation = false;
             EnsureInputMap();
             _bodySprite.SpriteFrames = AssetRepository.LoadCharacterSpriteFrames(AssetCatalog.CharacterBodyBase01);
             EquipWeapon(WeaponCatalog.Rifle01);
-            SetZoom(DefaultZoom);
+            SetZoom(PlayerRuntimeTuning.DefaultZoom);
             _bodySprite.Play("idle");
             EmitSignal(SignalName.AnimationChanged, "idle");
         }
 
         public override void _Process(double delta)
         {
+            if (!_gameplayInputEnabled)
+            {
+                return;
+            }
+
             _equippedWeapon.Tick(delta);
 
             if (_tracerRemaining > 0.0)
@@ -74,19 +79,36 @@ namespace Canuter
 
         public override void _PhysicsProcess(double delta)
         {
+            if (!_gameplayInputEnabled)
+            {
+                Velocity = Vector2.Zero;
+                MoveAndSlide();
+                _pendingMouseDelta = Vector2.Zero;
+                return;
+            }
+
             var input = Input.GetVector("move_left", "move_right", "move_up", "move_down");
-            var targetVelocity = input * MoveSpeed;
-            var step = (float)delta * (input.LengthSquared() > 0.0001f ? MoveAcceleration : MoveDeceleration);
-            Velocity = Velocity.MoveToward(targetVelocity, step);
+            var frameResult = _viewModeController.Update(new PlayerViewFrameInput(
+                ActorPosition: ToNumeric(GlobalPosition),
+                CurrentVelocity: ToNumeric(Velocity),
+                MovementInput: ToNumeric(input),
+                MouseWorldPosition: ToNumeric(GetGlobalMousePosition()),
+                CurrentAimDirection: ToNumeric(_currentAimDirection),
+                CurrentAimRotation: _currentAimRotation,
+                DeltaSeconds: delta,
+                MouseDelta: ToNumeric(_pendingMouseDelta)));
+
+            Velocity = ToGodot(frameResult.Velocity);
             MoveAndSlide();
-            UpdateAimRotation();
+            ApplyViewFrame(frameResult);
+            _pendingMouseDelta = Vector2.Zero;
 
             if (_equippedWeapon.Definition.FireMode == WeaponFireMode.FullAuto && Input.IsMouseButtonPressed(MouseButton.Left))
             {
                 TryUseEquippedWeapon();
             }
 
-            if (Velocity.LengthSquared() > 16.0f)
+            if (Velocity.LengthSquared() > PlayerRuntimeTuning.MovingAnimationThresholdSquared)
             {
                 PlayAnimation("move");
             }
@@ -100,6 +122,11 @@ namespace Canuter
         {
             if (@event is InputEventKey keyEvent && keyEvent.Pressed && !keyEvent.Echo)
             {
+                if (!_gameplayInputEnabled)
+                {
+                    return;
+                }
+
                 if (InputMap.EventIsAction(keyEvent, "reload_weapon"))
                 {
                     _equippedWeapon.TryStartReload();
@@ -125,7 +152,17 @@ namespace Canuter
                 }
             }
 
+            if (@event is InputEventMouseMotion mouseMotion)
+            {
+                _pendingMouseDelta += mouseMotion.Relative;
+            }
+
             if (@event is not InputEventMouseButton mouseButton || !mouseButton.Pressed)
+            {
+                return;
+            }
+
+            if (!_gameplayInputEnabled)
             {
                 return;
             }
@@ -136,10 +173,10 @@ namespace Canuter
                     TryUseEquippedWeapon();
                     break;
                 case MouseButton.WheelUp:
-                    SetZoom(Mathf.Clamp(_camera.Zoom.X + ZoomStep, MinZoom, MaxZoom));
+                    SetZoom(CameraZoomModel.ZoomIn(_camera.Zoom.X));
                     break;
                 case MouseButton.WheelDown:
-                    SetZoom(Mathf.Clamp(_camera.Zoom.X - ZoomStep, MinZoom, MaxZoom));
+                    SetZoom(CameraZoomModel.ZoomOut(_camera.Zoom.X));
                     break;
             }
         }
@@ -231,18 +268,45 @@ namespace Canuter
             };
         }
 
-        private void UpdateAimRotation()
+        public void SetViewModeController(IPlayerViewModeController controller)
         {
-            var aimVector = GetGlobalMousePosition() - GlobalPosition;
-            if (aimVector.LengthSquared() <= 0.0001f)
-            {
-                return;
-            }
+            _viewModeController = controller;
+            _camera.PositionSmoothingEnabled = controller.Mode != PlayerViewMode.HeadingLocked;
+            _pendingMouseDelta = Vector2.Zero;
+        }
 
-            _currentAimDirection = aimVector.Normalized();
-            _currentAimRotation = aimVector.Angle() - Mathf.Pi / 2.0f;
-            _visualRoot.Rotation = _currentAimRotation;
-            _hurtbox.Rotation = _currentAimRotation;
+        public void SetGameplayInputEnabled(bool enabled)
+        {
+            _gameplayInputEnabled = enabled;
+            if (!enabled)
+            {
+                Velocity = Vector2.Zero;
+            }
+        }
+
+        public void AddMouseDeltaForTesting(Vector2 delta)
+        {
+            _pendingMouseDelta += delta;
+        }
+
+        private void ApplyViewFrame(PlayerViewFrameResult frameResult)
+        {
+            _currentAimDirection = ToGodot(frameResult.AimDirection);
+            _currentFireDirection = ToGodot(frameResult.FireDirection);
+            _currentAimRotation = frameResult.AimRotation;
+            _visualRoot.Rotation = frameResult.VisualRotation;
+            _hurtbox.Rotation = frameResult.HurtboxRotation;
+            _camera.Rotation = frameResult.CameraRotation;
+        }
+
+        private static NumericVector2 ToNumeric(Vector2 value)
+        {
+            return new NumericVector2(value.X, value.Y);
+        }
+
+        private static Vector2 ToGodot(NumericVector2 value)
+        {
+            return new Vector2(value.X, value.Y);
         }
 
         private void EquipWeapon(WeaponDefinition definition)
@@ -276,7 +340,7 @@ namespace Canuter
             }
 
             var origin = _firePoint.GlobalPosition;
-            var direction = (GetGlobalMousePosition() - origin).Normalized();
+            var direction = _currentFireDirection;
             if (direction.LengthSquared() <= 0.0001f)
             {
                 direction = Vector2.Down;
@@ -314,7 +378,7 @@ namespace Canuter
             }
 
             var origin = _firePoint.GlobalPosition;
-            var direction = (GetGlobalMousePosition() - origin).Normalized();
+            var direction = _currentFireDirection;
             if (direction.LengthSquared() <= 0.0001f)
             {
                 direction = Vector2.Down;
