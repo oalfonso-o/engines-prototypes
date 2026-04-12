@@ -5,8 +5,7 @@ public sealed class PauseMenuStateTests
     [Fact]
     public void StartsClosed()
     {
-        var settings = new GameSettings();
-        var state = new PauseMenuState(settings);
+        var state = new PauseMenuState();
 
         Assert.Equal(MenuScreen.Closed, state.CurrentScreen);
     }
@@ -14,7 +13,7 @@ public sealed class PauseMenuStateTests
     [Fact]
     public void EscapeOpensPauseMenuFromClosedState()
     {
-        var state = new PauseMenuState(new GameSettings());
+        var state = new PauseMenuState();
 
         state.TogglePause();
 
@@ -24,7 +23,7 @@ public sealed class PauseMenuStateTests
     [Fact]
     public void EscapeClosesPauseMenuWhenPauseScreenIsOpen()
     {
-        var state = new PauseMenuState(new GameSettings());
+        var state = new PauseMenuState();
         state.TogglePause();
 
         state.TogglePause();
@@ -35,7 +34,7 @@ public sealed class PauseMenuStateTests
     [Fact]
     public void CanOpenSettingsFromPauseScreen()
     {
-        var state = new PauseMenuState(new GameSettings());
+        var state = new PauseMenuState();
         state.TogglePause();
 
         state.OpenSettings();
@@ -46,7 +45,7 @@ public sealed class PauseMenuStateTests
     [Fact]
     public void OpeningSettingsWhileClosedDoesNothing()
     {
-        var state = new PauseMenuState(new GameSettings());
+        var state = new PauseMenuState();
 
         state.OpenSettings();
 
@@ -56,7 +55,7 @@ public sealed class PauseMenuStateTests
     [Fact]
     public void BackFromSettingsReturnsToPauseScreen()
     {
-        var state = new PauseMenuState(new GameSettings());
+        var state = new PauseMenuState();
         state.TogglePause();
         state.OpenSettings();
 
@@ -66,35 +65,9 @@ public sealed class PauseMenuStateTests
     }
 
     [Fact]
-    public void SelectingViewModeInSettingsUpdatesSettings()
-    {
-        var settings = new GameSettings();
-        var state = new PauseMenuState(settings);
-        state.TogglePause();
-        state.OpenSettings();
-
-        state.SelectViewMode(PlayerViewMode.HeadingLocked);
-
-        Assert.Equal(PlayerViewMode.HeadingLocked, settings.ViewMode);
-        Assert.Equal(MenuScreen.Settings, state.CurrentScreen);
-    }
-
-    [Fact]
-    public void SelectingViewModeOutsideSettingsDoesNothing()
-    {
-        var settings = new GameSettings();
-        var state = new PauseMenuState(settings);
-
-        state.SelectViewMode(PlayerViewMode.HeadingLocked);
-
-        Assert.Equal(PlayerViewMode.TopDownFixed, settings.ViewMode);
-        Assert.Equal(MenuScreen.Closed, state.CurrentScreen);
-    }
-
-    [Fact]
     public void EscapeClosesMenuEvenWhenSettingsScreenIsOpen()
     {
-        var state = new PauseMenuState(new GameSettings());
+        var state = new PauseMenuState();
         state.TogglePause();
         state.OpenSettings();
 

@@ -3,8 +3,8 @@
 ## Project
 
 - Working title: `canuter`.
-- Genre target: 2D multiplayer tactical shooter.
-- Camera style: top-down, with readability inspired by older overhead games, but with strict visibility rules closer to an FPS.
+- Genre target: 3D multiplayer tactical shooter.
+- Camera style: low-angle third-person tactical camera with the player framed near the bottom of the screen.
 - Commercial target: release on Steam.
 - Project ambition: high. The project should be built with long-term maintainability in mind.
 
@@ -19,8 +19,13 @@
 
 ## Design Reference
 
-- The intended feel is closer to `Counter-Strike` or `SOCOM` than to an arcade twin-stick shooter.
-- The camera is top-down, but information visibility must be constrained so the player does not get unrealistic awareness from the camera angle.
+- The intended feel is closer to `Counter-Strike`, `SOCOM`, or a restrained third-person tactical shooter than to an arcade shooter.
+- The camera should preserve tactical readability without giving the player unrestricted omniscience.
+- The runtime should feel like a hybrid between an FPS and a third-person shooter:
+- movement relative to facing
+- centered crosshair
+- hitscan weapons
+- a strong sense of lanes, cover, and exposure
 
 ## Open Questions
 

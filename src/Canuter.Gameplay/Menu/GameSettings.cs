@@ -9,15 +9,9 @@ namespace Canuter
         public const float MinPrototype3DCameraPitchDegrees = 0.0f;
         public const float MaxPrototype3DCameraPitchDegrees = 90.0f;
 
-        public PlayerViewMode ViewMode { get; private set; } = PlayerViewMode.TopDownFixed;
         public float HeadingLockedTurnSensitivity { get; private set; } = PlayerRuntimeTuning.HeadingLockedMouseRadiansPerPixel;
         public float Prototype3DMoveSpeed { get; private set; } = PlayerRuntimeTuning.Prototype3DMoveSpeed;
         public float Prototype3DCameraPitchDegrees { get; private set; } = PlayerRuntimeTuning.Prototype3DCameraPitchDegrees;
-
-        public void SetViewMode(PlayerViewMode viewMode)
-        {
-            ViewMode = viewMode;
-        }
 
         public void SetHeadingLockedTurnSensitivity(float sensitivity)
         {

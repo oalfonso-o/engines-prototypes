@@ -12,9 +12,6 @@ namespace Canuter
         public delegate void BackRequestedEventHandler();
 
         [Signal]
-        public delegate void ViewModeSelectedEventHandler(long viewMode);
-
-        [Signal]
         public delegate void HeadingSensitivityChangedEventHandler(double sensitivity);
 
         [Signal]
@@ -28,7 +25,6 @@ namespace Canuter
 
         private VBoxContainer _pauseContent = null!;
         private VBoxContainer _settingsContent = null!;
-        private OptionButton _viewModeOption = null!;
         private SpinBox _headingSensitivitySpinBox = null!;
         private SpinBox _prototype3DMoveSpeedSpinBox = null!;
         private SpinBox _prototype3DCameraPitchSpinBox = null!;
@@ -41,7 +37,6 @@ namespace Canuter
 
             _pauseContent = GetNode<VBoxContainer>("Panel/Root/PauseContent");
             _settingsContent = GetNode<VBoxContainer>("Panel/Root/SettingsContent");
-            _viewModeOption = GetNode<OptionButton>("Panel/Root/SettingsContent/ViewModeOption");
             _headingSensitivitySpinBox = GetNode<SpinBox>("Panel/Root/SettingsContent/HeadingSensitivitySpinBox");
             _prototype3DMoveSpeedSpinBox = GetNode<SpinBox>("Panel/Root/SettingsContent/Prototype3DMoveSpeedSpinBox");
             _prototype3DCameraPitchSpinBox = GetNode<SpinBox>("Panel/Root/SettingsContent/Prototype3DCameraPitchSpinBox");
@@ -54,10 +49,6 @@ namespace Canuter
             exitButton.Pressed += () => EmitSignal(SignalName.ExitRequested);
             backButton.Pressed += () => EmitSignal(SignalName.BackRequested);
 
-            _viewModeOption.Clear();
-            _viewModeOption.AddItem("TopDown Fixed", (int)PlayerViewMode.TopDownFixed);
-            _viewModeOption.AddItem("Heading Locked", (int)PlayerViewMode.HeadingLocked);
-            _viewModeOption.ItemSelected += OnViewModeItemSelected;
             _headingSensitivitySpinBox.MinValue = GameSettings.MinHeadingLockedTurnSensitivity;
             _headingSensitivitySpinBox.MaxValue = GameSettings.MaxHeadingLockedTurnSensitivity;
             _headingSensitivitySpinBox.Step = 0.0005f;
@@ -72,7 +63,7 @@ namespace Canuter
             _prototype3DCameraPitchSpinBox.ValueChanged += OnPrototype3DCameraPitchChanged;
         }
 
-        public void ApplyState(MenuScreen screen, PlayerViewMode viewMode, float headingLockedTurnSensitivity, float prototype3DMoveSpeed, float prototype3DCameraPitchDegrees)
+        public void ApplyState(MenuScreen screen, float headingLockedTurnSensitivity, float prototype3DMoveSpeed, float prototype3DCameraPitchDegrees)
         {
             Visible = screen != MenuScreen.Closed;
             _pauseContent.Visible = screen == MenuScreen.Pause;
@@ -81,17 +72,6 @@ namespace Canuter
             _isApplyingState = true;
             try
             {
-                for (var i = 0; i < _viewModeOption.ItemCount; i++)
-                {
-                    if (_viewModeOption.GetItemId(i) != (int)viewMode)
-                    {
-                        continue;
-                    }
-
-                    _viewModeOption.Select(i);
-                    break;
-                }
-
                 _headingSensitivitySpinBox.Value = headingLockedTurnSensitivity;
                 _prototype3DMoveSpeedSpinBox.Value = prototype3DMoveSpeed;
                 _prototype3DCameraPitchSpinBox.Value = prototype3DCameraPitchDegrees;
@@ -100,17 +80,6 @@ namespace Canuter
             {
                 _isApplyingState = false;
             }
-        }
-
-        private void OnViewModeItemSelected(long index)
-        {
-            if (_isApplyingState)
-            {
-                return;
-            }
-
-            var itemId = _viewModeOption.GetItemId((int)index);
-            EmitSignal(SignalName.ViewModeSelected, itemId);
         }
 
         private void OnHeadingSensitivityChanged(double value)

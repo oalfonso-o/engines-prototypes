@@ -9,11 +9,8 @@ namespace Canuter
 
     public sealed class PauseMenuState
     {
-        private readonly GameSettings _settings;
-
-        public PauseMenuState(GameSettings settings)
+        public PauseMenuState()
         {
-            _settings = settings;
         }
 
         public MenuScreen CurrentScreen { get; private set; } = MenuScreen.Closed;
@@ -43,16 +40,6 @@ namespace Canuter
             }
 
             CurrentScreen = MenuScreen.Pause;
-        }
-
-        public void SelectViewMode(PlayerViewMode viewMode)
-        {
-            if (CurrentScreen != MenuScreen.Settings)
-            {
-                return;
-            }
-
-            _settings.SetViewMode(viewMode);
         }
     }
 }

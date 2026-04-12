@@ -43,4 +43,4 @@
 
 ## Implementation Reference
 
-- Concrete format and pipeline details live under `docs/asset-pipeline/`.
+- The live prototype currently loads a text map and extrudes it directly into simple 3D floor and wall geometry at runtime.

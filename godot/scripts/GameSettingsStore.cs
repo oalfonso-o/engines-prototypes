@@ -6,7 +6,6 @@ namespace Canuter
     {
         private const string SettingsPath = "user://runtime_settings.cfg";
         private const string GameplaySection = "gameplay";
-        private const string ViewModeKey = "view_mode";
         private const string HeadingSensitivityKey = "heading_locked_turn_sensitivity";
         private const string Prototype3DMoveSpeedKey = "prototype_3d_move_speed";
         private const string Prototype3DCameraPitchDegreesKey = "prototype_3d_camera_pitch_degrees";
@@ -18,11 +17,6 @@ namespace Canuter
             if (error != Error.Ok)
             {
                 return;
-            }
-
-            if (config.HasSectionKey(GameplaySection, ViewModeKey))
-            {
-                settings.SetViewMode((PlayerViewMode)(int)config.GetValue(GameplaySection, ViewModeKey, (int)PlayerViewMode.TopDownFixed));
             }
 
             if (config.HasSectionKey(GameplaySection, HeadingSensitivityKey))
@@ -53,7 +47,6 @@ namespace Canuter
         public void Save(GameSettings settings)
         {
             var config = new ConfigFile();
-            config.SetValue(GameplaySection, ViewModeKey, (int)settings.ViewMode);
             config.SetValue(GameplaySection, HeadingSensitivityKey, settings.HeadingLockedTurnSensitivity);
             config.SetValue(GameplaySection, Prototype3DMoveSpeedKey, settings.Prototype3DMoveSpeed);
             config.SetValue(GameplaySection, Prototype3DCameraPitchDegreesKey, settings.Prototype3DCameraPitchDegrees);

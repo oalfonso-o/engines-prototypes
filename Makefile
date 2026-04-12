@@ -3,7 +3,7 @@ PYTHON ?= python3
 SVG_ASSET_ID ?= char_base_gearbox_01
 SVG_BASE_ROOT := game-assets/source/generated/svg
 
-.PHONY: help install-tools test-gameplay test-godot-integration test-godot-integration-3d render-svg-south-idle render-svg-south-move preview-svg-south-move sheet-svg-south-move validate-svg-south
+.PHONY: help install-tools test-gameplay test-godot-integration render-svg-south-idle render-svg-south-move preview-svg-south-move sheet-svg-south-move validate-svg-south
 
 GODOT_BIN ?= /Applications/Godot_mono.app/Contents/MacOS/Godot
 
@@ -11,8 +11,7 @@ help:
 	@echo "Targets:"
 	@echo "  make install-tools        Install Python dependencies for the current SVG pipeline"
 	@echo "  make test-gameplay        Run the C# gameplay characterization tests"
-	@echo "  make test-godot-integration Run the Godot headless integration checks"
-	@echo "  make test-godot-integration-3d Run the Godot headless integration checks for the 3D prototype"
+	@echo "  make test-godot-integration Run the Godot headless integration checks for the default 3D runtime"
 	@echo "  make render-svg-south-idle Rasterize the south idle SVG base to PNG"
 	@echo "  make render-svg-south-move Rasterize the south move SVG sequence to PNG"
 	@echo "  make preview-svg-south-move Build an animated GIF preview from south move PNGs"
@@ -26,10 +25,6 @@ test-gameplay:
 	dotnet test tests/Canuter.Gameplay.Tests/Canuter.Gameplay.Tests.csproj
 
 test-godot-integration:
-	dotnet build godot/canuter.csproj
-	"$(GODOT_BIN)" --headless --path godot --script res://tests/integration_runner.gd
-
-test-godot-integration-3d:
 	dotnet build godot/canuter.csproj
 	"$(GODOT_BIN)" --headless --path godot --script res://tests/integration_runner_3d.gd
 

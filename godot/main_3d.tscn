@@ -4,7 +4,6 @@
 [ext_resource type="Script" path="res://scripts/MapView3D.cs" id="2_map"]
 [ext_resource type="Script" path="res://scripts/PlayerController3D.cs" id="3_player"]
 [ext_resource type="Script" path="res://scripts/CameraRig3D.cs" id="4_camera"]
-[ext_resource type="Script" path="res://scripts/VisionSystem3D.cs" id="5_vision"]
 [ext_resource type="Script" path="res://scripts/GameHud3D.cs" id="6_hud"]
 [ext_resource type="Script" path="res://scripts/Crosshair.cs" id="7_crosshair"]
 [ext_resource type="Script" path="res://scripts/PauseMenuOverlay.cs" id="8_pause"]
@@ -89,9 +88,6 @@ current = true
 fov = 39.0
 near = 0.05
 far = 200.0
-
-[node name="VisionSystem3D" type="Node3D" parent="."]
-script = ExtResource("5_vision")
 
 [node name="Hud" type="CanvasLayer" parent="."]
 
@@ -187,13 +183,6 @@ layout_mode = 2
 theme_override_font_sizes/font_size = 26
 text = "Settings"
 horizontal_alignment = 1
-
-[node name="ViewModeLabel" type="Label" parent="Hud/PauseMenuOverlay/Panel/Root/SettingsContent"]
-layout_mode = 2
-text = "View Mode"
-
-[node name="ViewModeOption" type="OptionButton" parent="Hud/PauseMenuOverlay/Panel/Root/SettingsContent"]
-layout_mode = 2
 
 [node name="HeadingSensitivityLabel" type="Label" parent="Hud/PauseMenuOverlay/Panel/Root/SettingsContent"]
 layout_mode = 2

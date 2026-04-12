@@ -28,21 +28,17 @@ namespace Canuter
             _cameraRig = GetNodeOrNull<CameraRig3D>("CameraRig3D");
 
             _settingsStore.LoadInto(_settings);
-            _settings.SetViewMode(PlayerViewMode.HeadingLocked);
-            _pauseMenuState = new PauseMenuState(_settings);
+            _pauseMenuState = new PauseMenuState();
 
             if (_pauseMenuOverlay != null)
             {
                 _pauseMenuOverlay.SettingsRequested += OnPauseSettingsRequested;
                 _pauseMenuOverlay.BackRequested += OnPauseBackRequested;
-                _pauseMenuOverlay.ViewModeSelected += OnPauseViewModeSelected;
                 _pauseMenuOverlay.HeadingSensitivityChanged += OnHeadingSensitivityChanged;
                 _pauseMenuOverlay.Prototype3DMoveSpeedChanged += OnPrototype3DMoveSpeedChanged;
                 _pauseMenuOverlay.Prototype3DCameraPitchChanged += OnPrototype3DCameraPitchChanged;
                 _pauseMenuOverlay.ExitRequested += OnExitRequested;
             }
-
-            RestrictPauseMenuToHeadingLocked();
 
             if (_player != null && _map != null)
             {
@@ -127,11 +123,6 @@ namespace Canuter
             return (long)_pauseMenuState.CurrentScreen;
         }
 
-        public long GetCurrentViewModeId()
-        {
-            return (long)PlayerViewMode.HeadingLocked;
-        }
-
         public double GetHeadingLockedTurnSensitivity()
         {
             return _settings.HeadingLockedTurnSensitivity;
@@ -149,13 +140,6 @@ namespace Canuter
             ApplyRuntimeState();
         }
 
-        public void SetViewModeById(long viewModeId)
-        {
-            _settings.SetViewMode(PlayerViewMode.HeadingLocked);
-            _settingsStore.Save(_settings);
-            ApplyRuntimeState();
-        }
-
         public void SetPrototype3DCameraPitchDegrees(double pitchDegrees)
         {
             _settings.SetPrototype3DCameraPitchDegrees((float)pitchDegrees);
@@ -169,13 +153,8 @@ namespace Canuter
             _player?.SetMoveSpeed(_settings.Prototype3DMoveSpeed);
             _cameraRig?.SetPitchDegrees(_settings.Prototype3DCameraPitchDegrees);
             _player?.SetGameplayInputEnabled(_pauseMenuState.CurrentScreen == MenuScreen.Closed);
-            _crosshair?.SetPresentation(new PlayerPointerPresentation(
-                CursorCaptureMode.HiddenCaptured,
-                CrosshairMode.CenterForwardHint,
-                UsesRelativeMouseInput: true));
             _pauseMenuOverlay?.ApplyState(
                 _pauseMenuState.CurrentScreen,
-                PlayerViewMode.HeadingLocked,
                 _settings.HeadingLockedTurnSensitivity,
                 _settings.Prototype3DMoveSpeed,
                 _settings.Prototype3DCameraPitchDegrees);
@@ -188,19 +167,6 @@ namespace Canuter
             }
         }
 
-        private void RestrictPauseMenuToHeadingLocked()
-        {
-            var option = GetNodeOrNull<OptionButton>("Hud/PauseMenuOverlay/Panel/Root/SettingsContent/ViewModeOption");
-            if (option == null)
-            {
-                return;
-            }
-
-            option.Clear();
-            option.AddItem("Heading Locked 3D", (int)PlayerViewMode.HeadingLocked);
-            option.Select(0);
-        }
-
         private void OnPauseSettingsRequested()
         {
             _pauseMenuState.OpenSettings();
@@ -210,13 +176,6 @@ namespace Canuter
         private void OnPauseBackRequested()
         {
             _pauseMenuState.GoBack();
-            ApplyRuntimeState();
-        }
-
-        private void OnPauseViewModeSelected(long viewMode)
-        {
-            _settings.SetViewMode(PlayerViewMode.HeadingLocked);
-            _settingsStore.Save(_settings);
             ApplyRuntimeState();
         }
 

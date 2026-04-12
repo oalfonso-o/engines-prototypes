@@ -12,17 +12,4 @@ namespace Canuter
 
         public float Radius => HalfWorldSize.Length();
     }
-
-    public static class CameraViewportModel
-    {
-        public static CameraViewport Create(Vector2 center, Vector2 viewportPixels, Vector2 zoom)
-        {
-            var halfWorldSize = new Vector2(
-                viewportPixels.X * 0.5f / zoom.X,
-                viewportPixels.Y * 0.5f / zoom.Y
-            );
-
-            return new CameraViewport(center, halfWorldSize);
-        }
-    }
 }

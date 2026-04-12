@@ -114,7 +114,7 @@
 ## Controls
 
 - Movement: `WASD`.
-- Aim: mouse position.
+- Aim: centered crosshair driven by mouse look.
 - Primary slot: `1`.
 - Secondary slot: `2`.
 - Knife: `3`.
@@ -144,22 +144,24 @@
 
 ## Camera
 
-- Camera style: top-down, fixed orientation, similar in broad framing to `GTA 2`.
-- The camera does not rotate for now.
-- The controlled player stays centered on screen.
+- Camera style: low-angle third-person tactical follow camera.
+- The camera rotates with the player heading.
+- The controlled player stays low in frame rather than perfectly centered.
+- Camera angle is measured from the ground plane and should be configurable between:
+- `0` degrees: ground-level
+- `90` degrees: top-down
+- Camera distance should remain zoomable in runtime.
 
 ## Vision Model
 
-- Vision is not full top-down omniscience.
-- The player aims with the mouse.
-- The visible forward area should be constrained to the `180` degrees in front of the character.
-- The player should not gain free information from the overhead perspective about what is behind or to the far sides of the character.
-- If the player is aiming at a wall, they should effectively see only what they could reasonably perceive in that direction.
-- Areas outside the valid forward vision should be darkened.
-- Areas blocked by walls should also be darkened.
-- Enemies behind walls must not be visible.
+- Vision is not full omniscience.
+- The intended tactical rule remains asymmetric:
+- `180` degrees in front of the player: constrained by wall occlusion and tactical visibility rules
+- `180` degrees behind the player: broadly readable for navigation and planning
+- Areas behind walls in the forward hemisphere should remain known but visually darkened rather than treated as currently visible.
+- Enemies behind walls must not be visible as live targets.
 
 ## Occlusion
 
 - Wall blocking should be implemented through line-of-sight checks and occlusion logic.
-- This is conceptually similar to "ray tracing" from a design perspective, but the practical implementation will likely use raycasts or visibility sampling rather than hardware ray tracing.
+- The practical implementation will likely use raycasts or visibility sampling rather than hardware ray tracing.
