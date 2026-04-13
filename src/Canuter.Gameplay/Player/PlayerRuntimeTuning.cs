@@ -35,6 +35,9 @@ namespace Canuter
         public const float Prototype3DStrafeTurnaroundAcceleration = 420.0f;
         public const float Prototype3DGravity = 50.0f;
         public const float Prototype3DJumpVelocity = 20.0f;
+        public const float Prototype3DPostureTransitionSeconds = 0.5f;
+        public const float Prototype3DCrouchMoveSpeedMultiplier = 0.55f;
+        public const float Prototype3DProneMoveSpeedMultiplier = 0.25f;
         public const float Prototype3DCameraPitchDegrees = 40.0f;
         public const float Prototype3DCameraOrbitDistance = 10.0f;
         public const float Prototype3DCameraMinOrbitDistance = 0.6f;

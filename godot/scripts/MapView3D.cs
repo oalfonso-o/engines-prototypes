@@ -161,13 +161,13 @@ namespace Canuter
             foreach (var targetCell in _dummyTargets)
             {
                 var target = new DummyTarget3D
-            {
-                Position = CellCenterToWorld(targetCell) + Vector3.Up * 0.9f,
-            };
-            _targetRoot.AddChild(target);
-            target.SetPresentation(VisibilityPresentationState3D.FrontVisible);
-            _targets.Add(target);
-        }
+                {
+                    Position = CellCenterToWorld(targetCell),
+                };
+                _targetRoot.AddChild(target);
+                target.SetPresentation(VisibilityPresentationState3D.FrontVisible);
+                _targets.Add(target);
+            }
         }
 
         private void BuildGroundPlane()

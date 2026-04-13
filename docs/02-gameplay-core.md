@@ -78,7 +78,13 @@
 
 - Player health: `100`.
 - Weapons deal fixed damage.
-- No headshots.
+- The current 3D prototype distinguishes hit zones:
+- head
+- torso
+- hands
+- feet
+- Head hits deal more damage than torso hits.
+- Hand and foot hits deal less damage than torso hits.
 - Frag grenades:
 - Damage falls off by distance.
 - Damage only applies with direct line of sight.
@@ -115,6 +121,9 @@
 
 - Movement: `WASD`.
 - Aim: centered crosshair driven by mouse look.
+- Crouch / kneel hold: `Shift`.
+- Prone / stretched hold: `Ctrl`.
+- Slow walk hold: `Cmd` on macOS or `Alt` on Windows.
 - Primary slot: `1`.
 - Secondary slot: `2`.
 - Knife: `3`.

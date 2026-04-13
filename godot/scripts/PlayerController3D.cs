@@ -5,20 +5,41 @@ using Godot;
 
 namespace Canuter
 {
-    public partial class PlayerController3D : CharacterBody3D
+    public partial class PlayerController3D : CharacterBody3D, IDamageZoneOwner3D
     {
-        private const float DefaultShotOriginHeight = 1.25f;
         private const float MinAimPitchDegrees = -89.0f;
         private const float MaxAimPitchDegrees = 90.0f;
+        private const float TorsoRadius = 0.36f;
+        private const float TorsoHeight = 1.24f;
+        private const float TorsoCenterHeight = 0.84f;
+        private const float HeadRadius = 0.24f;
+        private const float HeadCenterHeight = 1.58f;
+        private const float HandRadius = 0.14f;
+        private const float HandCenterHeight = 0.95f;
+        private const float HandOffsetX = 0.56f;
+        private const float FootWidth = 0.22f;
+        private const float FootHeight = 0.18f;
+        private const float FootDepth = 0.26f;
+        private const float FootCenterHeight = FootHeight * 0.5f;
+        private const float FootOffsetX = 0.19f;
+        private const int PostureCollisionIterations = 8;
+        private const float CollisionValidationLift = 0.05f;
         private Area3D _hurtbox = null!;
+        private CollisionShape3D _hurtboxCollision = null!;
         private MeshInstance3D _bodyMesh = null!;
-        private StandardMaterial3D _bodyMaterial = null!;
+        private MeshInstance3D _headMesh = null!;
+        private MeshInstance3D _leftHandMesh = null!;
+        private MeshInstance3D _rightHandMesh = null!;
+        private MeshInstance3D _leftFootMesh = null!;
+        private MeshInstance3D _rightFootMesh = null!;
         private CollisionShape3D _movementCollider = null!;
         private Marker3D _firePoint = null!;
         private MeshInstance3D _tracerMesh = null!;
         private Node3D _impactRoot = null!;
         private readonly List<ImpactMarkerEntry> _transientImpactMarkers = new();
         private readonly Dictionary<string, WeaponState> _weaponStates = new();
+        private readonly Dictionary<DamageZoneType3D, DamageZone3D> _damageZones = new();
+        private readonly List<StandardMaterial3D> _bodyMaterials = new();
         private WeaponState _equippedWeapon = null!;
         private Vector2 _currentHorizontalForward2D = Vector2.Up;
         private float _currentYawRadians;
@@ -27,6 +48,7 @@ namespace Canuter
         private bool _gameplayInputEnabled = true;
         private float _headingSensitivity = PlayerRuntimeTuning.HeadingLockedMouseRadiansPerPixel;
         private float _moveSpeed = PlayerRuntimeTuning.Prototype3DMoveSpeed;
+        private float _effectiveMoveSpeedMultiplier = 1.0f;
         private double _tracerRemaining;
         private bool _pendingAutoReloadOnPrimaryRelease;
         private bool _pendingJump;
@@ -36,6 +58,10 @@ namespace Canuter
         private float _jumpVelocity = PlayerRuntimeTuning.Prototype3DJumpVelocity;
         private Color _bodyBaseColor;
         private float _bodyOpacity = 1.0f;
+        private int _currentHealth = 100;
+        private PlayerPostureState3D _postureState = PlayerPostureModel3D.CreateInitialState();
+        private ColliderProfile _currentColliderProfile = StandColliderProfile();
+        private float _visualAnimationTime;
 
         private sealed class ImpactMarkerEntry
         {
@@ -54,7 +80,7 @@ namespace Canuter
         public int EquippedReserveAmmo => _equippedWeapon.ReserveAmmo;
         public bool IsReloading => _equippedWeapon.IsReloading;
         public int MaxHealth => 100;
-        public int CurrentHealth => 100;
+        public int CurrentHealth => _currentHealth;
         public Vector3 CurrentForward3D => new(_currentHorizontalForward2D.X, 0.0f, _currentHorizontalForward2D.Y);
         public Vector3 CurrentAimForward3D => ToGodot3(ThirdPersonAimModel3D.AimDirectionFromYawPitch(_currentYawRadians, _currentPitchDegrees));
         public Vector3 CurrentShotOrigin3D => GetShotOrigin();
@@ -63,16 +89,18 @@ namespace Canuter
         public float CurrentPitchDegrees => _currentPitchDegrees;
         public float CurrentMinimapRotation => _currentYawRadians + Mathf.Pi;
         public Rid HurtboxRid => _hurtbox.GetRid();
-        public Vector3 VisibilityOrigin => GlobalPosition + Vector3.Up * 0.9f;
+        public Vector3 VisibilityOrigin => GetShotOrigin();
 
         public override void _Ready()
         {
             _movementCollider = GetNode<CollisionShape3D>("MovementCollider");
             _hurtbox = GetNode<Area3D>("Hurtbox");
+            _hurtboxCollision = _hurtbox.GetNode<CollisionShape3D>("CollisionShape3D");
             _bodyMesh = GetNode<MeshInstance3D>("BodyMesh");
-            _bodyMaterial = CreateBodyMaterialInstance();
-            _bodyBaseColor = _bodyMaterial.AlbedoColor;
             _firePoint = GetNode<Marker3D>("FirePoint");
+            _bodyBaseColor = new Color(0.18f, 0.42f, 0.86f, 1.0f);
+            BuildVisualRig();
+            BuildDamageZones();
             _tracerMesh = CreateTracerMesh();
             _impactRoot = new Node3D();
             AddChild(_impactRoot);
@@ -161,17 +189,21 @@ namespace Canuter
                 MinAimPitchDegrees,
                 MaxAimPitchDegrees);
             _currentHorizontalForward2D = ToGodot(ThirdPersonAimModel3D.HorizontalForwardFromYaw(_currentYawRadians));
+            ApplyMeshRotation();
+            UpdatePosture((float)delta);
 
             var planarVelocity = HeadingLockedMovementModel3D.CalculateVelocity(
                 new NumericVector2(Velocity.X, Velocity.Z),
                 ToNumeric2(input),
                 ToNumeric(_currentHorizontalForward2D),
                 delta,
-                _moveSpeed);
+                _moveSpeed * _effectiveMoveSpeedMultiplier);
 
             Velocity = new Vector3(planarVelocity.X, verticalVelocity, planarVelocity.Y);
             MoveAndSlide();
-            ApplyMeshRotation();
+            AdvanceVisualAnimation((float)delta);
+            SyncBodyLayout();
+            SyncFirePointToShotOrigin();
             _pendingMouseDelta = Vector2.Zero;
 
             if (_equippedWeapon.Definition.FireMode == WeaponFireMode.FullAuto && Input.IsMouseButtonPressed(MouseButton.Left))
@@ -275,12 +307,15 @@ namespace Canuter
         public void SetBodyOpacity(float opacity)
         {
             _bodyOpacity = Mathf.Clamp(opacity, PlayerBodyFadeModel3D.MinOpacityAtMinZoom, 1.0f);
-            var color = _bodyBaseColor;
-            color.A = _bodyBaseColor.A * _bodyOpacity;
-            _bodyMaterial.AlbedoColor = color;
-            _bodyMaterial.Transparency = _bodyOpacity >= 0.999f
-                ? BaseMaterial3D.TransparencyEnum.Disabled
-                : BaseMaterial3D.TransparencyEnum.Alpha;
+            foreach (var material in _bodyMaterials)
+            {
+                var color = _bodyBaseColor;
+                color.A = _bodyBaseColor.A * _bodyOpacity;
+                material.AlbedoColor = color;
+                material.Transparency = _bodyOpacity >= 0.999f
+                    ? BaseMaterial3D.TransparencyEnum.Disabled
+                    : BaseMaterial3D.TransparencyEnum.Alpha;
+            }
         }
 
         public void SetPitchDegrees(float pitchDegrees)
@@ -353,6 +388,76 @@ namespace Canuter
             return GetLowestBodyPoint();
         }
 
+        public bool HasHumanoidRigForTesting()
+        {
+            return _headMesh != null &&
+                   _leftHandMesh != null &&
+                   _rightHandMesh != null &&
+                   _leftFootMesh != null &&
+                   _rightFootMesh != null;
+        }
+
+        public float GetVisualTopForTesting()
+        {
+            return GlobalPosition.Y + InterpolatePose(_postureState.CurrentValue).HeadPosition.Y + HeadRadius;
+        }
+
+        public float GetCurrentPostureValueForTesting()
+        {
+            return _postureState.CurrentValue;
+        }
+
+        public int GetRequestedPostureIdForTesting()
+        {
+            return (int)_postureState.RequestedPosture;
+        }
+
+        public float GetEffectiveMoveSpeedForTesting()
+        {
+            return _moveSpeed * _effectiveMoveSpeedMultiplier;
+        }
+
+        public float GetMovementColliderTopForTesting()
+        {
+            return GlobalPosition.Y + _currentColliderProfile.TopY;
+        }
+
+        public float GetMovementColliderFrontForTesting()
+        {
+            var localFront = new Vector3(0.0f, 0.0f, _currentColliderProfile.FrontZ);
+            return ToGlobal(localFront).Z;
+        }
+
+        public float GetBodyYawRadiansForTesting()
+        {
+            return Rotation.Y;
+        }
+
+        public bool FeetUsePegMeshesForTesting()
+        {
+            return _leftFootMesh.Mesh is BoxMesh && _rightFootMesh.Mesh is BoxMesh;
+        }
+
+        public Vector3 GetLeftFootPositionForTesting()
+        {
+            return _leftFootMesh.Position;
+        }
+
+        public Vector3 GetRightHandPositionForTesting()
+        {
+            return _rightHandMesh.Position;
+        }
+
+        public Vector3 GetShotOriginLocalPositionForTesting()
+        {
+            return GetShotOriginLocalPosition();
+        }
+
+        public Vector3 GetTorsoRotationDegreesForTesting()
+        {
+            return _bodyMesh.RotationDegrees;
+        }
+
         public Vector3 GetCurrentShotDirectionForTesting(float maxDistance)
         {
             var aimPoint = ResolveAimPoint(maxDistance);
@@ -394,9 +499,42 @@ namespace Canuter
             _aimCamera = camera;
         }
 
+        public void ApplyDamage(int baseDamage, DamageZoneType3D zoneType)
+        {
+            _currentHealth = Mathf.Max(0, _currentHealth - BodyPartDamageModel3D.ComputeDamage(baseDamage, zoneType));
+        }
+
         private bool CanJumpFromCurrentState()
         {
             return IsOnFloor();
+        }
+
+        private void UpdatePosture(float deltaSeconds)
+        {
+            var requestedPosture = PlayerPostureModel3D.ResolveRequestedPosture(
+                Input.IsActionPressed("crouch_posture"),
+                Input.IsActionPressed("prone_posture"));
+            _effectiveMoveSpeedMultiplier = PlayerPostureModel3D.GetInstantMoveSpeedMultiplier(
+                requestedPosture,
+                Input.IsActionPressed("slow_walk"));
+            var retargetedState = PlayerPostureModel3D.Retarget(_postureState, requestedPosture);
+            var advancedState = PlayerPostureModel3D.Advance(retargetedState, deltaSeconds);
+            var safePostureValue = ResolveSafePostureValue(_postureState.CurrentValue, advancedState.CurrentValue);
+            if (!Mathf.IsEqualApprox(safePostureValue, advancedState.CurrentValue))
+            {
+                _postureState = advancedState with
+                {
+                    CurrentValue = safePostureValue,
+                    StartValue = safePostureValue,
+                    ElapsedSeconds = 0.0f,
+                };
+            }
+            else
+            {
+                _postureState = advancedState;
+            }
+            SyncBodyLayout();
+            SyncFirePointToShotOrigin();
         }
 
         private void ApplyMeshRotation()
@@ -407,27 +545,263 @@ namespace Canuter
 
         private void SyncBodyLayout()
         {
-            var capsuleHalfHeight = GetCapsuleHalfHeight();
-            var colliderOffset = new Vector3(0.0f, capsuleHalfHeight, 0.0f);
-            _movementCollider.Position = colliderOffset;
-            _hurtbox.Position = colliderOffset;
-            _bodyMesh.Position = colliderOffset;
-
-            if (_movementCollider.Shape is CapsuleShape3D capsule && _bodyMesh.Mesh is CapsuleMesh bodyCapsuleMesh)
-            {
-                bodyCapsuleMesh.Radius = capsule.Radius;
-                bodyCapsuleMesh.Height = capsule.Height;
-            }
+            _currentColliderProfile = InterpolateColliderProfile(_postureState.CurrentValue);
+            ApplyColliderProfile(_currentColliderProfile);
+            ApplyPoseToVisualRig();
+            UpdateDamageZoneLayout();
         }
 
-        private StandardMaterial3D CreateBodyMaterialInstance()
+        private void BuildVisualRig()
         {
-            var sourceMaterial = _bodyMesh.MaterialOverride as StandardMaterial3D;
+            _bodyMaterials.Clear();
+            CreateBodyMaterialInstance(_bodyMesh);
+            _headMesh = CreateBodyPartSphere("HeadMesh");
+            _leftHandMesh = CreateBodyPartSphere("LeftHandMesh");
+            _rightHandMesh = CreateBodyPartSphere("RightHandMesh");
+            _leftFootMesh = CreateFootPegMesh("LeftFootMesh");
+            _rightFootMesh = CreateFootPegMesh("RightFootMesh");
+        }
+
+        private MeshInstance3D CreateBodyPartSphere(string name)
+        {
+            var mesh = new MeshInstance3D
+            {
+                Name = name,
+                Mesh = new SphereMesh
+                {
+                    Radius = 0.1f,
+                    Height = 0.2f,
+                },
+            };
+            AddChild(mesh);
+            CreateBodyMaterialInstance(mesh);
+            return mesh;
+        }
+
+        private MeshInstance3D CreateFootPegMesh(string name)
+        {
+            var mesh = new MeshInstance3D
+            {
+                Name = name,
+                Mesh = new BoxMesh
+                {
+                    Size = new Vector3(FootWidth, FootHeight, FootDepth),
+                },
+            };
+            AddChild(mesh);
+            CreateBodyMaterialInstance(mesh);
+            return mesh;
+        }
+
+        private StandardMaterial3D CreateBodyMaterialInstance(MeshInstance3D mesh)
+        {
+            var sourceMaterial = mesh.MaterialOverride as StandardMaterial3D;
             var material = sourceMaterial != null
                 ? (StandardMaterial3D)sourceMaterial.Duplicate()
                 : new StandardMaterial3D();
-            _bodyMesh.MaterialOverride = material;
+            material.ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded;
+            material.AlbedoColor = _bodyBaseColor;
+            mesh.MaterialOverride = material;
+            _bodyMaterials.Add(material);
             return material;
+        }
+
+        private void BuildDamageZones()
+        {
+            _damageZones.Clear();
+
+            AddDamageZone("HeadZone", DamageZoneType3D.Head, new SphereShape3D(), new Vector3(0.0f, HeadCenterHeight, 0.0f));
+            AddDamageZone("TorsoZone", DamageZoneType3D.Torso, new CapsuleShape3D(), new Vector3(0.0f, TorsoCenterHeight, 0.0f));
+            AddDamageZone("LeftHandZone", DamageZoneType3D.LeftHand, new SphereShape3D(), new Vector3(-HandOffsetX, HandCenterHeight, 0.0f));
+            AddDamageZone("RightHandZone", DamageZoneType3D.RightHand, new SphereShape3D(), new Vector3(HandOffsetX, HandCenterHeight, 0.0f));
+            AddDamageZone("LeftFootZone", DamageZoneType3D.LeftFoot, new SphereShape3D(), new Vector3(-FootOffsetX, FootCenterHeight, 0.0f));
+            AddDamageZone("RightFootZone", DamageZoneType3D.RightFoot, new SphereShape3D(), new Vector3(FootOffsetX, FootCenterHeight, 0.0f));
+        }
+
+        private void AddDamageZone(string name, DamageZoneType3D zoneType, Shape3D shape, Vector3 localPosition)
+        {
+            var zone = new DamageZone3D
+            {
+                Name = name,
+            };
+            zone.Configure(this, zoneType, shape, localPosition);
+            AddChild(zone);
+            _damageZones[zoneType] = zone;
+        }
+
+        private void UpdateDamageZoneLayout()
+        {
+            var pose = ApplyProceduralAnimation(InterpolatePose(_postureState.CurrentValue));
+            ConfigureDamageZone(DamageZoneType3D.Head, new SphereShape3D { Radius = HeadRadius }, pose.HeadPosition);
+            ConfigureDamageZone(DamageZoneType3D.Torso, new CapsuleShape3D { Radius = pose.TorsoRadius, Height = pose.TorsoDamageHeight }, pose.TorsoPosition);
+            ConfigureDamageZone(DamageZoneType3D.LeftHand, new SphereShape3D { Radius = HandRadius }, pose.LeftHandPosition);
+            ConfigureDamageZone(DamageZoneType3D.RightHand, new SphereShape3D { Radius = HandRadius }, pose.RightHandPosition);
+            ConfigureDamageZone(DamageZoneType3D.LeftFoot, new BoxShape3D { Size = new Vector3(FootWidth, FootHeight, FootDepth) }, pose.LeftFootPosition);
+            ConfigureDamageZone(DamageZoneType3D.RightFoot, new BoxShape3D { Size = new Vector3(FootWidth, FootHeight, FootDepth) }, pose.RightFootPosition);
+        }
+
+        private void ApplyPoseToVisualRig()
+        {
+            var pose = ApplyProceduralAnimation(InterpolatePose(_postureState.CurrentValue));
+            _bodyMesh.Position = pose.TorsoPosition;
+            _bodyMesh.RotationDegrees = pose.TorsoRotationDegrees + new Vector3(-_currentPitchDegrees, 0.0f, 0.0f);
+            _headMesh.Position = pose.HeadPosition;
+            _headMesh.RotationDegrees = new Vector3(-_currentPitchDegrees * 0.35f, 0.0f, 0.0f);
+            _leftHandMesh.Position = pose.LeftHandPosition;
+            _rightHandMesh.Position = pose.RightHandPosition;
+            _leftHandMesh.RotationDegrees = new Vector3(-_currentPitchDegrees * 0.35f, 0.0f, 0.0f);
+            _rightHandMesh.RotationDegrees = new Vector3(-_currentPitchDegrees * 0.55f, 0.0f, 0.0f);
+            _leftFootMesh.Position = pose.LeftFootPosition;
+            _rightFootMesh.Position = pose.RightFootPosition;
+
+            if (_bodyMesh.Mesh is CapsuleMesh torsoMesh)
+            {
+                torsoMesh.Radius = pose.TorsoRadius;
+                torsoMesh.Height = pose.TorsoHeight;
+            }
+
+            if (_headMesh.Mesh is SphereMesh headMesh)
+            {
+                headMesh.Radius = HeadRadius;
+                headMesh.Height = HeadRadius * 2.0f;
+            }
+
+            if (_leftFootMesh.Mesh is BoxMesh leftFootMesh)
+            {
+                leftFootMesh.Size = new Vector3(FootWidth, FootHeight, FootDepth);
+            }
+
+            if (_rightFootMesh.Mesh is BoxMesh rightFootMesh)
+            {
+                rightFootMesh.Size = new Vector3(FootWidth, FootHeight, FootDepth);
+            }
+        }
+
+        private void ConfigureDamageZone(DamageZoneType3D zoneType, Shape3D shape, Vector3 localPosition)
+        {
+            if (_damageZones.TryGetValue(zoneType, out var zone))
+            {
+                zone.Configure(this, zoneType, shape, localPosition);
+            }
+        }
+
+        private static PoseLayout InterpolatePose(float postureValue)
+        {
+            if (postureValue <= PlayerPostureModel3D.CrouchValue)
+            {
+                var crouchT = postureValue / PlayerPostureModel3D.CrouchValue;
+                return LerpPose(StandPose(), CrouchPose(), crouchT);
+            }
+
+            var proneT = (postureValue - PlayerPostureModel3D.CrouchValue) /
+                         (PlayerPostureModel3D.ProneValue - PlayerPostureModel3D.CrouchValue);
+            return LerpPose(CrouchPose(), PronePose(), proneT);
+        }
+
+        private static PoseLayout StandPose()
+        {
+            return new PoseLayout(
+                TorsoPosition: new Vector3(0.0f, TorsoCenterHeight, 0.0f),
+                TorsoRotationDegrees: Vector3.Zero,
+                TorsoRadius: TorsoRadius,
+                TorsoHeight: TorsoHeight,
+                TorsoDamageHeight: 0.92f,
+                HeadPosition: new Vector3(0.0f, HeadCenterHeight, 0.0f),
+                LeftHandPosition: new Vector3(-0.40f, 1.00f, 0.18f),
+                RightHandPosition: new Vector3(0.30f, 1.04f, 0.34f),
+                LeftFootPosition: new Vector3(-FootOffsetX, FootCenterHeight, 0.02f),
+                RightFootPosition: new Vector3(FootOffsetX, FootCenterHeight, 0.02f),
+                ShotOriginPosition: new Vector3(0.0f, 1.74f, 0.0f));
+        }
+
+        private static PoseLayout CrouchPose()
+        {
+            return new PoseLayout(
+                TorsoPosition: new Vector3(0.0f, 0.60f, 0.0f),
+                TorsoRotationDegrees: Vector3.Zero,
+                TorsoRadius: 0.44f,
+                TorsoHeight: 0.82f,
+                TorsoDamageHeight: 0.58f,
+                HeadPosition: new Vector3(0.0f, 1.12f, 0.0f),
+                LeftHandPosition: new Vector3(-0.38f, 0.76f, 0.20f),
+                RightHandPosition: new Vector3(0.28f, 0.80f, 0.34f),
+                LeftFootPosition: new Vector3(-0.22f, FootCenterHeight, 0.03f),
+                RightFootPosition: new Vector3(0.22f, FootCenterHeight, 0.03f),
+                ShotOriginPosition: new Vector3(0.0f, 1.28f, 0.06f));
+        }
+
+        private static PoseLayout PronePose()
+        {
+            return new PoseLayout(
+                TorsoPosition: new Vector3(0.0f, 0.28f, 0.40f),
+                TorsoRotationDegrees: new Vector3(90.0f, 0.0f, 0.0f),
+                TorsoRadius: 0.22f,
+                TorsoHeight: 1.05f,
+                TorsoDamageHeight: 0.70f,
+                HeadPosition: new Vector3(0.0f, 0.30f, 0.95f),
+                LeftHandPosition: new Vector3(-0.40f, 0.22f, 0.54f),
+                RightHandPosition: new Vector3(0.34f, 0.24f, 0.82f),
+                LeftFootPosition: new Vector3(-0.24f, FootCenterHeight, -0.18f),
+                RightFootPosition: new Vector3(0.24f, FootCenterHeight, -0.18f),
+                ShotOriginPosition: new Vector3(0.0f, 0.60f, 1.14f));
+        }
+
+        private static PoseLayout LerpPose(PoseLayout from, PoseLayout to, float t)
+        {
+            return new PoseLayout(
+                TorsoPosition: from.TorsoPosition.Lerp(to.TorsoPosition, t),
+                TorsoRotationDegrees: from.TorsoRotationDegrees.Lerp(to.TorsoRotationDegrees, t),
+                TorsoRadius: Mathf.Lerp(from.TorsoRadius, to.TorsoRadius, t),
+                TorsoHeight: Mathf.Lerp(from.TorsoHeight, to.TorsoHeight, t),
+                TorsoDamageHeight: Mathf.Lerp(from.TorsoDamageHeight, to.TorsoDamageHeight, t),
+                HeadPosition: from.HeadPosition.Lerp(to.HeadPosition, t),
+                LeftHandPosition: from.LeftHandPosition.Lerp(to.LeftHandPosition, t),
+                RightHandPosition: from.RightHandPosition.Lerp(to.RightHandPosition, t),
+                LeftFootPosition: from.LeftFootPosition.Lerp(to.LeftFootPosition, t),
+                RightFootPosition: from.RightFootPosition.Lerp(to.RightFootPosition, t),
+                ShotOriginPosition: from.ShotOriginPosition.Lerp(to.ShotOriginPosition, t));
+        }
+
+        private PoseLayout ApplyProceduralAnimation(PoseLayout pose)
+        {
+            var planarSpeed = new Vector2(Velocity.X, Velocity.Z).Length();
+            var movementFactor = Mathf.Clamp(planarSpeed / Mathf.Max(0.001f, _moveSpeed), 0.0f, 1.0f);
+            var onFloor = IsOnFloor();
+            var animatedPose = pose;
+
+            if (movementFactor > 0.08f && onFloor)
+            {
+                var phase = _visualAnimationTime * 9.0f;
+                var leftStep = Mathf.Sin(phase);
+                var rightStep = Mathf.Sin(phase + Mathf.Pi);
+                animatedPose = animatedPose with
+                {
+                    LeftFootPosition = pose.LeftFootPosition + new Vector3(0.0f, Mathf.Max(0.0f, leftStep) * 0.12f * movementFactor, leftStep * 0.08f * movementFactor),
+                    RightFootPosition = pose.RightFootPosition + new Vector3(0.0f, Mathf.Max(0.0f, rightStep) * 0.12f * movementFactor, rightStep * 0.08f * movementFactor),
+                    LeftHandPosition = pose.LeftHandPosition + new Vector3(0.0f, 0.02f * movementFactor, rightStep * 0.06f * movementFactor),
+                    RightHandPosition = pose.RightHandPosition + new Vector3(0.0f, 0.02f * movementFactor, leftStep * 0.06f * movementFactor),
+                };
+            }
+
+            if (!onFloor)
+            {
+                animatedPose = animatedPose with
+                {
+                    LeftHandPosition = animatedPose.LeftHandPosition + new Vector3(-0.02f, 0.08f, -0.10f),
+                    RightHandPosition = animatedPose.RightHandPosition + new Vector3(0.02f, 0.08f, -0.10f),
+                    LeftFootPosition = animatedPose.LeftFootPosition + new Vector3(0.0f, 0.08f, -0.04f),
+                    RightFootPosition = animatedPose.RightFootPosition + new Vector3(0.0f, 0.08f, -0.04f),
+                };
+            }
+
+            return animatedPose;
+        }
+
+        private void AdvanceVisualAnimation(float deltaSeconds)
+        {
+            var planarSpeed = new Vector2(Velocity.X, Velocity.Z).Length();
+            var movementFactor = Mathf.Clamp(planarSpeed / Mathf.Max(0.001f, _moveSpeed), 0.0f, 1.0f);
+            _visualAnimationTime += deltaSeconds * Mathf.Lerp(1.5f, 6.0f, movementFactor);
         }
 
         private void TryUseEquippedWeapon()
@@ -470,7 +844,7 @@ namespace Canuter
             var query = PhysicsRayQueryParameters3D.Create(origin, target);
             query.CollideWithBodies = true;
             query.CollideWithAreas = true;
-            query.Exclude = new Godot.Collections.Array<Rid> { GetRid(), HurtboxRid };
+            query.Exclude = BuildSelfExcludeList();
             var result = GetWorld3D().DirectSpaceState.IntersectRay(query);
             var tracerEnd = target;
             if (result.Count == 0)
@@ -482,11 +856,7 @@ namespace Canuter
             tracerEnd = (Vector3)result["position"];
             ShowTracer(origin, tracerEnd);
             ShowImpactMarker(tracerEnd, result.ContainsKey("normal") ? (Vector3)result["normal"] : Vector3.Zero);
-
-            if (result["collider"].AsGodotObject() is DummyTarget3D dummyTarget)
-            {
-                dummyTarget.ApplyDamage(_equippedWeapon.Definition.Damage);
-            }
+            ApplyDamageToHitCollider(result["collider"].AsGodotObject(), _equippedWeapon.Definition.Damage);
         }
 
         private void TryUseMeleeWeapon()
@@ -509,14 +879,11 @@ namespace Canuter
                 CollideWithAreas = true,
                 CollideWithBodies = false,
             };
-            query.Exclude = new Godot.Collections.Array<Rid> { GetRid(), HurtboxRid };
+            query.Exclude = BuildSelfExcludeList();
             var results = space.IntersectShape(query, 8);
             foreach (var hit in results)
             {
-                if (hit["collider"].AsGodotObject() is DummyTarget3D dummyTarget)
-                {
-                    dummyTarget.ApplyDamage(_equippedWeapon.Definition.Damage);
-                }
+                ApplyDamageToHitCollider(hit["collider"].AsGodotObject(), _equippedWeapon.Definition.Damage);
             }
         }
 
@@ -569,9 +936,22 @@ namespace Canuter
             var query = PhysicsRayQueryParameters3D.Create(rayOrigin, rayTarget);
             query.CollideWithBodies = true;
             query.CollideWithAreas = true;
-            query.Exclude = new Godot.Collections.Array<Rid> { GetRid(), HurtboxRid };
+            query.Exclude = BuildSelfExcludeList();
             var result = GetWorld3D().DirectSpaceState.IntersectRay(query);
             return result.Count == 0 ? rayTarget : (Vector3)result["position"];
+        }
+
+        private void ApplyDamageToHitCollider(GodotObject? collider, int baseDamage)
+        {
+            switch (collider)
+            {
+                case DamageZone3D damageZone:
+                    damageZone.ApplyDamage(baseDamage);
+                    break;
+                case DummyTarget3D dummyTarget:
+                    dummyTarget.ApplyDamage(baseDamage);
+                    break;
+            }
         }
 
         private void ShowTracer(Vector3 origin, Vector3 end)
@@ -657,7 +1037,7 @@ namespace Canuter
 
         private Vector3 GetShotOrigin()
         {
-            return GlobalPosition + Vector3.Up * GetShotOriginHeight();
+            return ToGlobal(GetShotOriginLocalPosition());
         }
 
         private Vector3 GetLowestBodyPoint()
@@ -665,39 +1045,197 @@ namespace Canuter
             return GlobalPosition + Vector3.Up * GetLowestBodyPointHeight();
         }
 
-        private float GetCapsuleHalfHeight()
+        private Vector3 GetShotOriginLocalPosition()
         {
-            if (_movementCollider?.Shape is CapsuleShape3D capsule)
-            {
-                return capsule.Height * 0.5f;
-            }
-
-            return DefaultShotOriginHeight;
-        }
-
-        private float GetShotOriginHeight()
-        {
-            if (_movementCollider?.Shape is CapsuleShape3D capsule)
-            {
-                return _movementCollider.Position.Y + capsule.Height * 0.5f;
-            }
-
-            return DefaultShotOriginHeight;
+            var pose = ApplyProceduralAnimation(InterpolatePose(_postureState.CurrentValue));
+            return pose.ShotOriginPosition;
         }
 
         private float GetLowestBodyPointHeight()
         {
-            if (_movementCollider?.Shape is CapsuleShape3D capsule)
-            {
-                return _movementCollider.Position.Y - capsule.Height * 0.5f;
-            }
-
-            return 0.0f;
+            return _currentColliderProfile.BottomY;
         }
 
         private void SyncFirePointToShotOrigin()
         {
-            _firePoint.Position = new Vector3(0.0f, GetShotOriginHeight(), 0.0f);
+            _firePoint.Position = GetShotOriginLocalPosition();
+        }
+
+        private float ResolveSafePostureValue(float currentValue, float desiredValue)
+        {
+            if (Mathf.IsEqualApprox(currentValue, desiredValue))
+            {
+                return desiredValue;
+            }
+
+            if (IsColliderProfileValid(InterpolateColliderProfile(desiredValue)))
+            {
+                return desiredValue;
+            }
+
+            if (!IsColliderProfileValid(InterpolateColliderProfile(currentValue)))
+            {
+                return desiredValue;
+            }
+
+            var valid = currentValue;
+            var invalid = desiredValue;
+            for (var iteration = 0; iteration < PostureCollisionIterations; iteration++)
+            {
+                var mid = Mathf.Lerp(valid, invalid, 0.5f);
+                if (IsColliderProfileValid(InterpolateColliderProfile(mid)))
+                {
+                    valid = mid;
+                }
+                else
+                {
+                    invalid = mid;
+                }
+            }
+
+            return valid;
+        }
+
+        private bool IsColliderProfileValid(ColliderProfile profile)
+        {
+            var world3D = GetWorld3D();
+            if (world3D == null)
+            {
+                return true;
+            }
+
+            var query = new PhysicsShapeQueryParameters3D
+            {
+                Shape = CreateShapeForColliderProfile(profile),
+                Transform = CreateWorldTransformForColliderProfile(profile),
+                CollideWithBodies = true,
+                CollideWithAreas = false,
+                Margin = 0.02f,
+            };
+            query.Exclude = BuildSelfExcludeList();
+            return world3D.DirectSpaceState.IntersectShape(query, 1).Count == 0;
+        }
+
+        private void ApplyColliderProfile(ColliderProfile profile)
+        {
+            _movementCollider.Position = profile.Center;
+            _hurtbox.Position = profile.Center;
+            _movementCollider.Shape = CreateShapeForColliderProfile(profile);
+            _hurtboxCollision.Shape = CreateShapeForColliderProfile(profile);
+        }
+
+        private Transform3D CreateWorldTransformForColliderProfile(ColliderProfile profile)
+        {
+            var bodyTransform = new Transform3D(
+                Basis.FromEuler(new Vector3(0.0f, _currentYawRadians, 0.0f)),
+                GlobalPosition + Vector3.Up * CollisionValidationLift);
+            return bodyTransform * new Transform3D(Basis.Identity, profile.Center);
+        }
+
+        private static Shape3D CreateShapeForColliderProfile(ColliderProfile profile)
+        {
+            if (profile.UsesBox)
+            {
+                return new BoxShape3D
+                {
+                    Size = profile.BoxSize,
+                };
+            }
+
+            return new CapsuleShape3D
+            {
+                Radius = profile.Radius,
+                Height = profile.Height,
+            };
+        }
+
+        private static ColliderProfile InterpolateColliderProfile(float postureValue)
+        {
+            if (postureValue <= PlayerPostureModel3D.CrouchValue)
+            {
+                var crouchT = postureValue / PlayerPostureModel3D.CrouchValue;
+                return LerpCapsuleProfile(StandColliderProfile(), CrouchColliderProfile(), crouchT);
+            }
+
+            var proneT = (postureValue - PlayerPostureModel3D.CrouchValue) /
+                         (PlayerPostureModel3D.ProneValue - PlayerPostureModel3D.CrouchValue);
+            return LerpBoxProfile(CrouchBridgeBoxProfile(), ProneColliderProfile(), proneT);
+        }
+
+        private static ColliderProfile StandColliderProfile()
+        {
+            return new ColliderProfile(
+                UsesBox: false,
+                Center: new Vector3(0.0f, 0.84f, 0.0f),
+                Height: 1.68f,
+                Radius: 0.36f,
+                BoxSize: Vector3.Zero);
+        }
+
+        private static ColliderProfile CrouchColliderProfile()
+        {
+            return new ColliderProfile(
+                UsesBox: false,
+                Center: new Vector3(0.0f, 0.60f, 0.0f),
+                Height: 1.20f,
+                Radius: 0.46f,
+                BoxSize: Vector3.Zero);
+        }
+
+        private static ColliderProfile CrouchBridgeBoxProfile()
+        {
+            return new ColliderProfile(
+                UsesBox: true,
+                Center: new Vector3(0.0f, 0.60f, 0.08f),
+                Height: 0.0f,
+                Radius: 0.0f,
+                BoxSize: new Vector3(0.92f, 1.20f, 0.92f));
+        }
+
+        private static ColliderProfile ProneColliderProfile()
+        {
+            return new ColliderProfile(
+                UsesBox: true,
+                Center: new Vector3(0.0f, 0.31f, 0.58f),
+                Height: 0.0f,
+                Radius: 0.0f,
+                BoxSize: new Vector3(0.84f, 0.62f, 1.82f));
+        }
+
+        private static ColliderProfile LerpCapsuleProfile(ColliderProfile from, ColliderProfile to, float t)
+        {
+            return new ColliderProfile(
+                UsesBox: false,
+                Center: from.Center.Lerp(to.Center, t),
+                Height: Mathf.Lerp(from.Height, to.Height, t),
+                Radius: Mathf.Lerp(from.Radius, to.Radius, t),
+                BoxSize: Vector3.Zero);
+        }
+
+        private static ColliderProfile LerpBoxProfile(ColliderProfile from, ColliderProfile to, float t)
+        {
+            return new ColliderProfile(
+                UsesBox: true,
+                Center: from.Center.Lerp(to.Center, t),
+                Height: 0.0f,
+                Radius: 0.0f,
+                BoxSize: from.BoxSize.Lerp(to.BoxSize, t));
+        }
+
+        private Godot.Collections.Array<Rid> BuildSelfExcludeList()
+        {
+            var exclude = new Godot.Collections.Array<Rid>
+            {
+                GetRid(),
+                HurtboxRid,
+            };
+
+            foreach (var zone in _damageZones.Values)
+            {
+                exclude.Add(zone.GetRid());
+            }
+
+            return exclude;
         }
 
         private static void EnsureInputMap()
@@ -711,6 +1249,9 @@ namespace Canuter
             EnsureAction("weapon_slot_1", Key.Key1);
             EnsureAction("weapon_slot_2", Key.Key2);
             EnsureAction("weapon_slot_3", Key.Key3);
+            EnsureAction("crouch_posture", Key.Shift);
+            EnsureAction("prone_posture", Key.Ctrl);
+            EnsureAction("slow_walk", Key.Alt, Key.Meta);
         }
 
         private static void EnsureAction(StringName actionName, Key primary, Key secondary)
@@ -789,6 +1330,32 @@ namespace Canuter
         private static Vector3 ToGodot3(NumericVector3 value)
         {
             return new Vector3(value.X, value.Y, value.Z);
+        }
+
+        private readonly record struct PoseLayout(
+            Vector3 TorsoPosition,
+            Vector3 TorsoRotationDegrees,
+            float TorsoRadius,
+            float TorsoHeight,
+            float TorsoDamageHeight,
+            Vector3 HeadPosition,
+            Vector3 LeftHandPosition,
+            Vector3 RightHandPosition,
+            Vector3 LeftFootPosition,
+            Vector3 RightFootPosition,
+            Vector3 ShotOriginPosition);
+
+        private readonly record struct ColliderProfile(
+            bool UsesBox,
+            Vector3 Center,
+            float Height,
+            float Radius,
+            Vector3 BoxSize)
+        {
+            public float VerticalSize => UsesBox ? BoxSize.Y : Height;
+            public float BottomY => Center.Y - VerticalSize * 0.5f;
+            public float TopY => Center.Y + VerticalSize * 0.5f;
+            public float FrontZ => Center.Z + (UsesBox ? BoxSize.Z * 0.5f : Radius);
         }
     }
 }

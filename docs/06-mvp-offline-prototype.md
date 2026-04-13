@@ -40,6 +40,7 @@
 
 - The player uses a rifle.
 - The current runtime focus is movement, look, weapon handling, and spatial readability in 3D.
+- The prototype should validate distinct damage zones for at least head / torso / limbs before final character art exists.
 - Bomb flow, bots, full round resolution, and utility are deferred until the core 3D combat presentation feels right.
 
 ## AI/Bot Requirement
@@ -50,6 +51,7 @@
 ## Visual Requirement
 
 - Primitive 3D geometry must already communicate gameplay clearly.
+- The player and dummy targets should move toward a simple humanoid procedural rig once damage-zone validation starts.
 - It must be understandable:
 - who is allied
 - who is enemy

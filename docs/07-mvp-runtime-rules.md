@@ -14,7 +14,7 @@
 
 ## Player Core
 
-- The player is a simple 3D capsule actor.
+- The player uses a simple procedural humanoid rig built from primitive meshes.
 - Movement uses `WASD`.
 - Weapon slots currently implemented:
 - `1` rifle
@@ -30,11 +30,21 @@
 - `S` moves backward.
 - `A` and `D` are strafes.
 - `Space` makes the player jump.
+- Holding `Shift` requests the crouch / kneel posture.
+- Holding `Ctrl` requests the prone / stretched posture.
+- Holding `Cmd` on macOS or `Alt` on Windows requests slow walk while standing.
+- `Ctrl` has posture priority over `Shift`.
+- Releasing the lower posture falls back to the highest still-held posture request.
 - Movement uses acceleration and deceleration rather than instant snapping.
 - Strafing should reverse direction quickly enough to make repeated `ADADAD` movement responsive.
 - Movement speed is runtime-configurable from the pause/settings menu and persisted locally.
 - Gravity is runtime-configurable from the pause/settings menu and persisted locally.
 - Jump force is runtime-configurable from the pause/settings menu and persisted locally.
+- Posture transitions are linear and take `0.5 seconds`.
+- Move-speed penalties apply immediately from the requested posture even while the visual posture transition is still in progress.
+- Standing and crouched movement use a vertical movement collider.
+- Prone uses a flatter forward-extended collider profile instead of the standing capsule.
+- If there is not enough free space to expand into a higher posture, the collider stays in the highest valid lower posture instead of clipping into ceilings or other blockers.
 
 ## Player Health
 
@@ -50,12 +60,13 @@
 - Mouse wheel changes camera orbit distance at runtime.
 - Pressing `V` toggles between FPS at minimum orbit distance and the last remembered TPS zoom distance.
 - Orbit distance is clamped to the current prototype min/max values in code.
-- Zoom moves the camera on a straight line toward the upper-center anchor of the player capsule.
+- Zoom moves the camera on a straight line toward the upper head anchor used by firing and FPS view.
+- In prone, that anchor moves forward with the head so the stretched body can still rotate and shoot correctly.
 - That zoom line is separate from the aim line that resolves the centered crosshair.
 - The crosshair and live mouse look now define the effective camera angle.
 - The player can pitch the centered crosshair above the horizon to aim into the sky.
 - In third person, downward aim is constrained so the centered crosshair cannot move below the lowest point of the player capsule.
-- At minimum orbit distance, the camera should converge toward an FPS-like view on that same aim line.
+- At minimum orbit distance, the camera should converge toward an FPS-like view on that same aim line and stop on that same upper head anchor.
 - When the camera enters the close zoom band, the player body fades progressively and reaches `20%` visible opacity at minimum orbit distance so the player does not block the crosshair.
 - The current prototype does not use camera ghost walls or advanced tactical darkening in the live runtime.
 
@@ -67,9 +78,18 @@
 - Mouse vertical movement controls camera pitch.
 - Player movement still uses only horizontal yaw, not camera pitch.
 - Rifle and pistol use hitscan.
+- The runtime distinguishes hit zones:
+- head
+- torso
+- left hand
+- right hand
+- left foot
+- right foot
+- Head hits deal more damage than torso hits.
+- Hand and foot hits deal less damage than torso hits.
 - Aiming resolves from the center of the camera viewport.
 - Firing then traces from the weapon fire point toward that resolved camera-center aim point.
-- In the current 3D prototype, the hitscan origin and the visible tracer must be the same point: the top-center of the player capsule.
+- In the current 3D prototype, the hitscan origin and the visible tracer must be the same point: the upper head anchor shared with the close/FPS camera stop.
 - Rifle and pistol range in the 3D greybox should comfortably cover the current prototype map scale.
 - Knife uses a short 3D shape query in front of the player.
 - Shots originate from the weapon fire point.
@@ -123,7 +143,17 @@
 
 ## Visual Presentation
 
-- The player and dummy targets are simple capsules.
+- The player and dummy targets use simple procedural humanoid placeholder geometry:
+- tall torso capsule
+- head sphere
+- hand spheres
+- foot pegs
+- The player visual rig now interpolates between standing, crouched, and prone poses over time.
+- The player body rotates with camera yaw so the body and aim direction stay aligned.
+- The torso and upper body also track vertical aim pitch so the character visually looks toward the crosshair while standing, crouched, or prone.
+- Hands use simple procedural weapon-hold and jump offsets.
+- Feet use simple procedural walk motion and jump offsets.
+- Dummy targets should rest on the floor plane instead of floating above it.
 - Walls must read clearly as walls and remain visually distinct from the floor.
 - The prototype should prefer clean greybox readability over decorative detail.
 - HUD remains screen-space and includes:

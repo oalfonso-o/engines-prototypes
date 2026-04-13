@@ -12,6 +12,16 @@ func _run() -> void:
 	_clear_settings_file()
 	await _test_old_settings_file_is_regenerated_with_new_defaults()
 	await _test_scene_boots_and_camera_tracks_player()
+	await _test_player_uses_humanoid_visual_rig()
+	await _test_player_body_rotates_with_camera_yaw()
+	await _test_player_torso_tracks_vertical_aim_pitch()
+	await _test_player_visual_rig_animates_while_moving()
+	await _test_targets_rest_on_ground_and_use_peg_feet()
+	await _test_damage_zones_apply_distinct_damage_values()
+	await _test_shift_crouch_transition_is_gradual_and_reversible()
+	await _test_ctrl_prone_priority_falls_back_to_crouch_on_release()
+	await _test_prone_rotates_and_can_fire_from_head_anchor()
+	await _test_low_ceiling_blocks_return_to_standing_posture()
 	await _test_gravity_and_jump_force_persist_and_zoom_changes_distance()
 	await _test_v_toggles_between_fps_and_last_tps_zoom()
 	await _test_camera_settings_persist()
@@ -86,8 +96,8 @@ func _test_scene_boots_and_camera_tracks_player() -> void:
 	_assert_true(bool(player.call("GetIsOnFloorForTesting")), "3D player should settle on the floor after spawn")
 	_assert_true(float(player.call("GetHeightForTesting")) >= -0.001, "3D player origin should settle at the floor plane instead of clipping through it")
 	var shot_origin: Vector3 = player.call("GetFirePointPositionForTesting")
-	_assert_true(absf(shot_origin.x - player.global_position.x) < 0.01 and absf(shot_origin.z - player.global_position.z) < 0.01, "3D shot origin should stay centered on the capsule, not offset forward or sideways")
-	_assert_true(shot_origin.y > player.global_position.y + 1.0, "3D shot origin should come from the top-center of the capsule")
+	_assert_true(absf(shot_origin.x - player.global_position.x) < 0.01 and absf(shot_origin.z - player.global_position.z) < 0.05, "3D standing shot origin should stay nearly centered while upright")
+	_assert_true(shot_origin.y > player.global_position.y + 1.65, "3D shot origin should sit high on the head anchor so FPS view and firing both come from the upper body")
 
 	var initial_camera_pos := camera.global_position
 	var initial_zoom_rail := (initial_camera_pos - shot_origin).normalized()
@@ -117,6 +127,202 @@ func _test_scene_boots_and_camera_tracks_player() -> void:
 
 	_assert_true(camera.global_position.distance_to(initial_camera_pos) > 0.01, "3D camera should respond to heading changes")
 
+	await _despawn_main(main)
+
+func _test_player_uses_humanoid_visual_rig() -> void:
+	var main := await _spawn_main()
+	var player: Node = main.get_node("Player")
+	var shot_origin: Vector3 = player.call("GetFirePointPositionForTesting")
+
+	_assert_true(bool(player.call("HasHumanoidRigForTesting")), "Player should build the humanoid visual rig with head, hands, and feet meshes")
+	_assert_true(float(player.call("GetVisualTopForTesting")) > shot_origin.y, "Player visual rig should extend above the weapon fire point to read as a taller humanoid body")
+	_assert_true(bool(player.call("FeetUsePegMeshesForTesting")), "Player feet should use peg-like box meshes instead of round spheres")
+	_assert_true(absf(player.call("GetShotOriginLocalPositionForTesting").z) < 0.05, "Standing shot origin should stay centered in local forward/back space while upright")
+	await _despawn_main(main)
+
+func _test_player_body_rotates_with_camera_yaw() -> void:
+	var main := await _spawn_main()
+	var player: Node = main.get_node("Player")
+	var initial_yaw: float = player.call("GetBodyYawRadiansForTesting")
+	player.call("AddMouseDeltaForTesting", Vector2(64.0, 0.0))
+
+	await process_frame
+	await physics_frame
+	await process_frame
+
+	var updated_yaw: float = player.call("GetBodyYawRadiansForTesting")
+	_assert_true(absf(updated_yaw - initial_yaw) > 0.01, "Player root should rotate with the camera yaw instead of leaving the body behind")
+	await _despawn_main(main)
+
+func _test_player_torso_tracks_vertical_aim_pitch() -> void:
+	var main := await _spawn_main()
+	var player: Node = main.get_node("Player")
+	var initial_torso_rotation: Vector3 = player.call("GetTorsoRotationDegreesForTesting")
+	player.call("AddMouseDeltaForTesting", Vector2(0.0, -48.0))
+
+	await process_frame
+	await physics_frame
+	await process_frame
+
+	var updated_torso_rotation: Vector3 = player.call("GetTorsoRotationDegreesForTesting")
+	_assert_true(absf(updated_torso_rotation.x - initial_torso_rotation.x) > 0.5, "Player torso should track vertical aim so the body looks toward the crosshair")
+	await _despawn_main(main)
+
+func _test_player_visual_rig_animates_while_moving() -> void:
+	var main := await _spawn_main()
+	var player: Node = main.get_node("Player")
+	var initial_left_foot: Vector3 = player.call("GetLeftFootPositionForTesting")
+	var initial_right_hand: Vector3 = player.call("GetRightHandPositionForTesting")
+	Input.action_press("move_up")
+
+	for _i in range(24):
+		await physics_frame
+
+	Input.action_release("move_up")
+	var moved_left_foot: Vector3 = player.call("GetLeftFootPositionForTesting")
+	var moved_right_hand: Vector3 = player.call("GetRightHandPositionForTesting")
+	_assert_true(moved_left_foot.distance_to(initial_left_foot) > 0.02, "Walking should animate the peg feet instead of leaving them rigid")
+	_assert_true(moved_right_hand.distance_to(initial_right_hand) > 0.015, "Walking should animate the weapon-hold hands instead of leaving them rigid")
+	await _despawn_main(main)
+
+func _test_targets_rest_on_ground_and_use_peg_feet() -> void:
+	var main := await _spawn_main()
+	var target_root: Node = main.get_node("Map/Targets")
+	var target: Node = target_root.get_child(0)
+	_assert_true(absf(float(target.call("GetVisualBottomForTesting"))) < 0.001, "Dummy targets should rest on the ground plane instead of floating above it")
+	_assert_true(bool(target.call("FeetUsePegMeshesForTesting")), "Dummy targets should use peg-like feet instead of spheres")
+	await _despawn_main(main)
+
+func _test_damage_zones_apply_distinct_damage_values() -> void:
+	var main := await _spawn_main()
+	var target_root: Node = main.get_node("Map/Targets")
+	var target: Node = target_root.get_child(0)
+
+	target.call("SetHealthForTesting", 100)
+	target.call("ApplyZoneDamageForTesting", "head", 20)
+	_assert_true(int(target.call("GetHealthForTesting")) == 60, "Head damage zone should apply a higher damage multiplier than torso")
+
+	target.call("SetHealthForTesting", 100)
+	target.call("ApplyZoneDamageForTesting", "left_foot", 20)
+	_assert_true(int(target.call("GetHealthForTesting")) == 86, "Foot damage zone should apply a lower damage multiplier than torso")
+	await _despawn_main(main)
+
+func _test_shift_crouch_transition_is_gradual_and_reversible() -> void:
+	var main := await _spawn_main()
+	var player: Node = main.get_node("Player")
+	Input.action_press("crouch_posture")
+
+	for _i in range(15):
+		await physics_frame
+
+	var half_posture: float = player.call("GetCurrentPostureValueForTesting")
+	_assert_true(int(player.call("GetRequestedPostureIdForTesting")) == 1, "Holding Shift should request crouch posture")
+	_assert_true(half_posture > 0.15 and half_posture < 0.35, "Crouch posture should animate gradually instead of snapping instantly")
+	_assert_true(absf(player.call("GetEffectiveMoveSpeedForTesting") - 11.0) < 0.001, "Crouch speed penalty should apply immediately while the pose is still transitioning")
+
+	for _i in range(20):
+		await physics_frame
+
+	_assert_true(absf(player.call("GetCurrentPostureValueForTesting") - 0.5) < 0.05, "Holding Shift for half a second should reach crouch posture")
+
+	Input.action_release("crouch_posture")
+	await physics_frame
+	_assert_true(absf(player.call("GetEffectiveMoveSpeedForTesting") - 20.0) < 0.001, "Releasing Shift should restore standing move speed immediately")
+
+	for _i in range(35):
+		await physics_frame
+
+	_assert_true(absf(player.call("GetCurrentPostureValueForTesting")) < 0.05, "Releasing Shift should animate the player back to standing")
+	await _despawn_main(main)
+
+func _test_ctrl_prone_priority_falls_back_to_crouch_on_release() -> void:
+	var main := await _spawn_main()
+	var player: Node = main.get_node("Player")
+	Input.action_press("crouch_posture")
+	Input.action_press("prone_posture")
+
+	for _i in range(35):
+		await physics_frame
+
+	_assert_true(int(player.call("GetRequestedPostureIdForTesting")) == 2, "Ctrl should take priority over Shift and request prone")
+	_assert_true(absf(player.call("GetCurrentPostureValueForTesting") - 1.0) < 0.05, "Holding Ctrl for half a second should reach prone posture")
+	_assert_true(absf(player.call("GetEffectiveMoveSpeedForTesting") - 5.0) < 0.001, "Prone speed penalty should apply immediately")
+
+	Input.action_release("prone_posture")
+	await physics_frame
+	_assert_true(int(player.call("GetRequestedPostureIdForTesting")) == 1, "Releasing Ctrl while Shift stays held should fall back to crouch")
+	_assert_true(absf(player.call("GetEffectiveMoveSpeedForTesting") - 11.0) < 0.001, "Falling back to crouch should restore crouch move speed immediately")
+
+	for _i in range(35):
+		await physics_frame
+
+	_assert_true(absf(player.call("GetCurrentPostureValueForTesting") - 0.5) < 0.05, "After releasing Ctrl, the pose should settle into crouch when Shift remains held")
+
+	Input.action_release("crouch_posture")
+	await _despawn_main(main)
+
+func _test_prone_rotates_and_can_fire_from_head_anchor() -> void:
+	var main := await _spawn_main()
+	var player: Node = main.get_node("Player")
+	Input.action_press("prone_posture")
+
+	for _i in range(35):
+		await physics_frame
+
+	player.call("SetPitchDegrees", 0.0)
+	await process_frame
+	await physics_frame
+	await process_frame
+
+	var initial_yaw: float = player.call("GetBodyYawRadiansForTesting")
+	player.call("AddMouseDeltaForTesting", Vector2(64.0, 0.0))
+	await process_frame
+	await physics_frame
+	await process_frame
+
+	var rotated_yaw: float = player.call("GetBodyYawRadiansForTesting")
+	var prone_shot_origin: Vector3 = player.call("GetShotOriginLocalPositionForTesting")
+	_assert_true(absf(rotated_yaw - initial_yaw) > 0.01, "Prone body should keep rotating with camera yaw instead of freezing after stretching")
+	_assert_true(prone_shot_origin.z > 0.95 and prone_shot_origin.y > 0.5, "Prone shot origin should move toward the forward head anchor so the player can shoot while stretched")
+
+	var target_root: Node = main.get_node("Map/Targets")
+	var target: Node3D = target_root.get_child(0)
+	target.global_position = player.call("GetFirePointPositionForTesting") + player.call("GetCurrentAimForward3DForTesting") * 8.0 + Vector3(0.0, -0.6, 0.0)
+	await process_frame
+	await physics_frame
+	var health_before: int = target.call("GetHealthForTesting")
+
+	player.call("FireEquippedWeaponForTesting")
+	await process_frame
+	await physics_frame
+	_assert_true(bool(player.call("GetImpactMarkerVisibleForTesting")), "Prone player should still be able to fire from the stretched posture")
+	_assert_true(int(target.call("GetHealthForTesting")) < health_before, "Prone player should still be able to damage a target directly in front of the crosshair")
+
+	Input.action_release("prone_posture")
+	await _despawn_main(main)
+
+func _test_low_ceiling_blocks_return_to_standing_posture() -> void:
+	var main := await _spawn_main()
+	var player: Node3D = main.get_node("Player")
+	var blocker := _create_box_body(
+		Vector3(player.global_position.x, 1.45, player.global_position.z),
+		Vector3(2.0, 0.18, 2.0))
+	main.add_child(blocker)
+	await process_frame
+	await physics_frame
+
+	Input.action_press("crouch_posture")
+	for _i in range(35):
+		await physics_frame
+
+	Input.action_release("crouch_posture")
+	for _i in range(90):
+		await physics_frame
+
+	var blocked_posture := float(player.call("GetCurrentPostureValueForTesting"))
+	var blocked_top := float(player.call("GetMovementColliderTopForTesting"))
+	_assert_true(blocked_posture > 0.35, "If there is not enough headroom, releasing crouch should not force the collider back to standing (posture=%s)" % [str(blocked_posture)])
+	_assert_true(blocked_top < 1.45, "Standing up under a low ceiling should keep the movement collider below the blocker (top=%s)" % [str(blocked_top)])
 	await _despawn_main(main)
 
 func _test_gravity_and_jump_force_persist_and_zoom_changes_distance() -> void:
@@ -486,3 +692,15 @@ func _assert_true(condition: bool, message: String) -> void:
 func _clear_settings_file() -> void:
 	if FileAccess.file_exists("user://runtime_settings.cfg"):
 		DirAccess.remove_absolute(_settings_path)
+
+func _create_box_body(world_position: Vector3, size: Vector3) -> StaticBody3D:
+	var body := StaticBody3D.new()
+	body.position = world_position
+	body.collision_layer = 1
+	body.collision_mask = 1
+	var collision := CollisionShape3D.new()
+	var shape := BoxShape3D.new()
+	shape.size = size
+	collision.shape = shape
+	body.add_child(collision)
+	return body
