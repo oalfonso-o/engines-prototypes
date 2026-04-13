@@ -93,6 +93,26 @@ class IsoTests(unittest.TestCase):
         self.assertEqual(33, width)
         self.assertEqual(16, height)
 
+    def test_ramp_visual_geometry_lifts_expected_edge_for_each_direction(self) -> None:
+        renderer = IsoRenderer(RenderConfig(), pygame.font.SysFont("consolas", 18))
+        base_points, _ = renderer._tile_top_points(load_map(MAP_DIR).tile_at(7, 10), 0.0, 0.0)
+        expected_lifted = {
+            "N": {0, 1},
+            "E": {1, 2},
+            "S": {2, 3},
+            "W": {3, 0},
+        }
+        for direction, lifted_indices in expected_lifted.items():
+            plane_points, triangle_points = renderer._ramp_visual_polygons(base_points, direction)
+            for index, (base_x, base_y) in enumerate(base_points):
+                plane_x, plane_y = plane_points[index]
+                self.assertEqual(base_x, plane_x)
+                if index in lifted_indices:
+                    self.assertEqual(base_y - renderer.config.height_step, plane_y)
+                else:
+                    self.assertEqual(base_y, plane_y)
+            self.assertEqual(3, len(triangle_points))
+
 
 if __name__ == "__main__":
     unittest.main()

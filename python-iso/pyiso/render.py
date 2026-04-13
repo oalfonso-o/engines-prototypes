@@ -85,7 +85,7 @@ class IsoRenderer:
         pygame.draw.polygon(screen, top_fill, top_points)
         pygame.draw.polygon(screen, _mix(top_fill, GRID_GLOW, 0.68), top_points, width=2)
         if tile.ramp is not None:
-            self._draw_ramp_overlay(screen, top_points, tile.ramp.value, top_fill)
+            self._draw_ramp_overlay(screen, top_points, tile.ramp.value, top_fill, edge_color)
 
     def _draw_face(
         self,
@@ -157,13 +157,22 @@ class IsoRenderer:
         top_points: list[tuple[int, int]],
         direction: str,
         top_color: tuple[int, int, int],
+        edge_color: tuple[int, int, int],
     ) -> None:
-        north, east, south, west = top_points
-        center_x = sum(point[0] for point in top_points) / 4.0
-        center_y = sum(point[1] for point in top_points) / 4.0
+        plane_points, triangle_points = self._ramp_visual_polygons(top_points, direction)
+        north, east, south, west = plane_points
+        center_x = sum(point[0] for point in plane_points) / 4.0
+        center_y = sum(point[1] for point in plane_points) / 4.0
         half_w = self.config.tile_width / 2.0
         half_h = self.config.tile_height / 2.0
         line_color = _mix(top_color, CLIFF_GLOW, 0.52)
+        plane_fill = _mix(top_color, GRID_GLOW, 0.22)
+        triangle_fill = _mix(edge_color, CLIFF_GLOW, 0.22)
+
+        pygame.draw.polygon(screen, plane_fill, plane_points)
+        pygame.draw.polygon(screen, _mix(plane_fill, GRID_GLOW, 0.72), plane_points, width=2)
+        pygame.draw.polygon(screen, triangle_fill, triangle_points)
+        pygame.draw.polygon(screen, _mix(triangle_fill, CLIFF_GLOW, 0.62), triangle_points, width=2)
 
         if direction == "N":
             start = south
@@ -209,6 +218,36 @@ class IsoRenderer:
                     (round(center_x + offset * 0.45), round(center_y + half_h * 0.35)),
                     width=2,
                 )
+
+    def _ramp_visual_polygons(
+        self,
+        base_points: list[tuple[int, int]],
+        direction: str,
+    ) -> tuple[list[tuple[int, int]], list[tuple[int, int]]]:
+        north, east, south, west = base_points
+        lifted = {
+            "N": {0, 1},
+            "E": {1, 2},
+            "S": {2, 3},
+            "W": {3, 0},
+        }[direction]
+
+        plane_points: list[tuple[int, int]] = []
+        for index, (x, y) in enumerate(base_points):
+            if index in lifted:
+                plane_points.append((x, y - self.config.height_step))
+            else:
+                plane_points.append((x, y))
+
+        if direction == "N":
+            triangle_points = [plane_points[1], east, south]
+        elif direction == "E":
+            triangle_points = [plane_points[2], south, west]
+        elif direction == "S":
+            triangle_points = [plane_points[3], west, north]
+        else:
+            triangle_points = [plane_points[0], north, east]
+        return plane_points, triangle_points
 
     def _draw_player(
         self,
