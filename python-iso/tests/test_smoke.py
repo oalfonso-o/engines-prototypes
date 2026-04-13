@@ -12,6 +12,10 @@ class SmokeTests(unittest.TestCase):
         exit_code = main(["--headless", "--frames", "3"])
         self.assertEqual(0, exit_code)
 
+    def test_headless_main_runs_few_frames_with_legacy_renderer(self) -> None:
+        exit_code = main(["--headless", "--frames", "1", "--legacy-render"])
+        self.assertEqual(0, exit_code)
+
 
 if __name__ == "__main__":
     unittest.main()

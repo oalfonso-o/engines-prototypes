@@ -8,6 +8,7 @@ from pathlib import Path
 import pygame
 
 from pyiso.config import PlayerConfig, RenderConfig, TITLE
+from pyiso.depth_render import DepthRenderer
 from pyiso.map_loader import load_map
 from pyiso.movement import current_surface_height, current_tile
 from pyiso.physics import WorldPosition, is_position_valid, move_with_collision, resolve_invalid_landing_position
@@ -110,17 +111,20 @@ class PrototypeGame:
                 self.reload_map()
         return True
 
-    def build_status_lines(self) -> list[str]:
+    def build_status_lines(self, fps: float | None = None) -> list[str]:
         tile = current_tile(self.game_map, self.player.position)
         ramp = tile.ramp.value if tile and tile.ramp else "."
         terrain = tile.terrain if tile else "x"
         tile_x = int(math.floor(self.player.position.x))
         tile_y = int(math.floor(self.player.position.y))
-        return [
+        lines = [
             "Canuter iso v2  |  WASD libre  |  Space salto  |  R recargar mapa",
             f"world=({self.player.position.x:.2f},{self.player.position.y:.2f}) tile=({tile_x},{tile_y}) h={self.player.height:.2f} terrain={terrain} ramp={ramp}",
             "layout: top lane en L, bot lane en L, mid diagonal con meseta central",
         ]
+        if fps is not None:
+            lines.insert(0, f"FPS: {fps:05.1f}")
+        return lines
 
     def _spawn_player(self) -> PlayerState:
         spawn_x, spawn_y = self.game_map.player_spawn
@@ -165,6 +169,7 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--headless", action="store_true")
     parser.add_argument("--frames", type=int, default=0)
+    parser.add_argument("--legacy-render", action="store_true")
     args = parser.parse_args(argv)
 
     pygame.init()
@@ -173,7 +178,7 @@ def main(argv: list[str] | None = None) -> int:
         pygame.display.set_caption(TITLE)
         clock = pygame.time.Clock()
         font = pygame.font.SysFont("consolas", 18)
-        renderer = IsoRenderer(RenderConfig(), font)
+        renderer = IsoRenderer(RenderConfig(), font) if args.legacy_render else DepthRenderer(RenderConfig(), font)
         prototype = PrototypeGame()
         pressed: set[int] = set()
         frame_budget = args.frames if args.frames > 0 else None
@@ -195,7 +200,7 @@ def main(argv: list[str] | None = None) -> int:
                     prototype.player_config.jump_arc_height,
                     prototype.player_config.collision_radius_tiles,
                 ),
-                prototype.build_status_lines(),
+                prototype.build_status_lines(clock.get_fps()),
             )
             pygame.display.flip()
 
