@@ -1,0 +1,124 @@
+Quiero que construyas un primer MVP jugable en PyGame de un juego 2D con vista isométrica, centrado en validar un sistema de render de mapas desde ficheros TXT, inspirado en el sistema de lectura de mapas que ya hicimos en el prototipado de Canuter. Toma esa idea como referencia conceptual: lectura simple desde texto, editable a mano, fácil de iterar. No copies nada a ciegas; reutiliza solo el enfoque y la simplicidad.
+
+Objetivo del MVP
+
+El objetivo principal no es hacer todavía un juego completo, sino un prototipo técnico jugable que demuestre todo esto a la vez:
+
+1. Renderizar un mapa isométrico a partir de archivos TXT.
+2. Soportar distintas alturas del terreno.
+3. Soportar rampas para conectar alturas.
+4. Generar colisiones coherentes según la lógica del terreno.
+5. Permitir movimiento de personaje por el mapa.
+6. Permitir salto como mecánica simple para superar ciertos desniveles laterales.
+7. Ver visualmente un estilo base con personalidad: espacio oscuro + líneas láser/neón.
+8. Tener un mapa inicial tipo LoL: base abajo-izquierda, base arriba-derecha, tres caminos principales.
+
+Stack y restricciones
+
+- Lenguaje: Python
+- Framework: PyGame
+- Quiero un proyecto simple, ejecutable localmente, sin dependencias raras.
+- Evita sobrearquitectura.
+- Prioriza claridad, separación razonable y facilidad para modificar el mapa TXT.
+- El proyecto tiene que quedar listo para ejecutar con algo tipo:
+
+python main.py
+
+o equivalente claramente documentado.
+
+Filosofía técnica
+
+No quiero geometría 3D real.
+Quiero un juego 2D con apariencia isométrica.
+
+Eso significa:
+
+- El mapa debe tener una rejilla lógica simple.
+- La vista debe ser isométrica.
+- La altura debe ser un dato del tile/celda, no geometría real 3D.
+- La colisión debe salir de la lógica del terreno, no de dibujar sprites manualmente con colisiones puestas a dedo.
+- Visual y colisión deben nacer del mismo sistema.
+
+Formato del mapa
+
+Quiero que el mapa se lea desde ficheros TXT.
+Hazlo simple y editable a mano.
+
+Propongo usar varias capas TXT, por ejemplo:
+
+- una para alturas
+- una para tipos de terreno
+- opcionalmente otra para metadata especial
+
+Puedes decidir el formato exacto, pero tiene que cumplir estas condiciones:
+
+- fácil de leer por humanos
+- fácil de editar a mano
+- fácil de ampliar luego
+- bien documentado en el README
+
+Ejemplo conceptual, no obligatorio:
+
+heights.txt
+
+0 0 0 0 0
+0 1 1 1 0
+0 1 2 1 0
+0 1 1 1 0
+0 0 0 0 0
+
+terrain.txt
+
+g g g g g
+g g r g g
+g g p g g
+g g r g g
+g g g g g
+
+Donde luego podrías interpretar algo así:
+
+- "g" = suelo normal
+- "r" = rampa
+- "p" = plataforma/meseta/path especial
+- etc.
+
+Si prefieres un solo TXT más expresivo, también vale, pero que no sea lioso.
+
+Sistema de coordenadas y render
+
+Quiero vista isométrica clásica 2D.
+
+Implementa una conversión de coordenadas de grid a pantalla de forma limpia.
+No hace falta exactitud matemática “académica”, pero sí que se vea bien y sea consistente.
+
+Necesito que:
+
+- los tiles se dibujen con forma visual de rombo/isométrica
+- haya sensación clara de altura
+- se vean bien las diferencias de nivel
+- se distingan los muros/acantilados frontales
+- las diagonales se lean bien visualmente
+
+Alturas y desniveles
+
+Cada celda debe tener una altura entera, por ejemplo "0", "1", "2", etc.
+
+Reglas:
+
+- Si dos celdas vecinas tienen la misma altura, el movimiento es normal.
+- Si hay diferencia de altura y no hay rampa ni salto válido, el paso está bloqueado.
+- Si hay rampa, se permite el paso entre ambos niveles.
+- Si hay un desnivel visible hacia el jugador, debe dibujarse como un muro/acantilado frontal.
+- Si el desnivel cae hacia el lado opuesto de la cámara, no hace falta renderizar un muro complejo por detrás: simplifícalo.
+
+Rampas
+
+Quiero rampas funcionales y visibles.
+
+Necesidades:
+
+- Una rampa conecta un nivel bajo con uno alto.
+- Debe verse claramente en pantalla.
+- Debe permitir transición de altura al caminar.
+- En este MVP, la rampa puede resolverse con lógica simple de tiles, no hace falta una física compleja continua.
+- Las rampas deben poder ponerse

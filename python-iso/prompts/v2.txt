@@ -1,0 +1,221 @@
+Necesito que iteres sobre el MVP actual, no que rehagas el proyecto desde cero. El estilo visual actual está bien y quiero conservarlo: espacio oscuro + líneas láser/neón. Lo que hay que corregir ahora es sobre todo la lógica de movimiento y la forma del mapa.
+
+Contexto
+
+Ya existe un prototipo PyGame que:
+
+renderiza mapa isométrico desde TXT
+tiene alturas, rampas y colisiones básicas
+tiene un look visual correcto
+pero el movimiento actual del personaje es tile a tile, como si fuera un tablero
+
+Eso no sirve para el tipo de juego que quiero.
+
+Cambio principal: movimiento libre, no por casillas
+
+Quiero que el personaje deje de moverse “de tile en tile”.
+
+Requisito clave
+
+El personaje debe moverse de forma continua, pixel a pixel, con movimiento libre en cualquier dirección.
+
+Eso significa:
+
+movimiento suave con WASD
+poder quedarse en cualquier punto dentro de un tile
+no estar obligado a centrarse en casillas
+no dar sensación de ajedrez o grid tactics
+el grid se usa para dibujar y definir lógica del terreno, no para restringir el movimiento del jugador
+Cómo quiero que se entienda el sistema
+Los tiles siguen existiendo para:
+render del mapa
+definir alturas
+definir rampas
+derivar colisiones
+Pero el personaje debe tener:
+posición continua en coordenadas del mundo
+velocidad continua
+colisión continua contra la lógica del terreno
+Importante
+
+No quiero pathfinding por celdas ni step-by-step.
+Quiero control arcade / action-MOBA:
+
+pulsas una dirección
+el personaje avanza suavemente
+puede moverse en diagonal
+puede rozar bordes
+puede colocarse parcialmente dentro de una celda, en una esquina, en un borde, etc.
+Colisión con movimiento continuo
+
+Quiero que adaptes la colisión al movimiento libre.
+
+Regla general
+
+El personaje se mueve libremente, pero no puede atravesar:
+
+muros de desnivel no válidos
+bordes de altura sin rampa
+zonas bloqueadas del mapa
+Qué espero
+
+La colisión debe sentirse como en un juego de acción 2D:
+
+movimiento continuo
+al chocar con un borde, se detiene o desliza razonablemente
+no “salta” de una casilla a otra
+no hace snap raro al centro de tiles
+Propuesta técnica válida
+
+Puedes seguir usando la rejilla como fuente lógica, pero al mover al jugador debes comprobar:
+
+en qué tile o tiles cae su hitbox
+qué altura/tipo de terreno hay debajo o en su dirección de avance
+si la transición está permitida o no
+Hitbox
+
+El personaje puede seguir siendo un círculo simple.
+Usa una hitbox circular o pequeña caja simple, pero que el movimiento se sienta suave y consistente.
+
+Rampas con movimiento libre
+
+Las rampas también deben funcionar con movimiento continuo.
+
+Quiero que:
+
+el personaje pueda subir y bajar una rampa andando suavemente
+no parezca un teletransporte entre tiles
+la rampa conecte zonas de altura distinta de forma clara
+
+Para este MVP no hace falta interpolación visual compleja de altura real por píxel, pero sí una sensación coherente:
+
+si estás sobre tiles de rampa, el sistema permite transición entre niveles
+el movimiento sigue siendo continuo
+Salto con movimiento libre
+
+El salto también debe seguir existiendo, pero adaptado al nuevo movimiento.
+
+Quiero algo simple:
+
+tecla de salto
+permite superar ciertos desniveles o bordes permitidos
+integrado con movimiento continuo
+sin convertir esto en un plataformas complejo
+Forma correcta del mapa
+
+Ahora el mapa también hay que rehacerlo / ajustarlo mejor.
+
+Quiero que el mapa simule mejor la estructura del mapa clásico de LoL, ignorando jungla.
+
+Estructura global
+base de un equipo abajo a la izquierda
+base del otro equipo arriba a la derecha
+tres caminos principales
+Los tres caminos que quiero
+Camino diagonal central
+conecta base inferior izquierda con base superior derecha
+es la línea principal diagonal
+Camino lateral izquierdo / superior
+debe existir un tramo claramente vertical en el extremo izquierdo
+y un tramo claramente horizontal en la parte superior
+como el lane superior del mapa del LoL
+Camino inferior / derecho
+debe existir un tramo claramente horizontal en la parte inferior
+y un tramo claramente vertical en el extremo derecho
+como el lane inferior del mapa del LoL
+Muy importante sobre la geometría del mapa
+
+No quiero que todo quede como una gran diagonal continua.
+Quiero que se entienda bien esta mezcla:
+
+un lane diagonal en medio
+un borde izquierdo que sube en vertical
+un borde superior que sigue en horizontal
+un borde inferior que sigue en horizontal
+un borde derecho que sube en vertical
+
+O sea: diagonales + verticales + horizontales claras.
+
+Eso es importante porque quiero validar que:
+
+el render isométrico soporta bien líneas diagonales
+pero también soporta caminos rectos verticales y horizontales visualmente legibles
+Meseta central
+
+Mantén la idea de la meseta central porque sigue siendo clave para validar alturas.
+
+Quiero en el centro:
+
+una meseta
+al menos una rampa clara
+laterales con desnivel
+posibilidad de probar colisión y salto
+integrada dentro del camino central diagonal
+Sobre la lectura desde TXT
+
+Sigue usando TXT como fuente del mapa.
+
+Pero si hace falta, ajusta el formato o añade capas para poder describir mejor:
+
+caminos
+alturas
+rampas
+bloqueos
+
+Quiero que el mapa ejemplo nuevo venga ya definido en esos TXT.
+
+Qué no quiero
+
+No quiero:
+
+movimiento tipo roguelike o tablero
+movimiento centrado automáticamente por casilla
+grid snapping
+pathfinding para desplazamiento del jugador
+un mapa demasiado abstracto que no recuerde a la estructura LoL
+rehacer el estilo visual, porque eso ya está bien
+Qué sí quiero
+
+Sí quiero:
+
+conservar el look actual
+mantener PyGame
+mantener la base del render isométrico
+mejorar la jugabilidad del movimiento
+mejorar la forma del mapa
+tener un prototipo que ya se parezca más a un action / MOBA prototype
+Implementación esperada
+
+Quiero que modifiques el proyecto existente y entregues:
+
+Código actualizado con movimiento libre continuo.
+Colisión adaptada a movimiento continuo.
+Rampas y salto compatibles con ese movimiento.
+Nuevo mapa de ejemplo más fiel a la estructura del mapa de LoL.
+README actualizado explicando:
+cómo funciona ahora el movimiento
+cómo se calcula la colisión
+cómo está definido el nuevo mapa
+qué limitaciones siguen existiendo
+Criterio de éxito
+
+Consideraré que está bien si al ejecutar el juego:
+
+el personaje se mueve suavemente pixel a pixel
+puede posicionarse libremente dentro de un tile
+ya no parece un tablero
+los bordes y desniveles bloquean correctamente
+las rampas funcionan
+el mapa recuerda claramente al layout de LoL con:
+diagonal central
+lado izquierdo vertical
+parte superior horizontal
+parte inferior horizontal
+lado derecho vertical
+Importante
+
+No te quedes en explicaciones.
+Quiero que implementes los cambios directamente sobre el proyecto actual.
+
+Haz primero que movimiento y colisión continua funcionen bien.
+Después ajusta el mapa para que la geometría recuerde claramente al mapa de LoL.
