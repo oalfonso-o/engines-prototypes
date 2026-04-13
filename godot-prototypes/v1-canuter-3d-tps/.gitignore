@@ -1,0 +1,9 @@
+# Godot 4+ specific ignores
+.godot/
+/android/
+no-commit
+tools/.env
+__pycache__
+*.pyc
+**/bin
+**/obj

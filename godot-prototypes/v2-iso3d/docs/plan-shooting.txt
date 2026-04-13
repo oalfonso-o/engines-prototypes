@@ -1,0 +1,443 @@
+Quiero que implementes en mi prototipo Godot V2 ISO 3D un nuevo sistema de disparo para un shooter isométrico 3D con cámara fija, donde el mundo tiene rampas, distintas alturas y coberturas, pero el apuntado debe sentirse como un shooter 2D arcade/táctico, sin obligar al jugador a apuntar manualmente en Z.
+
+Objetivo de diseño
+
+No quiero un raycast 3D único clásico.
+
+Quiero que cada bala dispare un abanico vertical de rayos.
+La idea es que el arma no lanza una sola línea, sino varias líneas a distintas alturas.
+Esto permite que:
+
+se pueda disparar a enemigos en alturas diferentes,
+
+se mantengan coberturas y desniveles,
+
+un enemigo parcialmente expuesto reciba menos daño,
+
+un enemigo totalmente expuesto reciba más daño,
+
+el sistema siga siendo legible y arcade.
+
+
+Regla principal del sistema
+
+Cada disparo / bala genera múltiples raycasts distribuidos verticalmente.
+
+Cada rayo representa una parte del haz / abanico del disparo.
+
+Cada rayo se evalúa de forma independiente:
+
+si un rayo golpea primero una pared / cobertura / obstáculo, ese rayo queda bloqueado,
+
+si un rayo golpea primero a un enemigo, ese rayo cuenta como impacto,
+
+el disparo total puede impactar con varios rayos a la vez,
+
+el daño total de una bala es la suma del daño de todos los rayos que conectan.
+
+
+Muy importante
+
+NO quiero que “el primer raycast global que choque mande”.
+
+Quiero esto:
+
+se lanzan todos los rayos,
+
+cada uno resuelve su propia línea de visión,
+
+algunos pueden quedar bloqueados por cobertura,
+
+otros pueden dar al enemigo,
+
+si solo la cabeza está expuesta, solo impactarán los rayos altos,
+
+si el enemigo está totalmente expuesto y cerca, impactarán muchos rayos,
+
+si el enemigo está lejos o parcialmente cubierto, impactarán menos rayos.
+
+
+Filosofía del daño
+
+No quiero daño especial por cabeza ni por pies ni por torso.
+
+Todos los rayos hacen el mismo daño base.
+
+El daño total depende únicamente de cuántos rayos conectan.
+
+Ejemplo:
+
+si una bala tiene 5 rayos válidos conectando, hace 5 × daño_por_rayo,
+
+si solo conecta 1 rayo, hace 1 × daño_por_rayo.
+
+
+Esto simula que:
+
+a corta distancia o con enemigo muy expuesto, haces más daño,
+
+a larga distancia o contra coberturas parciales, haces menos daño,
+
+si solo asoma una parte del cuerpo, haces poco daño pero sí haces daño.
+
+
+Cómo debe salir el abanico
+
+Quiero que los rayos salgan distribuidos verticalmente, no todos desde un único punto.
+
+La intención es representar una columna vertical de disparo.
+
+Debe haber rayos que cubran desde la zona baja del cuerpo hasta la parte alta de la cabeza.
+
+Ejemplo conceptual:
+
+un rayo bajo apuntando a la zona de pies,
+
+otro a rodillas,
+
+otro a muslos,
+
+otro a cadera,
+
+otro a pecho,
+
+otro a cuello,
+
+otro a cabeza.
+
+
+No hace falta usar exactamente esos nombres, pero sí esa lógica.
+
+Importante sobre justicia tipo Counter-Strike
+
+Quiero conservar esta idea de justicia:
+
+si una parte del cuerpo del enemigo está expuesta y desde ahí él podría disparar, esa parte también debe poder ser golpeada,
+
+si solo asoma la parte alta de la cabeza, los rayos altos deben poder darle,
+
+si alguien está muy cerca a nivel de pies, los rayos bajos deben poder golpearlo,
+
+el sistema tiene que premiar exposición parcial y cobertura parcial, no tratar todo como binario.
+
+
+Dirección del disparo
+
+El jugador sigue apuntando en horizontal usando el ratón, como en un shooter isométrico.
+
+No quiero control manual del eje Z.
+
+La dirección de disparo debe calcularse usando el aim horizontal del jugador.
+
+A partir de esa dirección horizontal, el sistema genera el abanico vertical de rayos.
+
+Implementación técnica deseada
+
+Quiero una implementación limpia, configurable y fácil de iterar.
+
+Crear un componente o sistema de arma que permita configurar por arma:
+
+magazine_size
+
+ammo_in_magazine
+
+reserve_ammo
+
+reload_time
+
+fire_rate
+
+projectile_rays_count
+
+damage_per_ray
+
+max_range
+
+vertical_span
+
+ray_spacing_mode o equivalente
+
+spread_horizontal si hiciera falta más adelante
+
+automatic_fire true/false
+
+
+Para cada bala disparada:
+
+1. obtener la dirección horizontal de aim,
+
+
+2. construir una línea o columna vertical de puntos de origen o de trayectorias,
+
+
+3. lanzar varios raycasts en paralelo a distintas alturas,
+
+
+4. para cada rayo:
+
+detectar el primer collider,
+
+si es pared/cobertura, bloquear ese rayo,
+
+si es enemigo, contar impacto de ese rayo,
+
+
+
+5. acumular daño por enemigo,
+
+
+6. aplicar el daño total resultante,
+
+
+7. mostrar efectos visuales / debug.
+
+
+
+Decisión de diseño importante
+
+Quiero que el sistema soporte que varios rayos de una misma bala impacten en un mismo enemigo.
+
+Eso no son múltiples balas.
+Sigue siendo una sola bala/disparo, pero con varios segmentos del abanico conectando.
+
+Recomendación de implementación geométrica
+
+Prioridad: algo robusto y fácil de debuggear.
+
+Hazlo con múltiples raycasts verticales, no con una sola cápsula o shape cast global que pierda detalle.
+
+Quiero poder ver y entender claramente qué rayo impactó y cuál fue bloqueado.
+
+Colisiones y capas
+
+Organiza el sistema con collision layers / masks claras para separar:
+
+mundo / paredes / rampas / coberturas,
+
+jugador local,
+
+enemigos,
+
+opcionalmente props destructibles más adelante.
+
+
+Evita autocolisión con el propio jugador.
+
+Coberturas
+
+La cobertura debe funcionar de forma natural con este sistema:
+
+si una pared tapa los rayos bajos pero no los altos, el enemigo recibe poco daño,
+
+si la cobertura tapa casi todo, recibe muy poco o ningún daño,
+
+si está completamente expuesto, recibe muchos rayos,
+
+si está detrás de una pared sólida completa, no recibe nada.
+
+
+No quiero reglas mágicas de auto-hit.
+
+Todo debe salir del resultado real de los raycasts.
+
+Distancia y daño
+
+Quiero que el sistema ya produzca de forma natural un comportamiento parecido a esto:
+
+cerca = más rayos conectan = más daño,
+
+lejos = menos rayos conectan = menos daño,
+
+enemigo pequeño o parcialmente tapado = menos rayos conectan,
+
+enemigo grande o expuesto = más rayos conectan.
+
+
+No quiero por ahora un falloff adicional por distancia, salvo que sea muy fácil dejarlo opcional y desactivado por defecto.
+
+Sistema de armas inicial
+
+Implementa al menos estas dos armas de ejemplo:
+
+1. Rifle automático
+
+automático
+
+cargador de 30 balas
+
+reserva configurable
+
+cadencia relativamente alta
+
+daño por rayo moderado
+
+abanico vertical medio
+
+
+2. Pistola secundaria
+
+semiautomática
+
+cargador de 12 balas
+
+reserva configurable
+
+menor cadencia
+
+más precisa o con menos rayos, lo que encaje mejor
+
+daño por rayo ajustado para que se sienta útil
+
+
+Recarga
+
+Implementar:
+
+recarga manual,
+
+bloqueo de disparo durante reload,
+
+actualizar HUD o debug info si ya existe,
+
+impedir recarga si no hay munición en reserva,
+
+recarga parcial estándar tipo shooter.
+
+
+Feedback visual imprescindible
+
+Quiero modo debug activable para visualizar:
+
+todos los rayos del abanico de una bala,
+
+cuáles han sido bloqueados,
+
+cuáles han impactado enemigo,
+
+punto de impacto,
+
+daño total calculado.
+
+
+Idealmente:
+
+color distinto para rayo bloqueado,
+
+color distinto para rayo que impacta enemigo,
+
+color distinto para rayo sin impacto.
+
+
+También quiero algún VFX simple temporal, aunque sea placeholder.
+
+Arquitectura y código
+
+Quiero código limpio, modular y fácil de extender.
+
+Separar, en la medida de lo posible:
+
+input de disparo,
+
+lógica de arma,
+
+cálculo del abanico de rayos,
+
+resolución de impactos,
+
+aplicación de daño,
+
+debug visual.
+
+
+Evita meter toda la lógica en un solo script gigante.
+
+Ajustes configurables desde inspector
+
+Exponer en inspector los parámetros principales para poder tunear rápido:
+
+número de rayos,
+
+daño por rayo,
+
+separación vertical,
+
+altura total del abanico,
+
+alcance,
+
+fire rate,
+
+tiempo de recarga,
+
+ammo por cargador,
+
+ammo en reserva.
+
+
+Consideraciones de gameplay
+
+Quiero que este sistema sea el estándar del juego.
+
+No lo trates como un parche temporal.
+
+La identidad del combate es:
+
+shooter isométrico,
+
+con alturas reales y rampas,
+
+con coberturas,
+
+y armas que resuelven la verticalidad mediante abanicos de rayos.
+
+
+Entregables esperados
+
+Haz una implementación funcional y deja el código bien organizado.
+
+Necesito:
+
+1. sistema de disparo nuevo integrado en el player actual,
+
+
+2. rifle y pistola funcionales,
+
+
+3. daño por múltiples rayos por bala,
+
+
+4. recarga y munición,
+
+
+5. debug visual de raycasts,
+
+
+6. comentarios breves donde haga falta,
+
+
+7. una explicación final corta de:
+
+qué scripts has creado o tocado,
+
+cómo funciona el flujo del disparo,
+
+qué parámetros puedo tocar para balancear.
+
+
+
+
+Si hay dudas de implementación
+
+Prioriza:
+
+legibilidad,
+
+consistencia,
+
+facilidad de iteración,
+
+comportamiento divertido.
+
+
+No conviertas esto en un shooter 3D realista.
+Es un sistema arcade/táctico estilizado.

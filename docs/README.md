@@ -1,20 +1,23 @@
-# Canuter Design Notes
+# Canuter Prototype Index
 
-This folder tracks the current 3D prototype direction for `canuter`.
+La raíz ya no guarda la documentación detallada de cada prototipo.
 
-Current document set:
+Usa este índice:
 
-- `01-product-vision.md`: product direction and high-level goals for the 3D tactical shooter direction.
-- `02-gameplay-core.md`: round structure, combat, controls, camera, and visibility rules.
-- `03-multiplayer-architecture.md`: client/server split and networking direction.
-- `04-maps-and-content.md`: text-based map format and content assumptions.
-- `05-technical-decisions.md`: engine, language, testing, and technical constraints.
-- `06-mvp-offline-prototype.md`: current offline prototype scope and explicit non-goals.
-- `07-mvp-runtime-rules.md`: implementation-facing runtime contract for the live Godot branch.
-- `agents-history/`: operational history entries that help later agents resume work quickly.
+- `godot-prototypes/v1-canuter-3d-tps/docs/`
+  Documentación archivada del prototipo Godot 3D TPS original, incluyendo reglas runtime, visión, arquitectura y planes de esa rama.
+- `pygame-prototypes/v1-iso/docs/pygame/`
+  Notas y plan del prototipo isométrico en PyGame.
+- `docs/agents-history/`
+  Historial operativo del agent para reanudar trabajo entre sesiones.
 
-Status:
+Prototipos jugables:
 
-- These notes are living documents.
-- Items marked as `TBD` are intentionally unresolved.
-- The current goal is to keep the written direction aligned with the single-runtime 3D prototype that is already being built.
+- `godot-prototypes/v1-canuter-3d-tps/godot/project.godot`
+- `godot-prototypes/v2-iso3d/project.godot`
+- `pygame-prototypes/v1-iso/`
+
+Estado:
+
+- La raíz queda como índice y contexto operativo.
+- Los documentos específicos de prototipo viven junto a su snapshot correspondiente para no meter ruido.

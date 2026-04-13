@@ -27,16 +27,6 @@
 - When a task changes runtime behavior, run the relevant automated tests before considering the task complete.
 - Do not run `dotnet build`, `dotnet test`, and the Godot integration runner in parallel against the same workspace outputs. They can contend on shared `obj/bin` files. Run them in sequence.
 
-## Prototype Language Split
-
-- For fast Godot prototyping, it is acceptable to build directly in GDScript when the work is mostly scene wiring, camera setup, materials, HUD, map assembly, input glue, or other engine-facing behavior.
-- If a Godot prototype later graduates into a more serious game branch, move deterministic and highly testable gameplay logic into C#.
-- Keep directly engine-coupled logic in GDScript when it is primarily about scene integration and is not a good fit for pure unit testing.
-- Target split:
-- `C#`: deterministic gameplay rules, combat models, movement models, damage, cooldowns, and other logic that benefits from strong unit-test coverage.
-- `GDScript`: scene setup, camera behavior, visual prototyping, materials, HUD wiring, engine integration, and targeted headless behavior checks.
-- Even in GDScript-heavy prototypes, prefer adding small headless integration checks for the intended runtime behavior before large refactors.
-
 ## Agent History Rule
 
 - If the user asks to "guardar el historial del agent" in docs, write or update a file under `docs/agents-history/`.
