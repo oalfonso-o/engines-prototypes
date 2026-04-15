@@ -1,30 +1,20 @@
 # canuter-v8-fps-prototype
 
-Fresh FPS sandbox prototype iteration built as a clean successor to `v7`.
+This project now boots into a contained procedural tunnel demo inside `v8`.
 
-The prototype uses a code-first bootstrap:
-- `project.godot` starts `main.tscn`
-- `main.tscn` only declares the root node and attaches `main.gd`
-- `main.gd` instantiates environment, lighting, gameplay world, gameplay HUD, and debug helpers
+The original FPS sandbox is still present in the project under `main.tscn`, and its automated tests still run against that scene.
+
+The tunnel demo uses a code-first bootstrap:
+- `project.godot` starts `TunnelDemo.tscn`
+- `TunnelDemo.tscn` only declares the root node and attaches `runtime/engine/tunnel_demo_root.gd`
+- `tunnel_demo_root.gd` builds the world environment, camera, tunnel geometry, track, rails, and warm tunnel lights in code
 
 ## Controls
 
-- `WASD`: move
+- `WASD`: move through the tunnel
+- mouse: look around
 - `Space`: jump
-- mouse: look
-- left mouse button: hitscan shot
-- right mouse button: throw impulse grenade at the landing marker
-- `G`: trigger a local debug explosion marker/impulse
 - `Esc`: release the mouse cursor
-
-## Map Format
-
-`maps/default_arena.txt` uses one character per tile:
-- `W`: outer wall block
-- `C`: tall cover block
-- `E`: enemy spawn
-- `P`: player spawn
-- `.`: empty walkable tile
 
 ## Run
 
@@ -32,6 +22,8 @@ The prototype uses a code-first bootstrap:
 cd /Users/oalfonso/pipprojects/canuter
 make run-v8-fps
 ```
+
+That command now opens the tunnel scene by default.
 
 ## Test
 

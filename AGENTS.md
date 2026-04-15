@@ -273,6 +273,39 @@
 - Pass exported configuration into helper classes as arguments instead of making helper classes own inspector-tunable state.
 - Use `const` for fixed implementation details and formulas that are not meant to be tuned from the editor.
 
+## Named Constants And Visual Tokens
+
+- Do not hardcode semantically meaningful numeric literals directly in runtime logic or UI code.
+- If a numeric value represents gameplay tuning, layout spacing, animation timing, collision sizing, spawn rules, projectile spacing, explosion size, movement acceleration, or any other design decision, give it a descriptive name.
+- Prefer `const` for fixed values that are not meant to be inspector-tunable.
+- Prefer a small owned config/helper object only when several related values clearly belong together.
+- Keep constants in the most local owner that actually defines their meaning.
+- If a value is only used by one helper class, keep the constant inside that helper class.
+- If a value is shared by multiple helpers in the same file, it may live at the root level.
+- If the same semantic value appears in multiple files, extract a shared constant only when it is truly one shared concept.
+
+## Visual Palette And Style Tokens
+
+- Do not scatter raw hex color strings throughout runtime and UI code.
+- Name colors by role, not by appearance, for example:
+  1. `PLAYER_PRIMARY_COLOR`
+  2. `ENEMY_COLOR`
+  3. `BOOSTER_FIRE_RATE_COLOR`
+  4. `BOOSTER_EXTRA_SHOT_COLOR`
+  5. `EXPLOSION_HIT_COLOR`
+  6. `HUD_TEXT_COLOR`
+- Keep palette constants close to the component that owns them, unless multiple files intentionally share one visual language.
+- When a component uses several related visual constants, group them in a descriptive helper or token block rather than repeating raw `Color("...")` values inline.
+
+## Literal Value Exceptions
+
+- These may stay inline when they are obvious and do not carry domain meaning:
+  1. `0`, `1`, `-1`
+  2. `0.5` only when it is a straightforward half-size or center operation
+  3. `PI`, `TAU`, `Vector2.ZERO`, `Vector3.ZERO`
+  4. tiny arithmetic glue values used once in a self-evident expression
+- If a reviewer could reasonably ask "what does this number mean?", it should have a name.
+
 ## Variable Visibility And Placement Rules
 
 - Treat variables as either public or private.
@@ -347,3 +380,5 @@ Before finalizing a change, verify all of these:
 8. Variables live in the most local owner possible.
 9. No debug-only or test-only behavior leaked into `runtime/`.
 10. Tests use `GUT` and live in the correct test area.
+11. Semantically meaningful numeric literals are named.
+12. Repeated or meaningful colors use named visual tokens instead of scattered raw hex literals.

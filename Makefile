@@ -17,8 +17,9 @@ V8_FPS_BUILD_DIR := build/v8-fps/mac
 V8_FPS_MAC_APP := $(V8_FPS_BUILD_DIR)/canuter-v8-fps.app
 V9_SPACE_PATH := godot-prototypes/v9-space-survival-prototype
 V9_SPACE_GUT_CONFIG := res://.gutconfig.json
+V10_WALL_LAB_PATH := godot-prototypes/v10-doom-wall-lab
 
-.PHONY: help edit-v2-iso3d run-v2-iso3d test-v2-iso3d edit-v3-iso3d run-v3-iso3d test-v3-iso3d edit-v4-iso3d run-v4-iso3d test-v4-iso3d edit-v5-character run-v5-character test-v5-character edit-v6-character run-v6-character test-v6-character edit-v7-fps run-v7-fps test-v7-fps edit-v8-fps run-v8-fps test-v8-fps run-built-v8-fps-mac edit-v9-space run-v9-space test-v9-space
+.PHONY: help edit-v2-iso3d run-v2-iso3d test-v2-iso3d edit-v3-iso3d run-v3-iso3d test-v3-iso3d edit-v4-iso3d run-v4-iso3d test-v4-iso3d edit-v5-character run-v5-character test-v5-character edit-v6-character run-v6-character test-v6-character edit-v7-fps run-v7-fps test-v7-fps edit-v8-fps run-v8-fps test-v8-fps run-built-v8-fps-mac edit-v9-space run-v9-space test-v9-space edit-v10-wall-lab run-v10-wall-lab
 
 help:
 	@printf "Available targets:\n"
@@ -47,6 +48,8 @@ help:
 	@printf "  make edit-v9-space      Open the v9-space-survival-prototype in the Godot editor\n"
 	@printf "  make run-v9-space       Run the v9-space-survival-prototype\n"
 	@printf "  make test-v9-space      Run the v9-space-survival-prototype GUT suite headlessly\n"
+	@printf "  make edit-v10-wall-lab  Open the v10-doom-wall-lab in the Godot editor\n"
+	@printf "  make run-v10-wall-lab   Run the v10-doom-wall-lab comparison scene\n"
 
 edit-v2-iso3d:
 	"$(GODOT)" --path "$(V2_ISO3D_PATH)" -e
@@ -127,3 +130,9 @@ run-v9-space:
 test-v9-space:
 	"$(GODOT)" --headless --path "$(V9_SPACE_PATH)" --import --quit-after 1
 	"$(GODOT)" --headless -d --path "$(V9_SPACE_PATH)" -s addons/gut/gut_cmdln.gd -gconfig="$(V9_SPACE_GUT_CONFIG)" -gexit
+
+edit-v10-wall-lab:
+	"$(GODOT)" --path "$(V10_WALL_LAB_PATH)" -e
+
+run-v10-wall-lab:
+	"$(GODOT)" --path "$(V10_WALL_LAB_PATH)"
