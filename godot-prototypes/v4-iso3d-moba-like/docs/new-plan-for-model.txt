@@ -1,0 +1,50 @@
+Create a new isolated Godot 4 prototype scene for a simple 3D character test. Do not modify the current player, grenade, or gameplay scenes yet. This must be a self-contained sandbox that I can open and run independently.
+
+Goal:
+Build a minimal humanoid-like prototype character made from simple geometric parts, driven by a small Skeleton3D, so I can later test explosion reactions and movement posing.
+
+Requirements:
+
+1. Create a new scene, for example `CharacterPrototype.tscn`, with a clear and simple structure.
+2. Use `CharacterBody3D` as the root node.
+3. Add a `Skeleton3D` with a very small set of bones, enough to control:
+   - root
+   - chest / torso
+   - head
+   - left_hand
+   - right_hand
+   - left_foot
+   - right_foot
+4. Attach simple visible geometry to those bones using `BoneAttachment3D`:
+   - torso = capsule mesh
+   - head = sphere mesh
+   - left hand = sphere mesh
+   - right hand = sphere mesh
+   - left foot = sphere mesh
+   - right foot = sphere mesh
+5. The result should look like a very simple stylized dummy made of floating pieces, similar in spirit to a Rayman-like separated body setup, but extremely minimal.
+6. Add a floor so the scene is directly testable.
+7. Add a basic camera and lighting so the character is clearly visible when running the scene.
+8. Add a script for the root character node with:
+   - basic gravity
+   - simple ground handling
+   - a public function:
+     `apply_explosion_impulse(origin: Vector3, force: float)`
+   This function should:
+   - compute the direction from the explosion origin to the character
+   - push the character away from the explosion
+   - add some upward force
+   - trigger a temporary visual reaction state
+9. Add a simple temporary visual reaction to explosion impulse without using ragdoll:
+   - chest tilts back or away from the explosion
+   - hands lift slightly upward/backward
+   - feet tuck slightly upward
+   - head follows the torso with a bit of smooth lag or softer motion
+   - the pose should smoothly recover back to normal over time
+10. Keep the implementation simple, readable, and easy to tweak. Prefer straightforward GDScript over complex abstractions.
+11. Add an easy local test input in this sandbox scene only:
+   - pressing a key such as `G` should simulate an explosion at a nearby point and call `apply_explosion_impulse(...)`
+   This is only for testing the prototype in isolation.
+12. Do not add ragdoll, `PhysicalBone3D`, or complex animation trees yet.
+13. Do not integrate with the existing grenade system yet.
+14. Keep the code and node names clean

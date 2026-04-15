@@ -1,0 +1,13 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/character_prototype.gd" id="1_character"]
+
+[node name="CharacterPrototype" type="CharacterBody3D"]
+script = ExtResource("1_character")
+floor_snap_length = 0.3
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+
+[node name="VisualRoot" type="Node3D" parent="."]
+
+[node name="Skeleton3D" type="Skeleton3D" parent="VisualRoot"]

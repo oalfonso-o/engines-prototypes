@@ -1,0 +1,37 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/iso_main.gd" id="1_xai3d"]
+[ext_resource type="Script" path="res://scripts/iso_map.gd" id="2_map3d"]
+[ext_resource type="Script" path="res://scripts/iso_player.gd" id="3_ply3d"]
+[ext_resource type="Script" path="res://scripts/debug_hud.gd" id="4_hud3d"]
+
+[node name="IsoPrototype" type="Node3D"]
+script = ExtResource("1_xai3d")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+
+[node name="KeyLight" type="DirectionalLight3D" parent="."]
+shadow_enabled = false
+
+[node name="CenterSpotLight" type="SpotLight3D" parent="."]
+shadow_enabled = true
+
+[node name="IsoCamera" type="Camera3D" parent="."]
+current = true
+
+[node name="Starfield" type="Node3D" parent="."]
+
+[node name="IsoMap" type="Node3D" parent="."]
+script = ExtResource("2_map3d")
+
+[node name="Targets" type="Node3D" parent="."]
+
+[node name="Projectiles" type="Node3D" parent="."]
+
+[node name="Player" type="CharacterBody3D" parent="."]
+script = ExtResource("3_ply3d")
+floor_snap_length = 0.35
+floor_max_angle = 1.0471976
+
+[node name="DebugHud" type="CanvasLayer" parent="."]
+script = ExtResource("4_hud3d")

@@ -1,0 +1,35 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/main.gd" id="1_main"]
+[ext_resource type="PackedScene" path="res://CharacterPrototype.tscn" id="2_character"]
+
+[node name="CharacterSandbox" type="Node3D"]
+script = ExtResource("1_main")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+
+[node name="SunLight" type="DirectionalLight3D" parent="."]
+shadow_enabled = true
+
+[node name="FillLight" type="OmniLight3D" parent="."]
+shadow_enabled = false
+
+[node name="Camera3D" type="Camera3D" parent="."]
+current = true
+
+[node name="Floor" type="StaticBody3D" parent="."]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Floor"]
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Floor"]
+
+[node name="CharacterPrototype" parent="." instance=ExtResource("2_character")]
+
+[node name="DebugHud" type="CanvasLayer" parent="."]
+
+[node name="InfoLabel" type="Label" parent="DebugHud"]
+offset_left = 24.0
+offset_top = 22.0
+offset_right = 640.0
+offset_bottom = 180.0
+theme_override_font_sizes/font_size = 22

@@ -2,29 +2,48 @@ extends Node3D
 
 const MAP_DIR := "res://maps/three_lanes"
 const STAR_COUNT := 180
+const IsoTargetScript = preload("res://scripts/iso_target.gd")
+const TARGET_SPECS := [
+	{
+		"name": "NearDummy",
+		"cell": Vector2i(5, 18),
+		"vertical_offset": 0.0,
+		"color": Color("ffb45d"),
+	},
+	{
+		"name": "PlateauDummy",
+		"cell": Vector2i(10, 10),
+		"vertical_offset": 0.0,
+		"color": Color("ff7c8d"),
+	},
+	{
+		"name": "FarDummy",
+		"cell": Vector2i(17, 3),
+		"vertical_offset": 0.0,
+		"color": Color("7dff6f"),
+	},
+]
 
-@export var camera_follow_lerp := 8.0
+@export var camera_follow_lerp: float = 8.0
 
 @onready var world_environment: WorldEnvironment = $WorldEnvironment
 @onready var key_light: DirectionalLight3D = $KeyLight
 @onready var iso_camera: Camera3D = $IsoCamera
 @onready var starfield_root: Node3D = $Starfield
-@onready var iso_map = $IsoMap
-@onready var player = $Player
-@onready var debug_hud = $DebugHud
+@onready var iso_map: Node3D = $IsoMap
+@onready var targets_root: Node3D = $Targets
+@onready var player: CharacterBody3D = $Player
+@onready var debug_hud: CanvasLayer = $DebugHud
 
-var _camera_offset := Vector3.ZERO
+var _camera_offset: Vector3 = Vector3.ZERO
 
 
 func _ready() -> void:
 	_setup_environment()
 	_setup_light()
-	iso_map.build_from_dir(MAP_DIR)
-	_setup_camera()
-	_spawn_player()
-	_build_starfield()
+	_build_world()
 	player.attach_camera(iso_camera)
-	debug_hud.attach(player, iso_camera, iso_map)
+	debug_hud.attach(player, iso_camera, iso_map, targets_root)
 
 
 func _physics_process(delta: float) -> void:
@@ -33,10 +52,20 @@ func _physics_process(delta: float) -> void:
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo:
-		if event.keycode == KEY_R:
-			iso_map.build_from_dir(MAP_DIR)
-			_setup_camera()
-			_spawn_player()
+		if event.keycode == KEY_F5:
+			_build_world()
+
+
+func get_target(name: String) -> Node3D:
+	return targets_root.get_node_or_null(name) as Node3D
+
+
+func _build_world() -> void:
+	iso_map.build_from_dir(MAP_DIR)
+	_setup_camera()
+	_spawn_player()
+	_spawn_targets()
+	_build_starfield()
 
 
 func _setup_environment() -> void:
@@ -75,6 +104,18 @@ func _spawn_player() -> void:
 	player.reset_motion()
 	player.snap_to_floor()
 	_update_camera_follow(1.0)
+
+
+func _spawn_targets() -> void:
+	for child in targets_root.get_children():
+		child.queue_free()
+
+	for spec: Dictionary in TARGET_SPECS:
+		var target := IsoTargetScript.new()
+		target.name = str(spec["name"])
+		target.position = iso_map.world_for_cell(spec["cell"].x, spec["cell"].y, spec["vertical_offset"])
+		targets_root.add_child(target)
+		target.setup_palette(spec["color"])
 
 
 func _build_starfield() -> void:
@@ -127,6 +168,6 @@ func _update_camera_follow(delta: float) -> void:
 
 	var focus: Vector3 = player.global_position + Vector3(0.0, iso_map.level_height * 0.9, 0.0)
 	var target_position: Vector3 = focus + _camera_offset
-	var blend: float = clamp(delta * camera_follow_lerp, 0.0, 1.0)
+	var blend: float = clampf(delta * camera_follow_lerp, 0.0, 1.0)
 	iso_camera.global_position = iso_camera.global_position.lerp(target_position, blend)
 	iso_camera.look_at(focus, Vector3.UP)

@@ -1,0 +1,660 @@
+Crea una nueva versión del proyecto llamada V4 clonando el estado actual de V3. No modifiques V3 directamente. Quiero que trabajes sobre V4 y que esta versión sea un cambio de dirección claro: dejamos atrás el intento de shooter isométrico con targeting raro y lo convertimos en un sistema más tipo MOBA / skillshots estilo LoL, pero manteniendo el mundo 3D isométrico con varios niveles.
+
+Vuelca el historial de Agents.
+
+Objetivo de V4
+
+En V4 quiero abandonar la lógica anterior de:
+
+abanico vertical,
+
+targeting híbrido extraño,
+
+disparo tipo shooter realista,
+
+cualquier intento de click-to-hit sobre el enemigo.
+
+
+Quiero pasar a un sistema más claro y más parecido a LoL:
+
+el jugador se mueve con WASD,
+
+las habilidades se seleccionan con teclas,
+
+al seleccionar una habilidad se muestra una previsualización clara,
+
+al hacer click se lanza una habilidad en esa dirección o a esa posición,
+
+el impacto depende del área / anchura / trayectoria de la habilidad,
+
+no hay auto hit por clicar encima del enemigo,
+
+no hay raycast raro que dependa del mesh clicado.
+
+
+La prioridad es que sea legible, simple, jugable y fácil de iterar.
+
+
+---
+
+Proyecto y versionado
+
+1. Clona V3 en una nueva carpeta/proyecto/versión llamada V4.
+
+
+2. Trabaja solo sobre V4.
+
+
+3. Mantén lo que sí sirva del movimiento, mapa, rampas, niveles, colisiones, cámara isométrica y salto.
+
+
+4. Elimina o deja fuera de uso toda la lógica de ataque anterior que ya no encaje con este nuevo enfoque.
+
+
+
+
+---
+
+Input base del jugador
+
+Quiero este esquema:
+
+WASD: mover al personaje
+
+1: seleccionar habilidad principal ancha
+
+2: seleccionar habilidad principal estrecha
+
+F: seleccionar granada
+
+Click izquierdo: confirmar y lanzar la habilidad actualmente seleccionada
+
+Si no hay habilidad seleccionada, no hace falta disparo básico automático por ahora
+
+Mantén el salto si ya existe
+
+
+Quiero que el jugador pueda:
+
+moverse normalmente,
+
+seleccionar una habilidad,
+
+ver su preview,
+
+apuntarla con el ratón,
+
+clicar para ejecutarla.
+
+
+
+---
+
+Cambio conceptual importante
+
+Ya no estamos haciendo un shooter de balas realistas.
+
+Estamos haciendo:
+
+skillshots dirigidos por cursor
+
+con preview clara antes de lanzar
+
+y resolución visual muy legible
+
+
+Piensa más en:
+
+flechas / rayos / habilidades lineales
+
+zonas de impacto
+
+granadas con área
+
+timings rápidos
+
+gameplay arcade-táctico
+
+
+
+---
+
+Habilidad 1: rayo ancho
+
+Al pulsar 1:
+
+se selecciona la habilidad principal ancha
+
+debe mostrarse una preview en forma de flecha que salga desde el jugador hacia la posición del ratón
+
+la flecha debe ser claramente visible, estilo telegraph / indicator de LoL
+
+la longitud debe ser bastante larga
+
+debe seguir al ratón en tiempo real
+
+debe orientarse desde el jugador hacia donde apunta el cursor
+
+
+Geometría y comportamiento
+
+Esta habilidad es un skillshot lineal ancho
+
+El ancho debe ser aproximadamente 3 veces el ancho del cuerpo del jugador
+
+Tiene que verse clara y generosa, no una aguja
+
+Cuando el usuario hace click:
+
+desaparece la preview
+
+se lanza la habilidad
+
+visualmente ya no es flecha-preview, sino un rayo láser
+
+
+El rayo láser debe avanzar muy rápido, pero no instantáneo del todo
+
+Tiempo de viaje aproximado: 200 ms
+
+Tiene que ser mínimamente esquivable
+
+Si impacta al jugador enemigo, hace 35 de daño
+
+Si colisiona con geometría sólida antes, debe impactar ahí
+
+Si atraviesa espacio libre y engancha al enemigo dentro del ancho del skillshot, debe hacer daño
+
+
+Altura y niveles
+
+Esta habilidad debe funcionar en el mundo 3D con varios niveles
+
+No quiero targeting automático al enemigo
+
+Quiero que funcione como una habilidad lineal dirigida
+
+Si el jugador está a una altura distinta, la habilidad debe salir desde la altura actual del jugador
+
+Debe respetar el hecho de que el mundo tiene rampas y desniveles
+
+
+Salto
+
+Si el jugador salta y luego dispara esta habilidad, eso sí afecta a la altura desde la que sale el láser
+
+Es decir: la habilidad debe tomar como origen la posición actual real del personaje al disparar
+
+Por tanto, si el personaje está en el aire, el skillshot sale desde esa altura y eso afecta a la trayectoria/altura efectiva del disparo
+
+
+
+---
+
+Habilidad 2: rayo estrecho
+
+Al pulsar 2:
+
+se selecciona la segunda habilidad
+
+debe mostrarse la misma lógica de preview en forma de flecha
+
+también sale desde el jugador hacia el ratón
+
+mismo tipo de experiencia general que la habilidad 1
+
+
+Diferencias respecto a habilidad 1
+
+Es también una habilidad lineal
+
+Hace también 35 de daño
+
+Funciona prácticamente igual
+
+Pero su ancho debe ser mucho menor:
+
+aproximadamente el ancho del cuerpo del monigote
+
+
+Debe sentirse como una versión más precisa/estrecha del mismo concepto
+
+
+Velocidad y timing
+
+Tiempo de viaje también aprox. 200 ms
+
+También mínimamente esquivable
+
+También con impacto contra geometría y enemigos de forma coherente
+
+
+Salto
+
+Igual que la habilidad 1:
+
+si el jugador está saltando al lanzarla, la altura de salida cambia
+
+eso afecta a la trayectoria/altura del rayo
+
+
+
+---
+
+Habilidad F: granada
+
+Al pulsar F:
+
+se selecciona la granada
+
+no quiero preview en flecha lineal
+
+quiero que aparezca una preview de círculo en la posición del mundo donde está apuntando el ratón
+
+ese círculo representa la zona de explosión
+
+el círculo debe moverse en tiempo real con el ratón por el escenario
+
+
+Tamaño del área
+
+El radio/área debe ser como mínimo del tamaño de un tile o ligeramente más grande
+
+Quiero que visualmente quede claro dónde explotará
+
+
+Lanzamiento
+
+Al hacer click:
+
+se lanza una granada desde el jugador hasta esa posición objetivo
+
+la trayectoria debe ser una parábola
+
+visualmente tiene que verse el proyectil viajando
+
+
+El tiempo de viaje también debe ser aproximadamente 200 ms
+
+De momento no pongas restricción de distancia
+
+Se puede lanzar muy lejos si hace falta
+
+La granada debe llegar rápido
+
+
+Impacto
+
+Al llegar al punto objetivo, explota
+
+Todo enemigo dentro del círculo de explosión recibe daño
+
+Usa de momento también 35 de daño para simplificar, salvo que ya veas claro dejarlo parametrizado
+
+Añade efecto visual simple de explosión aunque sea placeholder
+
+
+Altura y salto
+
+Importante:
+
+la granada NO debe verse afectada por si el jugador está saltando
+
+Aunque el jugador salte, la parábola de la granada debe comportarse igual
+
+Es decir, para la granada quiero una trayectoria consistente que no dependa del salto del jugador
+
+Puedes tomar como origen un punto estable del personaje o un punto fijo de lanzamiento
+
+
+
+---
+
+Cooldowns
+
+Quiero cooldown simple para todas las habilidades:
+
+200 ms de cooldown entre usos
+
+aplica al uso de la habilidad correspondiente
+
+no hace falta un sistema complejo todavía
+
+con que no permita spamear más rápido de ese intervalo vale
+
+
+Puedes implementar:
+
+cooldown individual por habilidad o
+
+cooldown compartido mínimo si te parece mejor para el prototipo
+
+
+Pero lo ideal sería que cada una tenga su cooldown simple configurable.
+
+
+---
+
+Munición y reload
+
+Quiero quitar la limitación actual de munición finita.
+
+Rifle / armas / habilidades lineales
+
+De momento quiero munición infinita
+
+Si actualmente existe contador tipo 30/30, adáptalo
+
+Puede mantenerse la sensación de reload, pero la reserva debe ser infinita
+
+Es decir:
+
+puedes tener cargador si ya existe
+
+puedes recargar
+
+pero nunca te quedas sin munición total
+
+
+
+Granada
+
+También granadas infinitas
+
+Sin límite total por ahora
+
+
+Si el sistema actual de balas/munición molesta demasiado para este prototipo, simplifícalo lo necesario, pero deja el comportamiento coherente.
+
+
+---
+
+Preview y UX
+
+Esto es muy importante.
+
+Quiero que antes de lanzar cada habilidad haya una preview muy clara.
+
+Para habilidad 1 y 2
+
+Preview en forma de flecha lineal
+
+visible sobre el escenario
+
+anclada al jugador
+
+apuntando hacia el ratón
+
+con longitud larga
+
+con ancho correspondiente a cada habilidad
+
+debe comunicar claramente el área/anchura del skillshot
+
+
+Para granada
+
+Preview de círculo de explosión
+
+posicionada donde caerá
+
+fácil de leer
+
+
+Al lanzar
+
+La preview se consume y se dispara la habilidad
+
+Tiene que quedar muy claro qué se ha lanzado
+
+
+
+---
+
+Resolución de impactos
+
+Quiero una implementación robusta y legible.
+
+Habilidades 1 y 2
+
+Piensa estas habilidades como:
+
+volúmenes lineales anchos / estrechos
+
+que avanzan rápidamente en ~200 ms
+
+y que pueden colisionar con:
+
+geometría sólida
+
+enemigos
+
+
+
+La resolución puede hacerse con:
+
+proyectil visual rápido + shape cast / hitbox en movimiento o
+
+simulación por interpolación y chequeo de colisión a lo largo del trayecto
+
+
+No quiero una aguja minúscula ni un raycast fino difícil de usar.
+Quiero un skillshot con grosor real.
+
+Granada
+
+proyectil parabólico
+
+al aterrizar, chequeo de área en el círculo
+
+daño a enemigos dentro
+
+
+
+---
+
+Múltiples niveles y 3D
+
+Mantén el mundo 3D isométrico con alturas, rampas y mesetas.
+
+Quiero que estas habilidades funcionen con eso en mente:
+
+habilidades lineales respetando altura de origen
+
+colisión real con muros, rampas, bordes y desniveles
+
+granada cayendo a la posición objetivo con explosión en área
+
+
+No intentes volver a resolver esto con targeting automático raro.
+Ahora estamos en paradigma LoL / skillshot.
+
+
+---
+
+Lo que hay que eliminar o dejar fuera de uso
+
+Retira o inutiliza todo lo que ya no encaje:
+
+abanico vertical
+
+múltiples raycasts por bala
+
+targeting híbrido anterior
+
+click-to-hit basado en collider enemigo
+
+lógica de daño por rayos
+
+cualquier código muerto de esos sistemas
+
+
+No quiero basura antigua interfiriendo con V4.
+
+
+---
+
+Arquitectura
+
+Quiero el código limpio y modular. Separa lo posible:
+
+selección de habilidad
+
+sistema de previews
+
+ejecución/lanzamiento de habilidad
+
+proyectiles o skillshots
+
+colisiones e impacto
+
+daño
+
+cooldowns
+
+input del jugador
+
+
+No quiero un único script gigante.
+
+
+---
+
+Parámetros configurables desde inspector
+
+Expón y deja fácil de ajustar:
+
+daño de habilidad 1
+
+daño de habilidad 2
+
+daño de granada
+
+longitud de habilidad 1
+
+anchura de habilidad 1
+
+longitud de habilidad 2
+
+anchura de habilidad 2
+
+tiempo de viaje de habilidad 1
+
+tiempo de viaje de habilidad 2
+
+tiempo de viaje de granada
+
+radio de explosión de granada
+
+cooldown de cada habilidad
+
+
+Quiero poder tunear rápido sin tocar demasiado código.
+
+
+---
+
+Feedback visual mínimo necesario
+
+Aunque sea placeholder, quiero:
+
+preview clara de flechas/círculos
+
+rayo láser visible al disparar habilidad 1 y 2
+
+granada visible en vuelo
+
+explosión visible al impactar
+
+indicador simple de daño/impacto si ya existe o es fácil de poner
+
+
+
+---
+
+Comportamiento exacto esperado
+
+Tecla 1
+
+selecciona skillshot lineal ancho
+
+preview tipo flecha
+
+click izquierdo lo lanza
+
+rayo ancho, rápido, 200 ms, 35 daño
+
+
+Tecla 2
+
+selecciona skillshot lineal estrecho
+
+preview tipo flecha
+
+click izquierdo lo lanza
+
+rayo estrecho, rápido, 200 ms, 35 daño
+
+
+Tecla F
+
+selecciona granada
+
+preview tipo círculo
+
+click izquierdo la lanza
+
+parábola rápida, 200 ms, explosión en área
+
+
+Salto
+
+afecta a la altura de salida de habilidad 1 y 2
+
+no afecta a la trayectoria base de la granada
+
+
+Munición
+
+infinita por ahora
+
+con reload opcional si ya está implementado y no molesta
+
+
+
+---
+
+Entregables esperados
+
+Haz la implementación completa en V4 y deja un resumen final corto indicando:
+
+1. cómo has clonado V3 a V4,
+
+
+2. qué sistemas viejos has retirado o dejado fuera,
+
+
+3. qué scripts/nodos has creado o modificado,
+
+
+4. cómo funciona ahora la selección y lanzamiento de habilidades,
+
+
+5. qué parámetros puedo tocar para balancear,
+
+
+6. cualquier limitación actual relevante.
+
+
+
+Prioridades:
+
+crear V4 separado de V3,
+
+abandonar enfoque shooter-targeting antiguo,
+
+montar skillshots tipo LoL,
+
+que se vea claro y sea jugable,
+
+que las habilidades sean anchas/legibles y no agujas imposibles.

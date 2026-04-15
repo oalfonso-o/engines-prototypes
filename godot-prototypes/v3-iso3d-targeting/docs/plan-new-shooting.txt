@@ -1,0 +1,305 @@
+Vuelca el historial de Agents.
+
+Quiero que hagas una refactorización clara del sistema de disparo del prototipo V2 ISO 3D. El sistema anterior basado en abanico vertical / múltiples raycasts ha fracasado y hay que eliminarlo completamente. No quiero parches encima. Quiero quitar esa forma de ataque y sustituirla por un sistema híbrido basado en targeting.
+
+Contexto del problema que hay que corregir
+
+El sistema del abanico no es jugable porque en vista isométrica 3D real, cuando el jugador hace click sobre distintas zonas del mesh del enemigo, la dirección resultante cambia lateralmente y el patrón de disparo queda desalineado respecto al eje real del enemigo. Eso obliga a apuntar artificialmente mal para acertar y da una sensación nefasta.
+
+Por tanto:
+
+eliminamos totalmente el abanico,
+
+eliminamos la lógica de múltiples raycasts por bala,
+
+eliminamos el daño acumulado por número de rayos,
+
+eliminamos todos los parámetros y geometrías asociadas a ese sistema.
+
+
+Nuevo sistema deseado: disparo híbrido con targeting
+
+Quiero dos modos:
+
+1. Modo targeting
+
+Si el cursor está sobre un enemigo válido al disparar:
+
+el sistema interpreta que quiero disparar a ese enemigo,
+
+si el click ha entrado correctamente en el hitbox/collider del jugador enemigo, entonces ese disparo debe considerarse hit válido,
+
+no quiero que falle porque el enemigo se haya movido ligeramente entre el click y la resolución,
+
+el raycast/hitscan se usa solo para comprobar que no hay geometría/cobertura entre medias,
+
+si no hay cobertura entre medias, hay hit sí o sí,
+
+si hay cobertura entre medias, el disparo pega en la cobertura.
+
+
+2. Modo libre
+
+Si el cursor no está sobre un enemigo:
+
+el sistema entra en disparo libre,
+
+pero no quiero que se resuelva “hacia el punto del mundo bajo el cursor” de manera naive,
+
+quiero que se dispare en la dirección de aim que ya usemos para el juego, con resolución instantánea hitscan/raycast,
+
+y que impacte en la primera geometría o entidad válida que encuentre en esa línea.
+
+
+Regla exacta del modo targeting
+
+Si el click entra sobre el enemigo:
+
+eso ya valida intención correcta del jugador,
+
+ese disparo debe impactar al enemigo salvo que exista cobertura real entre ambos.
+
+
+La resolución correcta es:
+
+detectar enemigo bajo cursor,
+
+fijar ese enemigo como target,
+
+calcular un punto de impacto estable dentro de la zona alta del cuerpo del enemigo,
+
+lanzar un raycast instantáneo desde la zona alta de la cabeza/origen superior del tirador hacia ese punto de impacto,
+
+si el raycast encuentra primero cobertura/pared/meseta, el disparo impacta ahí,
+
+si no encuentra bloqueo, el disparo impacta enemigo.
+
+
+Muy importante:
+
+no quiero que falle porque el target se haya movido un poco tras el click,
+
+si el click fue correcto sobre el hitbox enemigo, el disparo cuenta como hit, salvo cobertura de por medio,
+
+el raycast no decide “si acertaste al enemigo”; eso ya lo decidió el click,
+
+el raycast solo verifica oclusión/cobertura.
+
+
+Punto de impacto del enemigo
+
+No quiero apuntar al punto exacto de cabeza pura porque puede ser demasiado fino o inestable.
+
+Quiero un punto estable en la zona alta del cuerpo, ligeramente por debajo de la parte más alta de la cabeza. La idea es:
+
+salir desde la parte alta de la cabeza del tirador,
+
+apuntar a una zona alta del cuerpo/cabeza del enemigo,
+
+pero no tan arriba que falle por microdesplazamientos.
+
+
+Implementa un target point estable y razonable, algo como:
+
+upper head / forehead-ish offset hacia abajo,
+
+o upper chest / neck alto,
+
+el punto más estable que quede bien en práctica.
+
+
+Si ves útil soportar varios puntos de fallback, puedes hacerlo, pero la regla principal es esta:
+
+si el click al enemigo fue válido, debe haber hit salvo cobertura real.
+
+
+Justicia y coberturas
+
+Quiero preservar una lógica justa tipo shooter:
+
+si la línea entre la zona alta del tirador y la zona alta útil del objetivo está libre, hay hit,
+
+si una pared, parapeto, meseta o cobertura bloquea esa línea, no hay hit al enemigo,
+
+en ese caso el impacto debe ir a la cobertura,
+
+no quiero autoaim mágico que atraviese obstáculos.
+
+
+Ejemplo:
+
+si estoy relativamente cerca del borde de una meseta y veo lo suficiente del enemigo como para que exista línea alta limpia, hay hit,
+
+si estoy demasiado abajo o demasiado tapado y la cobertura corta esa línea, el disparo pega en el borde/muro.
+
+
+Modo libre
+
+Si el cursor no está sobre un enemigo:
+
+no entramos en targeting,
+
+el arma dispara en modo libre,
+
+usa resolución instantánea hitscan/raycast,
+
+impactando donde corresponda según la dirección de aim actual y la primera colisión válida.
+
+
+No quiero que este modo dependa de la lógica del abanico anterior. Tiene que quedar limpio y separado.
+
+Eliminar sistema viejo
+
+Quiero que retires o dejes completamente inactivo todo lo relacionado con:
+
+abanico vertical,
+
+múltiples raycasts por bala,
+
+daño por número de rayos,
+
+parámetros tipo vertical span / rays count / ray spacing,
+
+cualquier código muerto asociado al sistema anterior.
+
+
+Haz limpieza real del código, no solo desactivar una parte y dejar basura.
+
+Daño
+
+Volvemos a un modelo simple:
+
+cada bala/disparo hace daño fijo por arma,
+
+no quiero multiplicadores por cabeza,
+
+no quiero daño por rayos,
+
+rifle y pistola deben tener daño fijo por disparo.
+
+
+Armas
+
+Mantén el sistema de armas que ya tengamos en la medida de lo posible, pero adaptado al nuevo modelo:
+
+rifle automático,
+
+pistola secundaria,
+
+cargador,
+
+reserva de munición,
+
+fire rate,
+
+reload.
+
+
+Si el sistema actual quedó contaminado por la lógica del abanico, refactóralo para dejarlo limpio.
+
+Feedback visual
+
+Quiero feedback claro para saber cuándo estoy en targeting:
+
+si el cursor está sobre un enemigo válido, mostrar estado visual de targeting,
+
+puede ser cursor distinto, retícula distinta, highlight, o la opción más simple y limpia que encaje con el prototipo.
+
+
+Además, añade o mantén debug útil para iterar:
+
+qué enemigo está detectado bajo cursor,
+
+cuál es el target point usado,
+
+si la línea está bloqueada o libre,
+
+dónde impacta realmente el disparo.
+
+
+No quiero debug excesivo, pero sí suficiente para entender rápido qué está pasando.
+
+Comportamiento esperado
+
+Quiero exactamente esta experiencia:
+
+Si clico sobre un enemigo
+
+el sistema interpreta que quiero disparar a ese enemigo,
+
+si el click ha dado al hitbox/collider correcto, el disparo debe impactar salvo cobertura real,
+
+el raycast solo comprueba si algo bloquea entre medias,
+
+si nada bloquea, hit al enemigo,
+
+si hay cobertura, hit a cobertura.
+
+
+Si clico fuera de un enemigo
+
+el sistema interpreta disparo libre,
+
+resuelve un hitscan/raycast normal según la dirección de aim,
+
+impacta en la primera colisión válida.
+
+
+Tolerancia de targeting
+
+No lo hagas hiperexigente. Si el cursor está razonablemente sobre el collider del enemigo, debe contar como targeting. No quiero precisión absurda de píxel. Si ya tenemos detección por collider, úsala. Si hace falta una ligera tolerancia razonable, añádela, pero sin convertirlo en autoaim exagerado.
+
+Arquitectura
+
+Quiero que el código quede modular y limpio. Separa en lo posible:
+
+detección de target bajo cursor,
+
+resolución del modo targeting,
+
+resolución del modo libre,
+
+lógica de arma,
+
+aplicación de daño,
+
+feedback/debug.
+
+
+No quiero un script monstruoso con todo mezclado.
+
+Integración con el proyecto actual
+
+Haz los cambios directamente sobre el prototipo actual V2 ISO 3D respetando la arquitectura existente en lo posible, pero priorizando dejar el sistema de disparo bien y jugable.
+
+Qué espero al final
+
+Haz la implementación completa del cambio y deja un breve resumen final indicando:
+
+1. qué scripts has eliminado / limpiado / modificado,
+
+
+2. cómo funciona ahora el flujo de disparo,
+
+
+3. cómo distingue el juego entre targeting y disparo libre,
+
+
+4. qué parámetros puedo tocar para balancear,
+
+
+5. cualquier limitación o siguiente paso obvio si lo hubiera.
+
+
+
+Prioridades:
+
+quitar el abanico completamente,
+
+sustituirlo por targeting híbrido,
+
+mantener coberturas reales,
+
+hacer que un click válido sobre enemigo sea hit salvo oclusión real,
+
+dejarlo jugable y fácil de probar.

@@ -1,0 +1,109 @@
+Create a new isolated Godot 4 prototype scene for a simple 3D character test. Do not modify the current player, grenade, or gameplay scenes yet. This must be a fully self-contained sandbox that I can open and run independently.
+
+This is the most important architectural rule:
+
+The character must have TWO completely separate layers:
+
+1. PHYSICAL / GAMEPLAY LAYER
+- This is the real gameplay body.
+- Use `CharacterBody3D` as the root node.
+- Add exactly ONE invisible collision shape for real movement and collisions.
+- This collision shape must be a vertical `CapsuleShape3D` inside a `CollisionShape3D`.
+- This capsule is the ONLY shape that defines:
+  - contact with the floor
+  - contact with walls
+  - jump reset / ability to jump again
+  - general collision against the environment
+- The capsule must remain vertical at all times.
+- The capsule must represent the full body volume from approximately foot level to head level.
+- The capsule is NOT the visible torso.
+- The visible meshes must NOT be used for collision.
+- The character must never rely on the torso mesh or foot meshes for floor detection.
+- The character must use the capsule collider for `is_on_floor()`, wall collisions, gravity, and jump logic.
+
+2. VISUAL / ANIMATION LAYER
+- This is only the visible dummy body.
+- It must be separate from the physics collision capsule.
+- Add a `Skeleton3D` as a child used only for posing the visual body.
+- Add a very small set of bones, enough to control:
+  - root
+  - chest / torso
+  - head
+  - left_hand
+  - right_hand
+  - left_foot
+  - right_foot
+- Attach simple visible geometry to the bones using `BoneAttachment3D`:
+  - torso = capsule mesh
+  - head = sphere mesh
+  - left hand = sphere mesh
+  - right hand = sphere mesh
+  - left foot = sphere mesh
+  - right foot = sphere mesh
+- These visual parts are only for display and animation.
+- These visual parts must never be used as collision or support against the floor.
+- The feet are decorative/visual and may move up, down, or sideways during animation without affecting gameplay collision.
+- The torso mesh is decorative/visual and must never be treated as the contact shape against the floor.
+
+Scene requirements:
+1. Create a new scene, for example `CharacterPrototype.tscn`.
+2. Use `CharacterBody3D` as the root.
+3. Add the invisible vertical capsule collider as described above.
+4. Add a visible floor so the scene is directly testable.
+5. Add a basic camera and lighting so the prototype is clearly visible.
+6. Keep node names clean and descriptive.
+
+Script requirements:
+1. Add a script to the root `CharacterBody3D`.
+2. Implement:
+   - gravity
+   - floor detection
+   - wall collision through the capsule collider
+   - basic jump logic
+3. Jump must only reset when the invisible collision capsule is actually on the floor.
+4. The visible feet may move independently for animation, but they must not affect the jump reset logic.
+5. Add a public function:
+   `apply_explosion_impulse(origin: Vector3, force: float)`
+6. This function should:
+   - compute the direction from the explosion origin to the character root
+   - push the whole character away from the explosion
+   - add some upward force
+   - trigger a temporary visual reaction state
+7. The explosion reaction must move only the VISUAL / ANIMATION LAYER, not replace the physical collider.
+8. During explosion reaction:
+   - the chest tilts back or away from the explosion
+   - the hands lift slightly upward/backward
+   - the feet tuck slightly upward
+   - the head follows the torso smoothly
+   - the pose then smoothly returns to normal
+9. The root capsule collider must remain the real gameplay body throughout the reaction.
+10. The explosion reaction must never make the character start using the torso or feet as the collision/contact shape.
+
+Testing requirements:
+1. Add a local sandbox input only in this prototype scene:
+   - pressing `G` simulates an explosion at a nearby point and calls `apply_explosion_impulse(...)`
+   - pressing `Space` makes the character jump
+2. This is only for isolated testing in the sandbox scene.
+
+Implementation constraints:
+- Godot 4.x
+- GDScript
+- simple and readable code
+- no ragdoll
+- no `PhysicalBone3D`
+- no complex `AnimationTree` yet
+- no integration with the existing grenade system yet
+- do not overengineer
+- prioritize correctness of the collision architecture over visual polish
+
+Very important:
+- The invisible capsule collider is the true gameplay body.
+- The visible skeleton and meshes are only visual.
+- Do not use torso mesh, foot meshes, or any visible part as collision support.
+- Do not build a setup where the torso rests on the ground.
+- The floor contact must come only from the invisible capsule collider.
+
+After creating the files, briefly explain:
+- what files were created
+- how to run the prototype
+- which variables to tweak for collider size, jump feel, and explosion reaction

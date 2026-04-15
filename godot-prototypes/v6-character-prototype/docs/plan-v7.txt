@@ -1,0 +1,356 @@
+```text id="p7fpsv"
+Create a brand new Godot prototype version 7 as a clean new iteration. Do not patch the previous version in place. Build this as a new versioned prototype based on the latest useful ideas from version 6, but reimplement it cleanly following all coding and architecture rules from `agents.md`.
+
+Versioning requirements:
+- Create a new prototype version 7.
+- Do not overwrite or mutate the previous prototype version.
+- Treat this as a fresh clean base for further iteration.
+- Follow `agents.md` strictly:
+  - readable code
+  - small focused functions
+  - clear naming
+  - no magic numbers
+  - `@export` for tunable values
+  - typed GDScript where reasonable
+  - clean separation of responsibilities
+  - short `_physics_process()` methods
+  - clear explanation of the result at the end
+
+Main goal:
+Build a 3D first-person shooter sandbox prototype with:
+- text-file-driven map loading
+- FPS movement
+- raycast shooting
+- enemies with health
+- grenade landing marker from crosshair aiming
+- explosion impulse that launches characters away
+- version 6 style simple visual character setup for both player and enemies
+
+Important high-level constraints:
+- This is a gameplay prototype, not a polished game.
+- Prioritize correct structure, readability, and testability.
+- Reuse the architectural ideas from version 6:
+  - invisible gameplay collision capsule
+  - separate visual body made from simple shapes and small skeleton
+  - clean gameplay layer vs visual layer separation
+- Use the same style of simple 3D body for the player and enemies as in version 6.
+- Keep the implementation modular and easy to iterate on.
+
+==================================================
+1. PROJECT / SCENE GOAL
+==================================================
+
+Create a new 3D FPS prototype where:
+- the player moves in first person
+- the map is loaded from a text file
+- the level is simple and intentionally minimal
+- there are enemies placed in the arena
+- the player can shoot enemies using raycast hitscan weapon logic
+- the player can throw an impulse grenade using a landing marker projected from the crosshair
+- the grenade does not deal damage
+- the grenade launches nearby characters away from the explosion
+- enemies and player use the same simple body language/style as version 6
+
+==================================================
+2. MAP LOADING FROM TEXT FILE
+==================================================
+
+The map must be generated from a text file, as in earlier prototypes.
+
+Requirements:
+- Load the map layout from a text file.
+- Keep the map loader simple and readable.
+- Use a clear format that is easy to edit later.
+- Explain the map format at the end.
+
+The map for version 7 should create a simple square arena with:
+- outer walls so the player cannot fall out
+- no complicated geometry
+- a floor
+- optional sky or simple background if needed
+- no need for a real ceiling
+
+Arena layout requirements:
+1. A square outer boundary made of walls.
+2. One large tall square box / square pillar in the center of the arena.
+   - It should be high enough to behave like full cover.
+   - Think of it as a thick square wall block or pillar.
+3. Four more tall square pillars near the corners of the arena.
+   - One near each corner.
+   - Each should be tall enough to behave like full cover.
+   - They should be placed so the player can move around them and use them as cover.
+4. Total tall cover structures:
+   - 1 in the center
+   - 4 near the corners
+   - total = 5 tall square cover blocks
+5. The arena should be wide enough to move and fight comfortably.
+
+Please choose a simple text format for the map that can represent:
+- empty floor
+- outer walls
+- tall cover blocks
+- enemy spawn points
+- player spawn point if useful
+
+If needed, generate a default map file for this prototype.
+
+==================================================
+3. PLAYER: FPS MOVEMENT
+==================================================
+
+Create a first-person player controller.
+
+Requirements:
+- first person camera
+- mouse look
+- standard FPS movement
+- walk movement
+- jump
+- gravity
+- collision using an invisible gameplay capsule
+- readable and clean movement code
+
+Architecture:
+- Use `CharacterBody3D` for the player gameplay body.
+- Use a vertical invisible capsule collider as the true gameplay collision body.
+- Floor contact, wall collision, gravity, jump reset, and movement must all depend on the gameplay capsule.
+- Keep the capsule vertical at all times.
+- Keep the visual body separate from the gameplay body.
+
+Player visual body:
+- Use the same simple style as version 6:
+  - small skeleton
+  - simple shapes
+  - torso capsule mesh
+  - sphere head
+  - sphere hands
+  - sphere feet
+- The player is in first person, so the full body may not always be visible from the main camera.
+- Still keep the visual body in the scene so grenade reactions and possible debugging remain coherent.
+- It is acceptable to hide some body parts from the first-person camera if needed, but keep the architecture sound.
+
+==================================================
+4. ENEMIES
+==================================================
+
+Create several enemies in the arena.
+
+Requirements:
+- Spawn multiple enemies in useful positions in the arena.
+- Enemies can be simple stationary targets for now unless you want to add very minimal movement.
+- Use the same simple visual body style as version 6.
+- Enemies should have:
+  - health = 100
+  - clear hit reaction or at least damage feedback
+  - a visible health display above them
+
+Health display requirement:
+- Show either:
+  - a health bar above the enemy
+  - or text such as `100 / 100`
+- Keep it simple and readable.
+- When shot, the enemy health should update visibly.
+
+==================================================
+5. RAYCAST SHOOTING
+==================================================
+
+Implement a normal FPS raycast weapon.
+
+Requirements:
+- Use hitscan / raycast shooting.
+- Shoot from the center of the screen / crosshair direction.
+- The weapon damage must be 20 per shot.
+- When a shot hits an enemy:
+  - reduce health by 20
+  - update the enemy’s health display
+  - handle death or disable target when health reaches 0
+- Keep weapon code clean and readable.
+- This prototype does not need a full weapon model unless you want a minimal one.
+- Prioritize gameplay and clarity.
+
+Crosshair:
+- Add a visible crosshair in the center of the screen.
+- Keep it simple.
+
+==================================================
+6. GRENADE WITH LANDING MARKER
+==================================================
+
+Implement an impulse grenade inspired by earlier prototypes.
+
+Requirements:
+- The grenade does NOT do damage.
+- The grenade only applies explosion impulse / launch force.
+- The player must be able to aim the grenade using the crosshair.
+- Wherever the player is aiming on the ground, show a small landing marker / platform indicator.
+- The landing marker should appear on the ground at the predicted target location.
+- When the grenade is thrown, it should go to that marked spot or otherwise clearly resolve to that aimed ground position.
+- Keep the implementation simple and reliable for prototyping.
+
+Behavior:
+- The player aims using the crosshair.
+- A small visible marker appears on the floor where the grenade will land.
+- Throwing the grenade sends it to that location.
+- On detonation / trigger, nearby characters are launched away.
+- If the player is near the explosion, the player is launched too.
+- If enemies are near the explosion, they are launched too.
+
+Implementation notes:
+- Keep this readable and prototype-friendly.
+- You may simplify ballistic simulation if needed, as long as the experience is:
+  - aim at ground with crosshair
+  - see marker
+  - throw grenade to that spot
+  - explosion launches nearby characters
+
+==================================================
+7. EXPLOSION IMPULSE REACTION
+==================================================
+
+Use the same general style of explosion impulse reaction as the latest prototype.
+
+Requirements:
+- The explosion launches characters away from the blast.
+- This must work for:
+  - player
+  - enemies
+- Keep the gameplay capsule as the authoritative body.
+- Keep the visual body separate.
+- The explosion reaction should visually affect the body:
+  - chest / torso tilt away from explosion
+  - hands move slightly outward / upward / backward
+  - feet react and move more than at rest
+  - head follows smoothly
+  - pose recovers over time
+- No ragdoll required.
+- No damage from grenade.
+- Focus on readable procedural reaction.
+
+Important:
+- Do not use the visible mesh for collision logic.
+- Do not use the feet as real floor detection.
+- Keep gameplay collision authoritative and simple.
+
+==================================================
+8. STRUCTURE / CODE ORGANIZATION
+==================================================
+
+Follow `agents.md` strictly.
+
+Use a clean architecture. Suggested responsibilities:
+
+- map loader script
+- player controller script
+- player weapon / shooting helper
+- grenade targeting / grenade throw logic
+- enemy controller or enemy target script
+- health display logic
+- shared visual body or shared character visual helper if useful
+
+Guidelines:
+- Keep `_physics_process()` short.
+- Split behavior into clearly named helper methods.
+- Use descriptive node names and script names.
+- Use `@export` for tunable values such as:
+  - move speed
+  - jump velocity
+  - mouse sensitivity
+  - weapon damage
+  - fire range
+  - grenade radius
+  - grenade impulse force
+  - marker max distance
+  - pillar size
+  - wall height
+- Avoid magic numbers.
+- Use typed GDScript where reasonable.
+- Keep comments short and meaningful.
+
+==================================================
+9. TESTABILITY
+==================================================
+
+This prototype should be easy to run and inspect.
+
+Requirements:
+- Make it easy to launch the main sandbox scene.
+- Ensure the map file is included and readable.
+- Keep node and file layout clear.
+- Avoid unnecessary complexity.
+
+Input requirements:
+- FPS movement input
+- mouse look
+- shooting input
+- jump input
+- grenade throw input
+- crosshair visible at all times
+- grenade landing marker visible when valid
+
+Please choose sensible default controls if not already defined.
+Explain them at the end.
+
+==================================================
+10. VISUAL STYLE
+==================================================
+
+Keep visuals intentionally simple.
+Use the same spirit as version 6:
+- simple geometric body
+- separated visual body from gameplay collider
+- readable silhouette
+- enough movement reaction to feel alive
+
+No need for polished art.
+No need for advanced shaders.
+No need for complex enemy AI unless minimal and clean.
+
+==================================================
+11. WHAT TO CREATE
+==================================================
+
+Please create all needed files for this new prototype version 7, including:
+- scene files
+- scripts
+- map text file
+- any small helper resources needed for the prototype
+
+Do not leave the implementation half-finished.
+Build a runnable prototype.
+
+==================================================
+12. FINAL EXPLANATION FORMAT
+==================================================
+
+After implementing, explain the result in this exact format:
+
+1. Scene structure
+2. Script responsibilities
+3. Important exported variables
+4. Main runtime/update flow
+5. Map file format
+6. Default controls
+7. Where to tweak later:
+   - arena size
+   - pillar placement
+   - player movement
+   - weapon feel
+   - enemy health
+   - grenade radius
+   - grenade impulse strength
+   - visual reaction intensity
+
+Final reminders:
+- This is prototype version 7.
+- Build it as a new clean version.
+- Follow `agents.md`.
+- Keep code readable.
+- Keep gameplay collider and visual body separate.
+- Use the simple version 6 character style for both player and enemies.
+- Include text-file-driven map generation.
+- Include FPS raycast shooting with 20 damage.
+- Include enemy health display.
+- Include crosshair and ground landing marker for grenade aiming.
+- Include grenade impulse launching player and enemies.
+```
