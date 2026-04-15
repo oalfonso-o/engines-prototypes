@@ -1,0 +1,268 @@
+Create a new prototype version 8 by cloning the current version 7 into a new versioned folder. Do not modify version 7 in place. Build version 8 as a clean, playable continuation of version 7, while using version 6 and `agents.md` as the reference for better class structure and cleaner organization.
+
+Critical requirements:
+- Version 8 must remain fully playable.
+- Preserve the current gameplay and behavior of version 7 unless explicitly changed below.
+- Follow `agents.md` strictly.
+- Use version 7 as the functional reference.
+- Use version 6 plus `agents.md` as the structural/style reference for how code should be organized into classes.
+- The result must be cleaner, more modular, more class-oriented, and easier to read than version 7.
+
+==================================================
+1. VERSIONING
+==================================================
+
+- Clone version 7 into a new version 8 folder.
+- Do not patch version 7 directly.
+- Version 8 must be a new clean iteration.
+- Keep version 8 runnable and self-contained.
+
+==================================================
+2. MAIN GOALS FOR VERSION 8
+==================================================
+
+Version 8 should keep the same prototype as version 7, but apply these two major changes:
+
+1. Replace the custom testing system with GUT.
+2. Reorganize runtime code into two layers:
+   - `runtime/engine`
+   - `runtime/logic`
+
+Additionally:
+- Restore the debug information/features that existed in version 6 and were lost in version 7.
+- Keep all debug-related code in a dedicated `debug` folder.
+- Keep the same gameplay coverage and test coverage as version 7.
+- Make the code more class-based and less function-scattered than version 7.
+
+==================================================
+3. TESTING MIGRATION: CUSTOM RUNNER -> GUT
+==================================================
+
+Replace the current custom testing runner/framework with GUT.
+
+Requirements:
+- Remove the custom test runner/discovery approach.
+- Replace it with GUT as the testing framework.
+- Preserve the same logical test coverage as version 7.
+- The goal is to keep testing the same behaviors and responsibilities, but implemented with GUT.
+- If GUT has its own discovery conventions, adapt the project to GUT instead of preserving the old custom discovery rules.
+- We do NOT need to preserve the old custom discovery system that searched folders and method prefixes manually.
+- We DO need to preserve the same intent and coverage of the existing tests.
+
+Existing testing intent to preserve:
+- class-level tests for single components
+- integration tests that cover interaction between multiple components
+
+Folder structure for tests:
+- keep tests inside a `tests` folder
+- organize tests into:
+  - `tests/classes`
+  - `tests/integration`
+
+Migration requirements:
+- Rewrite/replace all current tests so they use GUT.
+- Preserve as much equivalent coverage as possible.
+- Use GUT-friendly setup/teardown patterns.
+- Avoid duplicated test setup logic.
+- If shared helpers are useful, create them cleanly.
+- Make the tests easy to read and maintain.
+- Keep the tests aligned with `agents.md`.
+
+Important:
+- Do not just install GUT and leave old tests broken.
+- Do not reduce coverage.
+- Do not keep the old custom test runner unless absolutely necessary for transition, and avoid that if possible.
+- The final version 8 should use GUT as the actual testing framework.
+
+==================================================
+4. DEBUG RESTORATION
+==================================================
+
+There is debug information/functionality that existed in version 6 and was lost in version 7.
+
+Requirements:
+- Compare version 6 and version 7.
+- Restore the useful debug functionality from version 6 into version 8.
+- Put all debug-related code into the `debug` folder.
+- The debug layer should contain things like HUD/debug displays and similar debugging helpers.
+- Debug should be enabled by default for now.
+- Structure debug code so it can be disabled more easily in the future.
+
+Important:
+- Do not mix debug code into unrelated runtime classes unless absolutely necessary.
+- Keep debug responsibilities separated and clear.
+
+==================================================
+5. FOLDER STRUCTURE
+==================================================
+
+Preserve these main folders:
+- `debug`
+- `tests`
+- `maps`
+- `runtime`
+
+But change runtime organization as follows:
+
+Instead of having all runtime classes in one flat runtime folder, split runtime into:
+- `runtime/engine`
+- `runtime/logic`
+
+Definitions:
+
+A. `runtime/engine`
+This folder must contain all classes/scripts that depend directly on Godot engine concepts or engine objects, such as:
+- nodes
+- scene tree
+- `CharacterBody3D`
+- `Node3D`
+- `MeshInstance3D`
+- input APIs
+- physics APIs
+- raycasts
+- camera handling
+- scene instancing
+- rendering-facing objects
+- Godot resources
+- environment/debug display hooks tied to the engine
+- any code that directly depends on Godot-specific objects or engine APIs
+
+B. `runtime/logic`
+This folder must contain pure logic or logic-oriented helpers that do not need to know about Godot engine objects directly, such as:
+- calculations
+- rules
+- pure decision logic
+- data transformation
+- state transition logic
+- reusable logic that could conceptually be written in any language
+- code that should not depend on a concrete Godot scene object when avoidable
+
+Important:
+- Keep engine-specific code out of `runtime/logic`.
+- Move pure logic out of engine-facing classes whenever it is practical.
+- Do not force absurd abstraction, but do aggressively extract pure logic when it improves clarity and modularity.
+
+==================================================
+6. CLASS-ORIENTED REFACTORING
+==================================================
+
+A key issue in version 7 is that too much logic is implemented as loose free-floating functions and not enough as clearly structured classes.
+
+Requirements:
+- Reorganize code so behavior is grouped into clear classes/scripts with clear responsibilities.
+- Use version 6 as a reference for the more class-oriented structure.
+- Use `agents.md` as the rule source for code organization.
+- Avoid random standalone functions with unclear ownership.
+- Prefer small focused classes over large mixed-responsibility scripts.
+- Fragment responsibilities more if needed, as long as the result is easier to understand and maintain.
+
+Important:
+- It is acceptable for version 8 to have more classes/files than version 7.
+- The goal is stronger separation of responsibilities and clearer ownership of logic.
+- Do not create pointless abstractions, but do split responsibilities enough that each class is easy to understand quickly.
+
+Examples of desired direction:
+- if a script currently mixes engine access, calculations, and gameplay rules, split it
+- keep Godot-node handling in engine layer
+- move pure behavior/rule calculations into logic layer
+- make class responsibilities explicit and easy to locate
+
+==================================================
+7. STRUCTURAL REFERENCE RULE
+==================================================
+
+Use both references:
+
+Functional reference:
+- version 7 is the source of truth for current gameplay behavior and current tests to preserve
+
+Structural/style reference:
+- version 6 and `agents.md` are the source of truth for how code should be organized more cleanly into classes
+
+If version 7 and version 6 conflict:
+- keep version 7 gameplay behavior
+- prefer version 6 / `agents.md` code organization style
+
+==================================================
+8. WHAT MUST STAY THE SAME
+==================================================
+
+Keep the prototype behavior from version 7 unless explicitly changed:
+- same prototype concept
+- same gameplay loop
+- same maps/setup behavior unless needed for structural migration
+- same player/enemy/grenade/raycast prototype functionality
+- same test intent and coverage
+- version 8 must still be playable
+
+==================================================
+9. CODE QUALITY REQUIREMENTS
+==================================================
+
+Follow `agents.md` strictly.
+
+Especially:
+- prioritize readability and maintainability
+- use small focused classes
+- no magic numbers
+- use `@export` or named constants for tunables
+- use typed GDScript where reasonable
+- keep `_physics_process()` short
+- separate responsibilities clearly
+- do not mix debug, engine integration, and pure logic unnecessarily
+- use descriptive names for classes, variables, functions, and nodes
+- avoid monolithic scripts
+- prefer explicit code over clever shortcuts
+
+==================================================
+10. REFACTORING EXPECTATIONS
+==================================================
+
+Perform a meaningful refactor, not a cosmetic rename.
+
+Expected outcomes:
+- runtime split into `engine` and `logic`
+- GUT fully replaces the custom test runner
+- version 6 debug features restored into version 8
+- version 8 code is cleaner and more class-oriented than version 7
+- test coverage remains equivalent in intent
+- game still runs and is playable
+
+==================================================
+11. IMPLEMENTATION GUIDELINES
+==================================================
+
+- Be careful and systematic.
+- Preserve behavior unless intentionally changing infrastructure.
+- When extracting logic, keep interfaces simple.
+- Avoid introducing unnecessary coupling between engine and logic layers.
+- Keep debug code easy to find and disable later.
+- Keep test helpers organized and readable.
+- Make the folder/file layout easy to navigate.
+
+==================================================
+12. FINAL EXPLANATION FORMAT
+==================================================
+
+After implementing version 8, explain the result in this exact format:
+
+1. Versioning and folder changes
+2. Runtime folder split: `engine` vs `logic`
+3. Main class responsibilities
+4. GUT migration summary
+5. Test coverage preserved from version 7
+6. Debug features restored from version 6
+7. Main runtime/update flow
+8. Important exported variables / tunables
+9. Where to continue refactoring later
+
+Final reminders:
+- Clone v7 into v8.
+- Keep the game playable.
+- Replace the custom tests with GUT.
+- Preserve test intent and coverage.
+- Restore debug features from v6.
+- Use v7 as functional reference.
+- Use v6 + `agents.md` as structural reference.
+- Split runtime into `engine` and `logic`.
+- Make the code more modular, more class-oriented, and more maintainable.

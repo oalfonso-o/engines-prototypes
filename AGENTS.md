@@ -1,39 +1,32 @@
 # AGENTS
 
-## Current Focus
+## Critical Rules
 
-- Work primarily on isolated prototypes under `godot-prototypes/` and `pygame-prototypes/`.
-- Prefer changes that keep prototypes independently runnable and easy to test from the command line.
+1. Everything is written in `GDScript`.
+2. Prefer a code-first architecture by default.
+3. Organize `runtime/` by domain first, then by `engine/` versus `logic/`.
+4. `logic/` must not depend on `engine/`, scene-tree APIs, or runtime node behavior.
+5. `engine/` may depend on `logic/` and adapts logic to the real Godot runtime.
+6. Keep root scripts thin. Internal implementation logic belongs in descriptive helper classes.
+7. Type everything. Do not rely on implicit `Variant`.
+8. Use `@export` only for values genuinely tuned from the inspector.
+9. Keep `runtime/`, `debug/`, and `tests/` strictly separated.
+10. Automated tests use `GUT` and must follow the project test structure.
 
-## Godot Prototypes
+## Default Decisions
 
-- These conventions apply to everything under `godot-prototypes/`.
-- Fast visual and engine-facing prototyping in Godot can be done in `GDScript`.
-- If a prototype later graduates into a more serious game branch, move deterministic and highly testable gameplay logic into `C#`.
-- Keep directly engine-coupled logic in `GDScript` when it is mainly scene wiring, camera behavior, HUD, materials, map assembly, input glue, or other Godot-native integration work.
-- Prefer a code-first architecture for Godot prototypes unless the user explicitly asks for editor-first scene authoring.
+- Default to `code-first`, not `editor-first`.
+- Default to creating nodes and subtrees in code.
+- Default to putting internal logic inside helper classes, not root-level private methods.
+- Default to placing state in the most local owner possible.
+- Default to small, deterministic logic in `logic/`.
+- Default to runtime adapters, node wiring, scene work, and Godot-facing code in `engine/`.
+- Only use an editor-first approach when the user explicitly asks for it.
+- Only use `shared/` when something truly has no clear owner domain.
 
-## Godot Bootstrap Style
+## Project Structure
 
-- Treat `project.godot` as the project entrypoint and `main.tscn` as a minimal bootstrap scene.
-- Keep `main.tscn` as small as practical:
-  1. one root node
-  2. one attached bootstrap script such as `main.gd`
-- Do not spread one component's structural definition across both `.tscn` and `.gd` without a clear reason.
-- If a component is code-first, its node tree, child creation, and base configuration should live in `.gd` as its single source of truth.
-- Prefer `main.gd` as an orchestrator only:
-  1. create or initialize top-level components
-  2. attach them to the root
-  3. avoid embedding subsystem logic there
-- Prefer one script per responsibility for top-level bootstrap concerns such as camera, lights, floor, world environment, character root, HUD, or debug controller.
-- A component root script should own its whole subtree. For example, a character root script should create its collider, visual rig, skeleton, and other mandatory children itself instead of relying on a companion `.tscn`.
-- Avoid predeclaring runtime nodes in `main.tscn` when those same nodes are going to be created and configured in code.
-- Prefer readable responsibility-based names without context prefixes such as `sandbox_` or `main_` when the directory already provides the context.
-
-## New Godot Prototype Scaffold
-
-- When creating a new Godot prototype under `godot-prototypes/`, start from the same default scaffold unless the user asks for a different structure.
-- Create these top-level files and directories inside the prototype root:
+- When creating a new Godot prototype, use this default scaffold unless the user explicitly asks for a different structure:
   1. `project.godot`
   2. `main.tscn`
   3. `main.gd`
@@ -41,60 +34,175 @@
   5. `debug/`
   6. `tests/`
   7. `README.md`
-- Treat that scaffold as the default contract for a new prototype:
+
+- Treat that scaffold as the default contract:
   1. `project.godot` points to `res://main.tscn`
   2. `main.tscn` contains only one root node with `main.gd` attached
   3. `main.gd` bootstraps top-level components and does not own subsystem logic
-  4. `runtime/` contains the real prototype components
-  5. `debug/` contains optional debug HUD, debug controllers, or manual triggers
-  6. `tests/` contains the automated test runner, tests, and fixtures
-- Inside `tests/`, create this structure by default:
-  1. `tests/runner.gd`
-  2. `tests/class/`
-  3. `tests/integration/`
-  4. `tests/fixtures/`
-- Name test files with the prefix `test_`.
-- Name fixture files with the prefix `fixtures_`.
-- If the prototype is command-line runnable and testable, add matching `make run-...` and `make test-...` targets in the root `Makefile`.
+  4. `runtime/` contains the real game or prototype components
+  5. `debug/` contains debug-only tooling
+  6. `tests/` contains automated tests and test-only helpers
+
+- Do not invent a different folder layout for each new prototype unless the user explicitly asks for it.
+
 - Add a minimal `README.md` that documents:
   1. what the prototype is
   2. controls if relevant
   3. how to run it
   4. how to run its tests
-- Do not invent a different folder layout for each new prototype unless the user explicitly asks for it.
 
-## Godot Directory Split
+## Godot Code-First Architecture
 
-- Separate Godot prototype code into three domains:
+- Treat `project.godot` as the project entrypoint.
+- Treat `main.tscn` as a minimal bootstrap scene.
+- Treat `main.gd` as a thin orchestrator for top-level setup.
+- By default, create nodes and subtrees in code instead of preauthoring them in scenes.
+- Do not split one component's structural definition across both `.tscn` and `.gd` without a clear reason.
+- A component root script should own its whole subtree when the component is code-first.
+- If a component is code-first, its node tree, child creation, and base configuration should live in `.gd` as the single source of truth.
+
+## Godot Bootstrap Rules
+
+- Keep `main.tscn` as small as practical:
+  1. one root node
+  2. one attached bootstrap script such as `main.gd`
+
+- Keep `main.gd` focused on orchestration only:
+  1. create or initialize top-level components
+  2. attach them to the root
+  3. avoid embedding subsystem logic there
+
+- Prefer one top-level script per clear responsibility such as:
+  1. camera
+  2. lights
+  3. floor
+  4. world environment
+  5. character root
+  6. HUD
+  7. debug controller
+
+- Avoid predeclaring runtime nodes in `main.tscn` when those same nodes will be created and configured in code.
+- Prefer readable responsibility-based names without redundant context prefixes when the directory already provides the context.
+
+## Runtime / Debug / Tests Split
+
+- Separate code into three top-level domains:
   1. `runtime/`
   2. `debug/`
   3. `tests/`
-- `runtime` contains only real game behavior.
-- `debug` contains only debug-only tooling, overlays, manual triggers, or inspection helpers.
-- `tests` contains only automated validation logic and test-only helpers.
-- `runtime` must not depend on `debug` or `tests`.
-- `debug` may depend on `runtime`.
-- `tests` may depend on `runtime`.
-- Do not keep debug-only methods or test-only methods in runtime scripts.
+
+- `runtime/` contains only real game behavior.
+- `debug/` contains only debug-only tooling, overlays, manual triggers, or inspection helpers.
+- `tests/` contains only automated validation logic and test-only helpers.
+
+- `runtime/` must not depend on `debug/` or `tests/`.
+- `debug/` may depend on `runtime/`.
+- `tests/` may depend on `runtime/`.
+
+- Do not keep debug-only methods in runtime scripts.
+- Do not keep test-only methods in runtime scripts.
 - If a behavior exists only for debug, move it to `debug/`.
 - If a behavior exists only for tests, keep it in `tests/`.
-- When a runtime component needs companion debug or test logic, mirror it with sibling-named files under `debug/` or `tests/` instead of extending the runtime script API with debug/test-only methods.
-- If a runtime script has no debug or test companion, it should exist only under `runtime/`.
+- When a runtime component needs companion debug or test logic, mirror it with sibling-named files under `debug/` or `tests/` instead of extending the runtime API with debug-only or test-only methods.
 
-## GDScript Rules
+## Runtime Domain Architecture
 
-- Type everything that can reasonably be typed.
-- Prefer explicit types for:
+- Organize `runtime/` first by game domain, then by `engine/` versus `logic/`.
+- Do not keep global `runtime/engine/` and `runtime/logic/` directories.
+- Prefer a structure like:
+  1. `runtime/player/`
+  2. `runtime/characters/`
+  3. `runtime/combat/`
+  4. `runtime/world/`
+  5. `runtime/ui/`
+  6. `runtime/shared/`
+
+- Inside each runtime domain, split files into:
+  1. `engine/`
+  2. `logic/`
+
+- Use `shared/` sparingly.
+- If something has a clear owner domain, keep it in that domain instead of placing it in `shared/`.
+
+## File Placement Decision Order
+
+- Before creating or moving a runtime file, decide in this order:
+  1. which domain owns it
+  2. whether it belongs in `logic/` or `engine/`
+  3. what test coverage it needs
+
+- Use this mental rule:
+  1. if it decides rules, computes state, parses data, or derives values, it likely belongs in `logic/`
+  2. if it applies those decisions to the Godot runtime, it likely belongs in `engine/`
+
+- Use this second rule when in doubt:
+  1. if it could run in a test without a real scene or node tree, prefer `logic/`
+  2. if it requires a real runtime node or scene context, prefer `engine/`
+
+## Engine Versus Logic Rules
+
+- Put a file in `logic/` when it mostly follows these rules:
+  1. it does not inherit from `Node`, `Node3D`, `CharacterBody3D`, `Control`, or other runtime node classes
+  2. it does not depend on the scene tree
+  3. it does not use `get_node`, `add_child`, `queue_free`, `instantiate`, or similar scene operations
+  4. it does not read real input
+  5. it does not manipulate cameras, lights, HUD nodes, world environment nodes, scene timers, or node signals
+  6. it can receive simple inputs and return simple outputs
+  7. it should be testable without a real scene or runtime tree
+
+- Put a file in `engine/` when it mostly follows these rules:
+  1. it inherits from Godot runtime node classes
+  2. it manipulates nodes or scenes
+  3. it connects or reacts to node signals
+  4. it reads real input
+  5. it spawns scenes, projectiles, or runtime nodes
+  6. it moves bodies in the world
+  7. it applies logic to cameras, HUD, lights, environment, resources, or packed scenes
+
+- Using Godot value types such as `Vector2`, `Vector3`, `Transform3D`, `Basis`, `Color`, arrays, or dictionaries does not automatically make a file `engine/`.
+
+## Dependency Direction Rules
+
+- `engine/` may depend on `logic/`.
+- `logic/` must not depend on `engine/`.
+- `logic/` must not instantiate runtime nodes.
+- `logic/` must not traverse the scene tree.
+- `logic/` must not call scene-management APIs.
+- Treat `logic/` as pure gameplay logic, state, parsing, rules, and calculation code.
+- Treat `engine/` as the adapter layer that connects `logic/` to the real Godot runtime.
+- Folder structure alone is not enough. Preserve this dependency direction in the actual code.
+
+## Placement Examples
+
+- parse map text into a layout model -> `runtime/world/logic/`
+- instantiate runtime nodes from a layout model -> `runtime/world/engine/`
+- decide weapon spread values -> `runtime/combat/logic/`
+- spawn and move a projectile node -> `runtime/combat/engine/`
+- compute a health state transition -> `runtime/characters/logic/`
+- apply that health state to a HUD or scene node -> `runtime/ui/engine/` or another relevant `engine/` layer
+- decide a visual pose target -> `runtime/characters/logic/`
+- apply that pose target to nodes, rigs, or transforms -> `runtime/characters/engine/`
+
+## GDScript Typing Rules
+
+- Type everything.
+- Do not leave values as implicit `Variant`.
+- Use explicit types for:
   1. node references
-  2. local variables whose inferred type would otherwise become `Variant`
+  2. local variables
   3. function arguments
   4. function return values
-  5. arrays and dictionaries when practical
-- Avoid leaving values as implicit `Variant` unless there is a real reason to keep them dynamic.
+  5. arrays
+  6. dictionaries
+  7. constants when practical
+  8. helper class fields
+
+- If something can reasonably be typed, type it.
+- Dynamic typing should be treated as an exception, not as the default.
 
 ## GDScript Script Structure
 
-- Structure GDScript files in this order:
+- Structure every GDScript file in this order:
   1. `extends`
   2. `class_name`
   3. `const`
@@ -102,51 +210,70 @@
   5. public vars
   6. private vars
   7. `@onready`
-  8. Godot entrypoint callbacks:
+  8. Godot callbacks:
      - `_ready`
      - `_process`
      - `_physics_process`
      - `_input`
      - `_unhandled_input`
-  9. everything else inside helper classes
-- Treat the Godot callbacks as the main entrypoints of the script and keep them near the top so the runtime flow reads from top to bottom.
-- Keep callback methods short and make them orchestrate helper calls directly when possible.
-- Avoid redundant public passthrough methods that are only called by a single callback and add no external API value.
-- Inside a focused component script, helper classes are acceptable for local implementation details.
-- Do not force unrelated responsibilities into one file just to satisfy a helper-class pattern. When a responsibility can stand on its own as a component, prefer a separate `.gd` file.
-- Values loaded with `preload(...)` for scenes, scripts, or similar runtime assets should be named in `PascalCase`, not `ALL_CAPS`, because they are treated as loaded references rather than fixed compile-time style constants.
+  9. public methods used from outside the file
+  10. helper classes
 
-## Helper Class Rules
+- Treat Godot callbacks as the main entrypoints of the script and keep them near the top so the runtime flow reads from top to bottom.
+- Keep the root of the script readable and predictable.
+- Values loaded with `preload(...)` for scenes, scripts, or runtime assets should be named in `PascalCase`, not `ALL_CAPS`.
 
-- Use helper classes inside the same file to group closely related responsibilities and make navigation predictable.
-- Prefer helper instances over `static` helpers when the helper owns configuration, runtime state, cached references, or any other variables that are only used by that helper.
-- Use `static` helpers only when the helper is truly stateless.
-- Prefer to keep variables inside the helper that actually uses them instead of leaving large bags of state on the root node.
-- Only lift a variable to the root script when it is genuinely shared by multiple helpers or is part of the node's public runtime API.
-- Prefer a separate top-level script over an in-file helper when that logic represents a whole component with its own subtree or bootstrap responsibility.
-- Prefer clear helper names such as:
+## Root And Helper Class Discipline
+
+- Inside a script, keep almost all internal logic inside descriptive helper classes.
+- Treat the root level of the script as a thin orchestration layer, not as the place where internal implementation logic lives.
+
+- At the root level, allow only:
+  1. Godot lifecycle callbacks such as `_ready`, `_process`, `_physics_process`, `_input`, or `_unhandled_input`
+  2. public methods that are actually called from outside the file
+  3. root variables only when they are part of the public runtime API or are genuinely shared across multiple helper classes
+
+- Do not leave private internal methods hanging around at the root level.
+- Do not spread implementation logic across multiple root-level helper methods.
+- If logic is internal to the file, place it inside a helper class with a descriptive responsibility-based name.
+
+## Callback And Public Method Size Rule
+
+- Godot callbacks and public root methods may contain direct logic only when that logic stays very small.
+- If a callback or public method is around 3 to 4 lines, it may keep that logic inline.
+- If a callback or public method grows to 5 lines or more, move that logic into a helper class method instead.
+- Treat this as a readability threshold, not as a loophole to keep dense logic at the root.
+- The goal is that root methods read as short orchestration entrypoints that delegate real work to clearly named classes.
+
+## Helper Class Responsibility Rules
+
+- Each helper class should group logic by one clear responsibility.
+- Prefer descriptive names that explain what the class owns, for example:
   1. `Builder`
   2. `Solver`
   3. `Factory`
   4. `Geometry`
-  5. `Debug`
-  6. `TestSupport`
-- Inside a helper class:
-  1. methods without `_` are treated as the helper's public API
-  2. methods with `_` are treated as internal helper implementation details
-- When introducing a new piece of logic, prefer creating a small helper that owns its own variables and exposes a narrow public method instead of extending the root script with more direct state.
-- If logic exists only for debug behavior, keep it inside a `Debug...` helper class.
-- If logic exists only to support tests, keep it inside a `TestSupport...` helper class or in the test file itself.
+  5. `InputHandler`
+  6. `HealthModel`
+  7. `CameraController`
+  8. `DebugOverlay`
+  9. `TestSupport`
 
-## Exported Configuration
+- When a new internal behavior appears, prefer creating or extending a clearly named helper class instead of adding more root-level methods.
+- The helper class should be the obvious single place where that logic lives and grows.
+- Use helper instances over `static` helpers when the helper owns configuration, runtime state, cached references, or other variables used only by that helper.
+- Use `static` helpers only when the helper is truly stateless.
+- Prefer a separate top-level script over an in-file helper when that logic represents a whole component with its own subtree or bootstrap responsibility.
 
-- Use `@export` for values that are meant to be tuned from the Godot inspector.
-- If a value is not actually being tuned from the inspector or configured externally, do not keep it as `@export`; make it a normal variable instead.
-- Keep `@export` values on the component root script, not inside helper classes.
+## Exported Configuration Rules
+
+- Use `@export` only for values that are genuinely meant to be tuned from the Godot inspector.
+- If a value is not actually being tuned from the inspector or configured externally, do not keep it as `@export`. Make it a normal variable instead.
+- Keep `@export` values on the root script, not inside helper classes.
 - Pass exported configuration into helper classes as arguments instead of making helper classes own inspector-tunable state.
-- Use `const` for fixed implementation details and formulas that are not intended to be tuned from the editor.
+- Use `const` for fixed implementation details and formulas that are not meant to be tuned from the editor.
 
-## Variable Visibility
+## Variable Visibility And Placement Rules
 
 - Treat variables as either public or private.
 - If a variable is used from Godot wiring, from another script, from another helper, or from tests through the runtime API, make it public.
@@ -155,56 +282,68 @@
 - Do not create setter methods for plain variables either.
 - If external code needs a plain value, expose the variable itself as public and access it directly.
 - If external code needs to mutate a plain value, assign the public variable directly instead of wrapping the assignment in a trivial method.
-- Methods are acceptable for runtime commands, computed values, assembled state, or other behavior that is not a simple variable passthrough.
-- Example of what not to do: private helper state like `_torso_radius` plus `func torso_radius() -> float: return _torso_radius`.
-- Example of what to do instead: public helper state like `var torso_radius: float = 0.28` accessed as `_config.torso_radius`.
-- Computed helpers such as `compute_idle_bob(...)`, `hand_offset(...)`, or `head_offset()` should stay as methods because they assemble or derive a value instead of exposing stored state.
+- Methods are acceptable for runtime commands, computed values, assembled state, or behavior that is not a simple variable passthrough.
 
-## Development And Testing
+- Keep variables in the most local place that actually owns them.
+- If a variable is only used by one helper class, keep it inside that helper class.
+- If a variable is used by multiple helper classes, it may live at the root level.
+- If a variable is accessed from outside the file as part of the runtime API, expose it at the appropriate public level.
+- Do not keep state at the root level just for convenience when that state really belongs to one helper class.
 
-- Prefer TDD whenever the intended behavior can be expressed deterministically.
-- Follow `red -> green -> refactor`:
-  1. add or update a failing automated test that captures the intended behavior
-  2. implement the smallest change needed to make that test pass
-  3. refactor only after the test is green
-- Before refactoring an existing behavior, add characterization tests so regressions are visible immediately.
-- Run the relevant automated tests before considering the task complete.
-- Do not run `dotnet build`, `dotnet test`, and the Godot integration runner in parallel against the same workspace outputs. They can contend on shared `obj/bin` files. Run them in sequence.
+## Root Readability Goal
 
-## Godot Testing
+- A reader should be able to open a script and quickly understand:
+  1. the Godot entrypoints
+  2. the public API exposed to other files
+  3. which helper classes own the real internal logic
 
-- For `GDScript` prototypes, favor small headless integration checks over brittle UI automation.
-- For logic that is a strong fit for unit testing, prefer pushing it toward `C#` as the prototype matures.
-- Prefer one test entrypoint such as `tests/runner.gd` per prototype and wire command-line test targets to that runner.
-- Favor automatic discovery over manual registration:
-  1. test files should use the prefix `test_`
-  2. test methods should use the prefix `test_`
-  3. fixture helpers should use the prefix `fixtures_`
-- Split tests by scope:
-  1. `tests/class/` for 1:1 tests of non-trivial scripts
-  2. `tests/integration/` for cross-component behavior checks
-  3. `tests/fixtures/` for shared setup helpers only
-- Each discovered test case should create its own scene or fixture context unless there is a measured performance reason to share one.
-- Treat the test runner as infrastructure only:
-  1. discover files and methods
-  2. provide shared assertions and context helpers
-  3. execute tests and decide the exit code
-- Keep product assertions in the test files themselves, not inside the runner or fixtures.
+- Root-level code should feel like a clean table of contents for the component.
+- Internal logic should already be living in the place where it would naturally continue to grow.
 
-## Agent History
+## Testing With GUT
 
-- If the user asks to "guardar el historial del agent" in docs, write or update a file under `docs/agents-history/`.
-- Use one file per day named with the current local date in ISO format, for example `docs/agents-history/2026-04-12.md`.
-- When writing the timestamp header for an entry, get the time from the user's machine by running `date`. Do not trust the model's internal time.
-- Use the `date` result as the source of truth for the entry time, and format the header with the label `Europe/Barcelona`.
-- Treat it as append/upsert:
-  1. create the file if it does not exist
-  2. append a new timestamped entry if it already exists
-- Each entry should contain enough information for a later agent to resume work without reconstructing context from scratch.
-- Include at least:
-  1. current objective
-  2. relevant decisions taken
-  3. files touched
-  4. important runtime assumptions
-  5. open issues or next steps
-- Keep entries concise but operational.
+- Automated tests use `GUT`.
+- Keep the test structure under `tests/` as:
+  1. `tests/classes/`
+  2. `tests/helpers/`
+  3. `tests/integration/`
+
+- `tests/classes/` contains focused tests for individual non-trivial scripts or classes.
+- `tests/integration/` contains cross-component behavior checks.
+- `tests/helpers/` contains shared test helpers and test-only support code.
+
+- Name test files with the prefix `test_`.
+- Keep helpers and support utilities under `tests/helpers/`.
+- Tests should be runnable in isolation.
+- Do not contaminate `runtime/` with test-only logic, helpers, or hooks.
+- Keep product assertions in the test files themselves.
+- Keep test helpers in `tests/helpers/` focused on setup, shared utilities, or reusable support behavior.
+
+## Testing Strategy By Layer
+
+- Prefer focused deterministic tests for `logic/` code.
+- Prefer integration-style tests for `engine/` code.
+- `logic/` code should be written so it is easy to exercise with small deterministic tests.
+- `engine/` code may require scene setup, runtime wiring, or broader integration coverage.
+
+- Before creating a new file, decide:
+  1. its domain
+  2. whether it belongs in `logic/` or `engine/`
+  3. what test coverage it needs
+
+- Before considering a change complete, make sure the relevant tests exist or are updated in the correct place.
+
+## Review Checklist
+
+Before finalizing a change, verify all of these:
+
+1. The file is in the correct domain.
+2. The file is in `logic/` or `engine/` for a concrete reason.
+3. `logic/` does not depend on scene-tree APIs or runtime node behavior.
+4. The script is fully typed.
+5. The script order matches the project structure rules.
+6. Root code is thin and internal logic lives in helper classes.
+7. `@export` is used only for real inspector-tunable values.
+8. Variables live in the most local owner possible.
+9. No debug-only or test-only behavior leaked into `runtime/`.
+10. Tests use `GUT` and live in the correct test area.
