@@ -13,7 +13,7 @@ func test_primitives_demo_spawns_grounded_player_and_building() -> void:
 	add_scene_root(scene)
 	await settle_frames(6)
 
-	var player = scene.get_node_or_null("Player")
+	var player: CharacterBody3D = scene.get_node_or_null("Player") as CharacterBody3D
 	assert_not_null(player, "primitives demo should spawn a player")
 	assert_not_null(scene.get_node_or_null("Ground"), "primitives demo should build exterior ground")
 	assert_not_null(scene.get_node_or_null("BuildingRoot"), "primitives demo should build the comparison building")
@@ -30,7 +30,7 @@ func test_primitives_demo_allows_forward_progress_toward_building() -> void:
 	add_scene_root(scene)
 	await settle_frames(6)
 
-	var player = scene.get_node_or_null("Player")
+	var player: CharacterBody3D = scene.get_node_or_null("Player") as CharacterBody3D
 	assert_not_null(player, "primitives demo should spawn a player")
 	if player == null:
 		return
