@@ -15,8 +15,10 @@ V8_FPS_PATH := godot-prototypes/v8-fps-prototype
 V8_FPS_GUT_CONFIG := res://.gutconfig.json
 V8_FPS_BUILD_DIR := build/v8-fps/mac
 V8_FPS_MAC_APP := $(V8_FPS_BUILD_DIR)/canuter-v8-fps.app
+V9_SPACE_PATH := godot-prototypes/v9-space-survival-prototype
+V9_SPACE_GUT_CONFIG := res://.gutconfig.json
 
-.PHONY: help edit-v2-iso3d run-v2-iso3d test-v2-iso3d edit-v3-iso3d run-v3-iso3d test-v3-iso3d edit-v4-iso3d run-v4-iso3d test-v4-iso3d edit-v5-character run-v5-character test-v5-character edit-v6-character run-v6-character test-v6-character edit-v7-fps run-v7-fps test-v7-fps edit-v8-fps run-v8-fps test-v8-fps run-built-v8-fps-mac
+.PHONY: help edit-v2-iso3d run-v2-iso3d test-v2-iso3d edit-v3-iso3d run-v3-iso3d test-v3-iso3d edit-v4-iso3d run-v4-iso3d test-v4-iso3d edit-v5-character run-v5-character test-v5-character edit-v6-character run-v6-character test-v6-character edit-v7-fps run-v7-fps test-v7-fps edit-v8-fps run-v8-fps test-v8-fps run-built-v8-fps-mac edit-v9-space run-v9-space test-v9-space
 
 help:
 	@printf "Available targets:\n"
@@ -42,6 +44,9 @@ help:
 	@printf "  make run-v8-fps         Run the v8-fps-prototype sandbox\n"
 	@printf "  make test-v8-fps        Run the v8-fps-prototype GUT suite headlessly\n"
 	@printf "  make run-built-v8-fps-mac  Export the v8-fps-prototype macOS app and open it locally\n"
+	@printf "  make edit-v9-space      Open the v9-space-survival-prototype in the Godot editor\n"
+	@printf "  make run-v9-space       Run the v9-space-survival-prototype\n"
+	@printf "  make test-v9-space      Run the v9-space-survival-prototype GUT suite headlessly\n"
 
 edit-v2-iso3d:
 	"$(GODOT)" --path "$(V2_ISO3D_PATH)" -e
@@ -112,3 +117,13 @@ run-built-v8-fps-mac:
 	"$(GODOT)" --headless --path "$(V8_FPS_PATH)" --import --quit-after 1
 	"$(GODOT)" --headless --path "$(V8_FPS_PATH)" --export-release "macOS" "$(V8_FPS_MAC_APP)"
 	open "$(V8_FPS_MAC_APP)"
+
+edit-v9-space:
+	"$(GODOT)" --path "$(V9_SPACE_PATH)" -e
+
+run-v9-space:
+	"$(GODOT)" --path "$(V9_SPACE_PATH)"
+
+test-v9-space:
+	"$(GODOT)" --headless --path "$(V9_SPACE_PATH)" --import --quit-after 1
+	"$(GODOT)" --headless -d --path "$(V9_SPACE_PATH)" -s addons/gut/gut_cmdln.gd -gconfig="$(V9_SPACE_GUT_CONFIG)" -gexit

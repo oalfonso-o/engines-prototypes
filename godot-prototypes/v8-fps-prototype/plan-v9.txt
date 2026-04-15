@@ -1,0 +1,198 @@
+Create a brand new Godot prototype as **version 9**, without copying or modifying version 8. Start from scratch and follow the repository `AGENTS.md` strictly, especially the architecture, folder layout, domain split, `engine/` vs `logic/`, root/helper-class discipline, full typing, and GUT test structure.
+
+Build a **2D fixed-camera space survival shooter** with these requirements:
+
+## High-level game idea
+
+* The player controls a **spaceship** in a 2D space map.
+* The ship is always moving forward.
+* The player uses **WASD only**:
+
+  * `W` = keep forward thrust / move forward
+  * `A` = rotate left
+  * `D` = rotate right
+  * `S` = optional slow-down / brake behavior if needed, but keep the full control scheme WASD-only
+* The ship **shoots automatically and constantly** in the direction it is facing.
+* Enemies spawn over time.
+* Boosters spawn over time.
+* The goal is to survive and kill as many enemies as possible.
+* If the ship collides with an enemy, the player dies immediately.
+
+## Visual style
+
+* The setting is **outer space**.
+* Keep visuals simple but readable.
+* The player ship should be drawn programmatically or assembled in code-first style if possible.
+* The ship shape:
+
+  * front = a sharp triangular fighter-like nose
+  * rear = three small tail spikes / triangle-like fins
+* Projectiles must be visible.
+* On projectile hit, show a **small explosion**.
+* On player death, the ship must also **explode**.
+
+## Core gameplay rules
+
+### Player
+
+* The player is a spaceship.
+* The ship always faces its movement/forward direction.
+* The ship continuously fires projectiles automatically.
+* The projectile origin should come from the nose/front of the ship.
+
+### Enemies
+
+* Spawn **every 2 seconds**.
+* Spawn at a **random position** in the map.
+* Must never spawn exactly on top of the player.
+* Must respect a minimum safe spawn distance from the player:
+
+  * use something like **5x the ship size/radius**
+* Enemies die with **one bullet hit**.
+* If the player collides with an enemy, the player dies instantly.
+
+### Boosters
+
+* Spawn **every 10 seconds**.
+* Spawn at a **random position** in the map.
+* There are exactly **two booster types**:
+
+  1. **fire rate booster**
+  2. **extra shot booster**
+* When collected, the booster permanently increases that weapon stat for the current run.
+
+### Weapon progression
+
+* The weapon has two upgrade dimensions:
+
+  1. **shot count**
+  2. **fire rate**
+* The HUD must show both values as numbers.
+* Shot count behavior:
+
+  * if shot count is 1, fire one projectile
+  * if shot count increases, fire multiple projectiles in **parallel**
+  * the projectile size stays the same
+  * the spread becomes visually wider because more parallel bullets are emitted
+  * example progression: 1, 2, 3, 4 parallel shots
+* Fire rate behavior:
+
+  * each booster increases shooting cadence
+  * represent this numerically in the HUD
+
+## HUD requirements
+
+Display a HUD with:
+
+1. **score** = number of enemies killed
+2. **weapon power panel**
+
+   * one icon/indicator + number for **shot count**
+   * one icon/indicator + number for **fire rate**
+
+* Keep the HUD readable and simple.
+
+## Game over flow
+
+When the player dies:
+
+* explode the player ship
+* pause gameplay
+* show a **Game Over** overlay
+* show the achieved score
+* the score display should **animate from 0 up to the final score**
+* show this text: **“Press Space to start again”**
+* pressing `Space` should restart the run cleanly
+
+## Technical constraints
+
+* Build this as a **new prototype from scratch**.
+* Follow the project architecture from `AGENTS.md`.
+* Use **code-first Godot architecture**.
+* Keep `main.tscn` minimal.
+* Keep `main.gd` as a thin bootstrap/orchestrator only.
+* Use the proper project scaffold:
+
+  * `project.godot`
+  * `main.tscn`
+  * `main.gd`
+  * `runtime/`
+  * `debug/`
+  * `tests/`
+  * `README.md`
+
+## Required architecture expectations
+
+Organize runtime code by **domain first**, then by **engine/logic**. Use domains that make sense for this prototype, such as:
+
+* `player`
+* `combat`
+* `world`
+* `ui`
+* `shared`
+* others only if clearly justified
+
+Examples of intended separation:
+
+* pure gameplay/state/timers/spawn rules/math/parsing/config decisions -> `logic/`
+* Godot nodes, scene wiring, movement bodies, collisions, HUD nodes, spawn application, runtime visuals -> `engine/`
+
+Enforce this dependency direction:
+
+* `engine/` may depend on `logic/`
+* `logic/` must not depend on `engine/`
+* `logic/` must not depend on scene tree APIs or node runtime behavior
+
+## Script style requirements
+
+Follow `AGENTS.md` strictly:
+
+* full typing everywhere
+* correct script ordering
+* root scripts thin
+* internal logic in descriptive helper classes
+* no random private root-level helper methods
+* variables should live in the most local owner possible
+* use `@export` only if genuinely inspector-tunable
+
+## Testing requirements
+
+Use **GUT** and create tests in the required structure:
+
+* `tests/classes/`
+* `tests/helpers/`
+* `tests/integration/`
+
+Add meaningful automated tests for the gameplay logic, especially things like:
+
+* enemy spawn safe distance from player
+* booster spawn timing / type behavior if architecturally testable
+* weapon shot count progression
+* fire rate progression
+* score increment logic
+* game-over-related logic that can be tested outside scene-heavy integration
+* any pure logic should have focused deterministic tests
+
+Use integration tests where appropriate for runtime wiring.
+
+## Deliverables
+
+Produce the full prototype implementation, including:
+
+* project structure
+* runtime code
+* HUD
+* enemy spawning
+* boosters
+* automatic shooting
+* explosions
+* game over overlay and restart
+* GUT tests
+* README with:
+
+  * what the prototype is
+  * controls
+  * how to run it
+  * how to run tests
+
+Be disciplined about architecture. The goal of this task is not only to make the game work, but also to verify that the implementation follows the repository `AGENTS.md` correctly.
