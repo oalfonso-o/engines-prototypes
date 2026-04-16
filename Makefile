@@ -18,8 +18,12 @@ V8_FPS_MAC_APP := $(V8_FPS_BUILD_DIR)/canuter-v8-fps.app
 V9_SPACE_PATH := godot-prototypes/v9-space-survival-prototype
 V9_SPACE_GUT_CONFIG := res://.gutconfig.json
 V10_WALL_LAB_PATH := godot-prototypes/v10-doom-wall-lab
+V11_HOUSE_COMPARISON_PATH := godot-prototypes/v11-house-comparison
+V12_VOXEL_PATH := godot-prototypes/v12-voxel-cross-corridor
+V13_PREPROCESSED_VOXEL_PATH := godot-prototypes/v13-preprocessed-voxel-runtime
+V14_RAMP_VOXEL_PATH := godot-prototypes/v14-ramp-voxel-runtime
 
-.PHONY: help edit-v2-iso3d run-v2-iso3d test-v2-iso3d edit-v3-iso3d run-v3-iso3d test-v3-iso3d edit-v4-iso3d run-v4-iso3d test-v4-iso3d edit-v5-character run-v5-character test-v5-character edit-v6-character run-v6-character test-v6-character edit-v7-fps run-v7-fps test-v7-fps edit-v8-fps run-v8-fps test-v8-fps run-built-v8-fps-mac edit-v9-space run-v9-space test-v9-space edit-v10-wall-lab run-v10-wall-lab
+.PHONY: help edit-v2-iso3d run-v2-iso3d test-v2-iso3d edit-v3-iso3d run-v3-iso3d test-v3-iso3d edit-v4-iso3d run-v4-iso3d test-v4-iso3d edit-v5-character run-v5-character test-v5-character edit-v6-character run-v6-character test-v6-character edit-v7-fps run-v7-fps test-v7-fps edit-v8-fps run-v8-fps test-v8-fps run-built-v8-fps-mac edit-v9-space run-v9-space test-v9-space edit-v10-wall-lab run-v10-wall-lab edit-v11-house run-v11-house edit-v12-voxel run-v12-voxel edit-v13-voxel run-v13-voxel edit-v14-voxel run-v14-voxel edit-v14-debug-ramp-3x3 run-v14-debug-ramp-3x3
 
 help:
 	@printf "Available targets:\n"
@@ -50,6 +54,15 @@ help:
 	@printf "  make test-v9-space      Run the v9-space-survival-prototype GUT suite headlessly\n"
 	@printf "  make edit-v10-wall-lab  Open the v10-doom-wall-lab in the Godot editor\n"
 	@printf "  make run-v10-wall-lab   Run the v10-doom-wall-lab comparison scene\n"
+	@printf "  make edit-v11-house     Open the v11-house-comparison in the Godot editor\n"
+	@printf "  make run-v11-house      Run the v11-house-comparison prototype\n"
+	@printf "  make edit-v12-voxel     Open the v12-voxel-cross-corridor in the Godot editor\n"
+	@printf "  make run-v12-voxel      Run the v12-voxel-cross-corridor prototype\n"
+	@printf "  make edit-v13-voxel     Open the v13-preprocessed-voxel-runtime in the Godot editor\n"
+	@printf "  make run-v13-voxel      Run the v13-preprocessed-voxel-runtime prototype\n"
+	@printf "  make edit-v14-voxel     Open the v14-ramp-voxel-runtime in the Godot editor\n"
+	@printf "  make run-v14-voxel      Run the v14-ramp-voxel-runtime prototype\n"
+	@printf "  make run-v14-debug-ramp-3x3  Run the v14 3x3 ramp debug scene\n"
 
 edit-v2-iso3d:
 	"$(GODOT)" --path "$(V2_ISO3D_PATH)" -e
@@ -136,3 +149,33 @@ edit-v10-wall-lab:
 
 run-v10-wall-lab:
 	"$(GODOT)" --path "$(V10_WALL_LAB_PATH)"
+
+edit-v11-house:
+	"$(GODOT)" --path "$(V11_HOUSE_COMPARISON_PATH)" -e
+
+run-v11-house:
+	"$(GODOT)" --path "$(V11_HOUSE_COMPARISON_PATH)"
+
+edit-v12-voxel:
+	"$(GODOT)" --path "$(V12_VOXEL_PATH)" -e
+
+run-v12-voxel:
+	"$(GODOT)" --path "$(V12_VOXEL_PATH)"
+
+edit-v13-voxel:
+	"$(GODOT)" --path "$(V13_PREPROCESSED_VOXEL_PATH)" -e
+
+run-v13-voxel:
+	"$(GODOT)" --path "$(V13_PREPROCESSED_VOXEL_PATH)"
+
+edit-v14-voxel:
+	"$(GODOT)" --path "$(V14_RAMP_VOXEL_PATH)" -e
+
+run-v14-voxel:
+	"$(GODOT)" --path "$(V14_RAMP_VOXEL_PATH)"
+
+edit-v14-debug-ramp-3x3:
+	"$(GODOT)" --path "$(V14_RAMP_VOXEL_PATH)" -e --scene "res://debug_ramp_3x3.tscn"
+
+run-v14-debug-ramp-3x3:
+	"$(GODOT)" --path "$(V14_RAMP_VOXEL_PATH)" --scene "res://debug_ramp_3x3.tscn"

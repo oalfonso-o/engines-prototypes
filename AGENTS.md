@@ -1,5 +1,18 @@
 # AGENTS
 
+## Modo Rapido
+
+- If the user explicitly says `modo rapido`, switch to a speed-first execution mode for that thread.
+- In `modo rapido`, ignore this `AGENTS.md`, ignore `superpowers`, and ignore skills/workflows that would normally add process overhead.
+- In `modo rapido`, respond to the prompt as directly as possible and optimize for fast idea validation, not for architecture purity.
+- In `modo rapido`, do not add tests, do not stop to write specs/plans, and do not expand scope unless the user asks for it.
+- In `modo rapido`, the only required verification is a quick check that the target scene or project starts without crashing.
+- Treat `modo rapido` as intentionally pragmatic and temporary:
+  1. fast iteration
+  2. minimal ceremony
+  3. minimal validation
+  4. no unnecessary refactors
+
 ## Critical Rules
 
 1. Everything is written in `GDScript`.
