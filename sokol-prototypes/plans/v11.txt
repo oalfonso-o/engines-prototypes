@@ -1,0 +1,839 @@
+MODO RÁPIDO. Ignora Agents.md, ignora skills, ignora TDD y no implementes todavía. Quiero una validación técnica de una spec cerrada para soporte visual de wedges en nuestro pipeline Sokol, sin interpretar nada ni expandir scope.
+
+Contexto:
+Ya tenemos un sistema voxel funcionando en Sokol con este pipeline:
+
+* TXT source of truth
+* preprocess Python
+* runtime artifact JSON
+* runtime Sokol que consume ese artifact
+
+Los cubos/voxels ya están cerrados en V10 con estas reglas:
+
+* sistema de ejes:
+
+  * X = anchura izquierda-derecha
+  * Y = altura
+  * Z = profundidad
+  * +X = derecha
+  * -X = izquierda
+  * +Y = arriba
+  * -Y = abajo
+  * +Z = fondo
+  * -Z = frente
+
+* convención geométrica global:
+
+  * toda cara exterior debe verse CCW desde fuera
+  * `cross(u, v)` debe apuntar hacia fuera
+  * el renderer usa front-face CCW y backface culling
+
+* quads actuales del artifact:
+
+  * formato de 12 enteros:
+    `[origin_x, origin_y, origin_z, u_x, u_y, u_z, v_x, v_y, v_z, n_x, n_y, n_z]`
+  * runtime reconstruye:
+
+    * `p0 = origin`
+    * `p1 = origin + u`
+    * `p2 = origin + u + v`
+    * `p3 = origin + v`
+  * índices:
+
+    * `0,1,2`
+    * `0,2,3`
+
+Quiero validar una spec nueva para añadir wedges visuales explícitas.
+No quiero implementación todavía.
+Quiero que compruebes si la spec es 100% determinista y suficiente, o si ves alguna contradicción matemática o alguna ambigüedad residual.
+
+## Objetivo de esta iteración
+
+Esta iteración añade soporte visual de wedges, pero NO incluye:
+
+* colisión de wedges
+* culling estructural avanzado entre wedges y vecinos
+* culling wedge-cube
+* culling wedge-wedge
+* stitching entre piezas
+* deduplicación/merge de caras de wedges
+* rotación runtime de wedges
+* inferencia heurística de rampas
+* optimización de artifact o runtime
+* texturas/UVs especiales para wedges
+
+La meta de esta iteración es solo:
+
+* definir wedges explícitas en el TXT
+* preprocess visual de esas wedges
+* serialización correcta al artifact
+* runtime capaz de dibujar `quads + triangles`
+* validación matemática de normals y winding
+
+## Regla de scope
+
+Cada wedge debe emitir siempre toda su geometría de plantilla:
+
+* 3 quads
+* 2 triangles
+
+En esta iteración no se elimina ninguna cara de wedge por vecindad con cubes ni con otras wedges.
+
+El único culling activo en runtime es el backface culling del renderer.
+
+La meta de esta iteración es validar la definición geométrica y el winding de las wedges, no optimizar su integración estructural con el mapa.
+
+## Regla de culling estructural en esta iteración
+
+En `v11`, el culling estructural del preprocess queda congelado así:
+
+* los cubos siguen usando su regla binaria de visibilidad estructural
+* pero esa regla solo considera vecinos tipo cubo sólido
+* una celda wedge NO cuenta como vecina sólida para ocultar caras de cubo
+* una wedge NO elimina caras de otra wedge
+* una wedge NO elimina caras de un cubo
+* un cubo NO elimina caras de una wedge
+
+Consecuencia operativa:
+
+* el culling estructural offline de esta iteración solo se aplica a cubo contra cubo
+* toda wedge emite siempre su plantilla visual completa:
+
+  * 3 quads
+  * 2 triangles
+
+El único culling que afecta a wedges en `v11` es el backface culling del renderer.
+
+## Tipos de celda del mapa
+
+Cada celda del grid ocupa exactamente el mismo volumen lógico.
+Cada celda puede contener:
+
+* vacío
+* cubo
+* wedge
+
+La wedge ocupa exactamente una celda voxel, igual que el cubo.
+
+## Mapping de chars en el TXT
+
+Congelado así:
+
+* `0` = vacío
+* `1` = cubo
+* `A` = `WEDGE_PZ`
+* `B` = `WEDGE_PX`
+* `C` = `WEDGE_NZ`
+* `D` = `WEDGE_NX`
+
+No hay orientación adicional separada.
+No hay rotación dinámica.
+Un char representa una pieza completamente definida.
+
+## Artifact visual
+
+El artifact mantiene el sistema actual de `quads` y añade `triangles`.
+
+Además, el preprocess puede generar un artifact paralelo de debug solo para inspección humana:
+
+* `runtime_world.debug.json`
+
+Ese artifact debug:
+
+* no lo consume el runtime
+* no cambia el path de carga del runtime principal
+* no sustituye al artifact compacto de runtime
+* existe solo para poder inspeccionar fácilmente qué geometría emitió cada pieza
+
+### Campos esperados del artifact
+
+* `version`
+* `source_map`
+* `dimensions`
+* `voxel_size`
+* `world_y_offset`
+* `spawn`
+* `materials`
+* `quads`
+* `triangles`
+* `boxes` puede seguir existiendo si el prototipo ya lo llevaba, pero esta iteración no añade colisión de wedges
+
+### settings.yaml en la raíz del proyecto
+
+Cada proyecto debe tener un `settings.yaml` en su raíz.
+
+En esta spec, las reglas de contrato no se representan como un string único tipo `geometry_contract`.
+Deben vivir en:
+
+* `settings.yaml`
+* key raíz: `contract`
+
+La key `contract` debe usar child keys explícitas.
+
+Para `v11`, el bloque mínimo esperado es:
+
+```yaml
+contract:
+  version: 1
+  front_face: ccw
+  backface_culling: true
+  quad_rule: cross_uv_outward
+  triangle_rule: cross_edges_outward
+  supports_quads: true
+  supports_triangles: true
+  runtime_reinterprets_geometry: false
+  cube_structural_culling: cube_vs_cube_only
+  wedge_structural_culling: none
+  wedge_collision: none
+  debug_artifact: runtime_world.debug.json
+preprocessing:
+  debug: true
+```
+
+Reglas:
+
+* esos valores forman parte del contrato del proyecto
+* el preprocess y el runtime deben seguir ese contrato
+* el artifact runtime puede repetir una referencia mínima al contrato si se quiere, pero la source of truth formal está en `settings.yaml`
+* `preprocessing.debug` controla si el preprocess genera o no el artifact debug paralelo
+* en esta spec, el valor inicial esperado es `true`
+
+### Artifact debug paralelo
+
+El preprocess genera `runtime_world.debug.json` solo cuando:
+
+* `settings.yaml`
+* `preprocessing.debug == true`
+
+Ese archivo no está optimizado para runtime.
+Su objetivo es únicamente depuración humana.
+
+Cada pieza emitida en el artifact debug debe incluir como mínimo:
+
+* `voxel_id`
+* `piece_type`
+* `cell`
+* `material`
+* `quads`
+* `triangles`
+
+#### voxel_id
+
+`voxel_id` debe ser determinista y derivado directamente de la celda.
+
+Formato recomendado y congelado para esta spec:
+
+* `voxel_<x>_<y>_<z>`
+
+Ejemplo:
+
+* `voxel_3_1_7`
+
+#### piece_type
+
+Valores esperados en esta iteración:
+
+* `cube`
+* `wedge_pz`
+* `wedge_px`
+* `wedge_nz`
+* `wedge_nx`
+
+#### cell
+
+Debe expresarse con keys descriptivas:
+
+* `{ "x": ..., "y": ..., "z": ... }`
+
+#### quads del artifact debug
+
+Cada quad del artifact debug debe incluir como mínimo:
+
+* `face`
+* `origin`
+* `u_axis`
+* `v_axis`
+* `normal`
+
+Formato exacto:
+
+```json
+{
+  "face": "base",
+  "origin": { "x": 0, "y": 0, "z": 0 },
+  "u_axis": { "x": 1, "y": 0, "z": 0 },
+  "v_axis": { "x": 0, "y": 0, "z": 1 },
+  "normal": { "x": 0, "y": -1, "z": 0 }
+}
+```
+
+Regla:
+
+* en el artifact debug, todos los puntos y vectores de quad deben expresarse como diccionarios con keys exactas:
+
+  * `x`
+  * `y`
+  * `z`
+
+#### triangles del artifact debug
+
+Cada triangle del artifact debug debe incluir como mínimo:
+
+* `face`
+* `p0`
+* `p1`
+* `p2`
+* `normal`
+
+Formato exacto:
+
+```json
+{
+  "face": "left_triangle",
+  "p0": { "x": 0, "y": 0, "z": 0 },
+  "p1": { "x": 0, "y": 0, "z": 1 },
+  "p2": { "x": 0, "y": 1, "z": 1 },
+  "normal": { "x": -1, "y": 0, "z": 0 }
+}
+```
+
+Regla:
+
+* en el artifact debug, todos los puntos y vectores de triangle deben expresarse como diccionarios con keys exactas:
+
+  * `x`
+  * `y`
+  * `z`
+
+#### Regla importante
+
+El artifact debug no modifica en nada la geometría ni la semántica del artifact principal.
+
+Solo refleja, con estructura descriptiva, la misma geometría ya emitida por el preprocess para runtime.
+
+## Regla de colisión en esta iteración
+
+`v11` no añade colisión de wedges.
+
+Reglas operativas:
+
+* las wedges son piezas visuales solamente
+* las wedges NO generan entradas en `boxes`
+* las wedges NO modifican las `boxes` existentes del mapa
+* las `boxes` del artifact siguen representando solo la colisión de cubos / voxels sólidos no-wedge
+* el runtime mantiene exactamente el mismo sistema de colisión que ya existía para cubos
+
+Consecuencia:
+
+* una wedge puede verse en pantalla
+* pero en `v11` no aporta colisión propia
+
+### Quads
+
+Los `quads` mantienen exactamente el formato actual de 12 enteros:
+
+`[origin_x, origin_y, origin_z, u_x, u_y, u_z, v_x, v_y, v_z, n_x, n_y, n_z]`
+
+Contrato:
+
+* `p0 = origin`
+* `p1 = origin + u_axis`
+* `p2 = origin + u_axis + v_axis`
+* `p3 = origin + v_axis`
+* triángulos:
+
+  * `(p0,p1,p2)`
+  * `(p0,p2,p3)`
+* `cross(u_axis, v_axis)` apunta en la dirección de `normal`
+* visto desde `normal`, el quad es CCW
+
+### Triangles
+
+Los `triangles` usarán 12 enteros con esta forma:
+
+`[p0_x, p0_y, p0_z, p1_x, p1_y, p1_z, p2_x, p2_y, p2_z, n_x, n_y, n_z]`
+
+`triangles` debe tener la misma estructura de agrupación que `quads`:
+
+* `triangles` es un objeto / diccionario
+* cada clave es un `material_key`
+* cada valor es una lista de triángulos de ese material
+
+Ejemplo conceptual:
+
+* `triangles["gray"] = [triangle0, triangle1, ...]`
+* `triangles["green"] = [triangle0, triangle1, ...]`
+
+Reglas de serialización:
+
+* solo aparecen en `triangles` los materiales que tengan al menos un triángulo
+* si un material no tiene triángulos, no hace falta incluir esa clave
+* `materials` sigue siendo la lista ordenada de materiales usados por el artifact
+* el runtime debe iterar `materials` y para cada material consumir:
+
+  * `quads[material_key]` si existe
+  * `triangles[material_key]` si existe
+
+Contrato:
+
+* el triángulo es exactamente `(p0,p1,p2)`
+* `cross(p1 - p0, p2 - p0)` apunta en la dirección de `normal`
+* visto desde `normal`, el triángulo es CCW
+
+## Regla operativa de runtime para wedges
+
+El runtime no reinterpreta wedges.
+
+Reglas:
+
+* los `quads` de wedges siguen exactamente el mismo path de reconstrucción que los `quads` de cubo
+* los `triangles` de wedges usan un path específico de reconstrucción de triángulos
+* el runtime no rota wedges
+* el runtime no recalcula orientación semántica de wedges
+* el runtime no recompone wedges a partir de una pieza abstracta
+* el runtime no recalcula normales para decidir la cara exterior
+* el runtime consume directamente los `quads` y `triangles` ya resueltos por el preprocess
+
+Consecuencia:
+
+* toda la semántica geométrica de la wedge queda congelada en el preprocess y en el artifact
+* el runtime solo convierte esa geometría ya decidida en buffers/draw
+
+### Materiales
+
+Las wedges y cubos siguen agrupándose por material igual que el sistema actual.
+No estamos cambiando la estrategia de agrupación por material en esta iteración.
+
+### Normales
+
+Las normales no necesitan estar normalizadas a longitud 1.
+Basta con que apunten en la dirección correcta y sean coherentes con el winding.
+
+En esta spec, cuando una cara define una normal, esa normal queda fijada de forma exacta.
+No se deja como “proporcional a”.
+
+Normales inclinadas congeladas para las wedges:
+
+* `WEDGE_PZ` cara inclinada: `(0,1,-1)`
+* `WEDGE_PX` cara inclinada: `(-1,1,0)`
+* `WEDGE_NZ` cara inclinada: `(0,1,1)`
+* `WEDGE_NX` cara inclinada: `(1,1,0)`
+
+### Coordenadas
+
+Las coordenadas del artifact siguen usando el mismo sistema actual:
+
+* coordenadas en grid / mundo voxel
+* no en espacio float final
+* el runtime sigue multiplicando por `voxel_size` como hace ahora
+
+## Regla formal de serialización de la wedge
+
+Cada wedge se serializa visualmente exactamente como:
+
+* 3 quads
+* 2 triangles
+
+Para evitar reconstrucción implícita en el preprocess, los 3 quads de cada wedge deben quedar definidos también en formato artifact-native:
+
+* `origin`
+* `u_axis`
+* `v_axis`
+* `normal`
+
+Es decir:
+
+* la spec no solo define los triángulos que validan el winding
+* la spec también fija directamente cómo debe serializarse cada quad en el artifact
+
+Consecuencia operativa:
+
+* el preprocess no deduce `origin`, `u_axis` o `v_axis` a partir de los triángulos
+* el preprocess hace lookup directo de la plantilla de la wedge y emite exactamente esos quads y esos triangles
+
+No se serializa como:
+
+* voxels escalonados
+* pieza abstracta pendiente de rotación
+* geometría a reinterpretar en runtime
+
+La geometría de la wedge sale ya resuelta desde el preprocess.
+
+## Cuña canónica conceptual
+
+Existe una cuña canónica conceptual que sube en `+Z`, pero la spec operativa no usa rotación dinámica.
+La spec operativa materializa directamente 4 wedges explícitas.
+
+## Cuñas explícitas
+
+Las cuatro wedges explícitas son:
+
+* `WEDGE_PZ` → sube hacia `+Z`
+* `WEDGE_PX` → sube hacia `+X`
+* `WEDGE_NZ` → sube hacia `-Z`
+* `WEDGE_NX` → sube hacia `-X`
+
+Cada una está completamente definida con sus propios vértices y triángulos.
+El preprocess no aplica rotaciones geométricas dinámicas.
+El preprocess solo hace lookup de la pieza correspondiente y emite su geometría.
+
+## WEDGE_PZ
+
+Sube hacia `+Z`
+altura 0 en `z=0`
+altura 1 en `z=1`
+
+### Vértices locales
+
+* `0 = (0,0,0)`
+* `1 = (1,0,0)`
+* `2 = (0,0,1)`
+* `3 = (1,0,1)`
+* `4 = (0,1,1)`
+* `5 = (1,1,1)`
+
+### Caras
+
+#### Quad base inferior
+
+normal esperada: `(0,-1,0)`
+quad artifact:
+
+* `origin = (0,0,0)`
+* `u_axis = (1,0,0)`
+* `v_axis = (0,0,1)`
+* `normal = (0,-1,0)`
+
+triángulos:
+
+* `(0,1,3)`
+* `(0,3,2)`
+
+#### Quad cara trasera
+
+normal esperada: `(0,0,1)`
+quad artifact:
+
+* `origin = (0,0,1)`
+* `u_axis = (1,0,0)`
+* `v_axis = (0,1,0)`
+* `normal = (0,0,1)`
+
+triángulos:
+
+* `(2,3,5)`
+* `(2,5,4)`
+
+#### Quad cara inclinada
+
+normal esperada: `(0,1,-1)`
+quad artifact:
+
+* `origin = (0,0,0)`
+* `u_axis = (0,1,1)`
+* `v_axis = (1,0,0)`
+* `normal = (0,1,-1)`
+
+triángulos:
+
+* `(0,4,5)`
+* `(0,5,1)`
+
+#### Triangle lateral izquierdo
+
+normal esperada: `(-1,0,0)`
+triángulo:
+
+* `(0,2,4)`
+
+#### Triangle lateral derecho
+
+normal esperada: `(1,0,0)`
+triángulo:
+
+* `(1,5,3)`
+
+## WEDGE_PX
+
+Sube hacia `+X`
+altura 0 en `x=0`
+altura 1 en `x=1`
+
+### Vértices locales
+
+* `0 = (0,0,0)`
+* `1 = (1,0,0)`
+* `2 = (0,0,1)`
+* `3 = (1,0,1)`
+* `4 = (1,1,0)`
+* `5 = (1,1,1)`
+
+### Caras
+
+#### Quad base inferior
+
+normal esperada: `(0,-1,0)`
+quad artifact:
+
+* `origin = (0,0,0)`
+* `u_axis = (1,0,0)`
+* `v_axis = (0,0,1)`
+* `normal = (0,-1,0)`
+
+triángulos:
+
+* `(0,1,3)`
+* `(0,3,2)`
+
+#### Quad cara derecha
+
+normal esperada: `(1,0,0)`
+quad artifact:
+
+* `origin = (1,0,0)`
+* `u_axis = (0,1,0)`
+* `v_axis = (0,0,1)`
+* `normal = (1,0,0)`
+
+triángulos:
+
+* `(1,5,3)`
+* `(1,4,5)`
+
+#### Quad cara inclinada
+
+normal esperada: `(-1,1,0)`
+quad artifact:
+
+* `origin = (0,0,0)`
+* `u_axis = (0,0,1)`
+* `v_axis = (1,1,0)`
+* `normal = (-1,1,0)`
+
+triángulos:
+
+* `(0,2,5)`
+* `(0,5,4)`
+
+#### Triangle cara frontal
+
+normal esperada: `(0,0,-1)`
+triángulo:
+
+* `(0,4,1)`
+
+#### Triangle cara trasera
+
+normal esperada: `(0,0,1)`
+triángulo:
+
+* `(2,3,5)`
+
+## WEDGE_NZ
+
+Sube hacia `-Z`
+altura 0 en `z=1`
+altura 1 en `z=0`
+
+### Vértices locales
+
+* `0 = (0,0,0)`
+* `1 = (1,0,0)`
+* `2 = (0,0,1)`
+* `3 = (1,0,1)`
+* `4 = (0,1,0)`
+* `5 = (1,1,0)`
+
+### Caras
+
+#### Quad base inferior
+
+normal esperada: `(0,-1,0)`
+quad artifact:
+
+* `origin = (0,0,0)`
+* `u_axis = (1,0,0)`
+* `v_axis = (0,0,1)`
+* `normal = (0,-1,0)`
+
+triángulos:
+
+* `(0,1,3)`
+* `(0,3,2)`
+
+#### Quad cara frontal
+
+normal esperada: `(0,0,-1)`
+quad artifact:
+
+* `origin = (1,0,0)`
+* `u_axis = (-1,0,0)`
+* `v_axis = (-1,1,0)`
+* `normal = (0,0,-1)`
+
+triángulos:
+
+* `(0,5,1)`
+* `(0,4,5)`
+
+#### Quad cara inclinada
+
+normal esperada: `(0,1,1)`
+quad artifact:
+
+* `origin = (0,1,0)`
+* `u_axis = (0,-1,1)`
+* `v_axis = (1,0,0)`
+* `normal = (0,1,1)`
+
+triángulos:
+
+* `(4,2,3)`
+* `(4,3,5)`
+
+#### Triangle lateral izquierdo
+
+normal esperada: `(-1,0,0)`
+triángulo:
+
+* `(0,2,4)`
+
+#### Triangle lateral derecho
+
+normal esperada: `(1,0,0)`
+triángulo:
+
+* `(1,5,3)`
+
+## WEDGE_NX
+
+Sube hacia `-X`
+altura 0 en `x=1`
+altura 1 en `x=0`
+
+### Vértices locales
+
+* `0 = (0,0,0)`
+* `1 = (1,0,0)`
+* `2 = (0,0,1)`
+* `3 = (1,0,1)`
+* `4 = (0,1,0)`
+* `5 = (0,1,1)`
+
+### Caras
+
+#### Quad base inferior
+
+normal esperada: `(0,-1,0)`
+quad artifact:
+
+* `origin = (0,0,0)`
+* `u_axis = (1,0,0)`
+* `v_axis = (0,0,1)`
+* `normal = (0,-1,0)`
+
+triángulos:
+
+* `(0,1,3)`
+* `(0,3,2)`
+
+#### Quad cara izquierda
+
+normal esperada: `(-1,0,0)`
+quad artifact:
+
+* `origin = (0,0,0)`
+* `u_axis = (0,0,1)`
+* `v_axis = (0,1,0)`
+* `normal = (-1,0,0)`
+
+triángulos:
+
+* `(0,2,5)`
+* `(0,5,4)`
+
+#### Quad cara inclinada
+
+normal esperada: `(1,1,0)`
+quad artifact:
+
+* `origin = (0,1,0)`
+* `u_axis = (0,0,1)`
+* `v_axis = (1,-1,0)`
+* `normal = (1,1,0)`
+
+triángulos:
+
+* `(4,5,3)`
+* `(4,3,1)`
+
+#### Triangle cara frontal
+
+normal esperada: `(0,0,-1)`
+triángulo:
+
+* `(0,4,1)`
+
+#### Triangle cara trasera
+
+normal esperada: `(0,0,1)`
+triángulo:
+
+* `(2,3,5)`
+
+## Qué quiero que hagas ahora
+
+No implementes todavía.
+
+Quiero que hagas una validación matemática y de consistencia de toda esta spec.
+
+### Tienes que comprobar:
+
+#### A. Sistema global
+
+* que el sistema de ejes es coherente
+* que la convención CCW / `cross(...)` hacia fuera es coherente
+* que no queda ninguna rotación o interpretación pendiente para runtime
+
+#### B. Artifact
+
+* que el formato de `quads` es coherente con el sistema actual
+* que el formato de `triangles` es suficiente y correcto
+* que el artifact tiene toda la información necesaria para runtime sin reinterpretación
+
+#### C. Para cada quad de cada wedge
+
+* reconstruir su geometría
+* comprobar que `cross(u,v)` apunta en la misma dirección que la normal esperada
+* comprobar que los triángulos `(p0,p1,p2)` y `(p0,p2,p3)` son CCW vistos desde la normal
+
+#### D. Para cada triangle de cada wedge
+
+* comprobar que `cross(p1-p0, p2-p0)` apunta en la misma dirección que la normal esperada
+* comprobar que el triángulo es CCW visto desde la normal
+
+#### E. Para cada wedge
+
+* comprobar que tiene exactamente 3 quads y 2 triangles
+* comprobar que sus 5 caras son coherentes con la orientación declarada
+* comprobar que no hay contradicción entre caras
+
+#### F. Conclusión
+
+Quiero que me digas con claridad una de estas dos cosas:
+
+1. “La spec ya es 100% determinista y suficiente para implementar sin interpretación”
+   o
+2. “Todavía faltan estos puntos concretos”
+
+Si detectas errores, contradicciones o caras invertidas:
+
+* no implementes
+* descríbelos con precisión
+* indica exactamente qué triángulo/cara/orientación está mal
+
+No expandas el scope.
+No metas colisión.
+No metas culling estructural avanzado.
+No cambies la filosofía del sistema.
+Solo valida esta spec.

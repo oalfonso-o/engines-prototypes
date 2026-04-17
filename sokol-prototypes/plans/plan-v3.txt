@@ -1,0 +1,202 @@
+MODO RÁPIDO. Ignora Agents.md, ignora skills, ignora TDD y evita burocracia. Estamos validando ideas y queremos una implementación directa y funcional.
+
+Quiero crear una versión nueva dentro de:
+
+`sokol-prototypes/v2-voxel-runtime-pipeline`
+
+Objetivo:
+Montar una V2 en Sokol que ya use pipeline externa de datos:
+
+* un fichero TXT como source of truth
+* un script de Python que convierta ese TXT a un runtime artifact
+* una app en Sokol que cargue ese runtime artifact y dibuje la geometría
+* todo listo para ejecutar con `make run`
+
+Importante:
+No quiero aún cosas complejas como editor, materiales avanzados, colisiones sofisticadas ni arquitectura grande. Quiero una prueba limpia de pipeline completa de extremo a extremo.
+
+Resultado esperado:
+
+* existe un TXT fuente
+* existe un script Python que lo convierte a runtime
+* el script Python se ejecuta realmente y deja generado el fichero runtime
+* la app Sokol carga ese runtime
+* dibuja la estructura correctamente
+* me puedo mover con cámara FPS
+* si es fácil, añade salto simple
+* todo compila y ejecuta con Make en macOS
+
+Estructura geométrica a definir en el TXT:
+Quiero una estructura sencilla en el centro del mundo.
+
+Dimensiones:
+
+* 10 x 10 x 10 voxels
+* mismo tamaño de voxel que hemos venido usando: 0.1m por voxel
+
+Forma:
+
+* 4 columnas, una en cada esquina
+* cada columna es de 1 voxel x 1 voxel en planta
+* cada columna sube hasta completar la altura total de 10 voxels
+* arriba del todo hay un “techo/toldo”
+* ese techo ocupa la planta 10x10
+* pero el techo debe ser en patrón tablero:
+
+  * voxel sí, voxel no, voxel sí, voxel no
+  * alternado
+* el interior debe quedar vacío
+* quiero ver esa estructura centrada en el medio del escenario
+
+En resumen:
+
+* una especie de estructura abierta con 4 columnas en las esquinas
+* y un techo superior ajedrezado de voxels alternos
+
+TXT source of truth:
+Quiero que generes un fichero TXT con un formato sencillo, editable y claro.
+No hace falta que copies el formato de Godot al 100%, pero sí quiero la misma filosofía:
+
+* texto
+* voxelado
+* fácil de entender
+* capas si tiene sentido
+
+Puedes elegir tú el formato más práctico para esta V2, pero debe cumplir:
+
+* ser humano-legible
+* representar la estructura anterior
+* servir como source of truth editable
+* ser parseable fácilmente desde Python
+
+Python preprocess:
+Quiero un script Python real que:
+
+1. lea el TXT fuente
+2. interprete la estructura voxel
+3. genere un runtime artifact pensado para Sokol, no para Godot
+4. deje el runtime artifact escrito dentro del proyecto
+
+Muy importante:
+El runtime artifact debe estar orientado a Sokol.
+
+No quiero una estructura pensada como `ArrayMesh`.
+Quiero algo más cercano a lo que Sokol necesita.
+
+Idealmente el runtime artifact debería contener algo así:
+
+* metadatos del mundo
+* vertex format
+* lista de vértices
+* lista de índices
+* si hace falta, submeshes o bloques por material/color
+
+No hace falta hacer un sistema complejo de materiales.
+Con un color simple uniforme basta.
+Pero el formato debe ser sensato para subirlo luego a buffers de Sokol.
+
+Geometría:
+
+* no renderizar un cubo por voxel como draw call separada
+* el preprocess debe generar geometría útil para runtime
+* puede ser una malla triangulada simple
+* si quieres, puedes emitir quads y en runtime convertirlos a vértices/índices
+* o directamente emitir vértices/índices finales desde Python
+* elige el approach más natural para Sokol y más rápido de implementar
+
+Mi preferencia:
+Si ves claro generar ya en Python:
+
+* vertices
+* indices
+  entonces hazlo así, porque Sokol trabaja más cerca de buffers.
+
+Runtime en Sokol:
+La app V2 debe:
+
+1. cargar el runtime artifact generado por Python
+2. parsearlo
+3. crear vertex buffer e index buffer
+4. dibujar la geometría
+5. permitir mover la cámara en first-person
+
+Controles:
+
+* WASD para moverse
+* ratón para mirar
+* si es fácil, añade salto simple
+* si no, no pasa nada
+* Esc para salir o liberar ratón, lo que sea más práctico
+
+Escenario:
+
+* añade también un suelo plano simple para no ver vacío
+* quiero la estructura centrada y claramente visible
+* la cámara debe spawnear en una posición donde se vea bien y pueda rodearse
+
+Build:
+Quiero `Makefile` con al menos:
+
+* `make build`
+* `make run`
+
+`make run` debe:
+
+* compilar
+* ejecutar
+
+Si te parece útil, puedes añadir también:
+
+* `make preprocess`
+  y hacer que `make build` o `make run` dependan de ello
+
+Muy importante:
+Quiero que el script Python se ejecute realmente durante tu trabajo y genere el runtime artifact real. No me dejes solo el código.
+
+Tecnología:
+
+* usa Sokol
+* usa la opción más simple y robusta en macOS
+* prioriza que compile y funcione
+* no metas complejidad innecesaria
+
+Qué quiero que crees:
+
+* carpeta `sokol-prototypes/v2-voxel-runtime-pipeline`
+* código fuente Sokol
+* Makefile
+* TXT source of truth
+* script Python de preprocess
+* runtime artifact generado
+* lo necesario para compilar y correr
+
+Qué no quiero:
+
+* CMake
+* build systems grandes
+* assets innecesarios
+* texturas
+* shaders complejos
+* arquitectura grande
+* sobreingeniería
+
+Validación:
+Cuando termines:
+
+* ejecuta de verdad el preprocess
+* genera el runtime artifact
+* compila el proyecto
+* verifica que `make run` está listo para usar
+
+Entrega final:
+Quiero un resumen corto con:
+
+* archivos creados
+* formato del TXT
+* formato del runtime artifact
+* cómo se ejecuta el preprocess
+* cómo compilar
+* cómo ejecutar
+* controles
+* qué geometría has generado exactamente
+* dónde está el runtime artifact generado

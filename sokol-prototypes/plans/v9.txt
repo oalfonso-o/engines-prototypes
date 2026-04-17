@@ -1,0 +1,191 @@
+MODO RÁPIDO. Ignora Agents.md, ignora skills, ignora TDD y evita burocracia. Quiero una nueva versión en Sokol que junte ya todo lo que hemos conseguido validar hasta ahora y replique el mapa grande de la V13 de Godot lo más fielmente posible.
+
+Objetivo:
+Crear una nueva versión en `sokol-prototypes` que cargue y renderice el equivalente del mapa de `godot-prototypes/v13-preprocessed-voxel-runtime`, con el mismo planteamiento general:
+
+* source of truth editable
+* preprocess offline en Python
+* artefacto runtime preprocesado
+* runtime en Sokol que carga ese artefacto
+* render correcto de geometría
+* colisiones correctas
+* movimiento FPS correcto
+
+La meta es comparar con V13 de Godot:
+si visual y jugablemente sale equivalente, damos por válido que podemos construir el mismo tipo de engine/runtime con Sokol en vez de Godot.
+
+Importante:
+No quiero una reinvención creativa del mapa.
+Quiero un intento serio de reproducir el mapa de la V13 de Godot.
+
+Ruta:
+Elige un nombre claro dentro de `sokol-prototypes`, por ejemplo algo del estilo:
+`sokol-prototypes/v7-v13-map-parity`
+o equivalente razonable.
+
+Fuente de verdad:
+Quiero reutilizar la misma idea que en Godot V13:
+
+* mapa fuente editable en texto
+* preprocess Python
+* runtime artifact derivado
+
+Puedes:
+
+* reutilizar directamente el mismo mapa fuente de V13 si es viable
+* o copiarlo a la nueva versión si te parece más limpio
+* pero la intención es que el contenido del mapa sea el mismo o equivalente al de Godot V13
+
+Muy importante:
+No simplifiques el mapa “porque sí”.
+No vuelvas a un cubo simple.
+Quiero el mapa grande y real equivalente a V13.
+
+Qué debe hacer el preprocess Python:
+
+1. leer el mapa fuente
+2. interpretar el formato voxel/compactado que ya usábamos en V13
+3. generar el artefacto runtime orientado a Sokol
+4. precomputar toda la geometría necesaria
+5. precomputar colisiones
+6. dejar el fichero runtime generado dentro del proyecto
+
+No quiero que el runtime en Sokol haga trabajo pesado de:
+
+* escanear todo el mapa voxel
+* detectar caras visibles a gran escala
+* fusionar caras
+* fusionar colisiones
+
+Todo eso debe ocurrir offline en Python.
+
+Formato runtime:
+Usa el formato que ya mejor os haya funcionado para Sokol:
+
+* orientado a vertex/index buffers o quads claramente convertibles
+* con colisiones ya resueltas
+* cargable rápido
+
+No hace falta rediseñar todo si ya había un formato razonable.
+Prioriza reutilizar la mejor base que ya tengáis funcionando.
+
+Runtime en Sokol:
+La app nueva debe:
+
+* cargar el artefacto runtime generado
+* construir la geometría
+* renderizar el mapa completo
+* construir colisiones
+* permitir movimiento FPS
+* permitir recorrer el mapa como en Godot V13
+
+Controles:
+
+* WASD para moverse
+* ratón para mirar
+* el eje horizontal no debe estar invertido
+* salto si ya lo tenéis y funciona bien
+* Esc para salir o liberar ratón
+
+Colisiones:
+Quiero colisión funcional equivalente a la de Godot V13:
+
+* no atravesar paredes
+* poder entrar por pasillos
+* poder recorrer correctamente el mapa
+* no quiero dejar las colisiones para más tarde en esta versión
+
+Render:
+
+* las caras deben renderizarse bien
+* no quiero errores de winding/backface/depth
+* el mapa debe verse correctamente desde fuera y desde dentro
+* si V13 de Godot tenía varios materiales/colores por voxel type, intenta reproducirlos de forma equivalente en Sokol
+* no hace falta que sea pixel-perfect, pero sí claramente equivalente
+
+Materiales / colores:
+
+* si V13 tenía distintos tipos de voxel/material (gray, green, purple, metal o equivalentes), intenta respetarlos
+* no hace falta recrear un sistema de materiales gigantesco
+* sí hace falta distinguir visualmente los tipos de superficies si eso existía en V13
+
+Escala y posicionamiento:
+
+* mantener escala de voxel
+* mantener tamaño del mundo
+* mantener disposición geométrica equivalente
+* mantener offsets razonables si ya eran necesarios para evitar z-fighting con el suelo
+
+Escena:
+
+* el spawn del jugador debe ser seguro
+* no debe aparecer dentro de una pared
+* idealmente reutiliza o adapta una posición de spawn equivalente a la usada en Godot
+
+Rendimiento:
+No quiero una optimización extrema todavía, pero sí:
+
+* usar el artefacto preprocesado
+* evitar rehacer el preprocess en runtime
+* mantener el arranque razonable
+
+No quiero:
+
+* una versión reducida del mapa
+* una reinterpretación libre
+* rehacer el pipeline desde cero si ya existe uno útil
+* editor
+* texturas complejas nuevas
+* features extra no necesarias
+
+Sí quiero:
+
+* equivalencia seria con la V13 de Godot
+* preprocess offline real
+* runtime artifact real generado
+* render y colisión funcionando
+* movimiento FPS correcto
+* comparación práctica Godot V13 vs Sokol
+
+Qué tienes que hacer:
+
+1. crear la nueva carpeta/version Sokol
+2. traer o reutilizar el mapa fuente equivalente a V13
+3. crear/adaptar script Python de preprocess para ese mapa
+4. ejecutar de verdad el preprocess y generar el runtime artifact
+5. implementar runtime Sokol que cargue ese artifact
+6. implementar render del mapa completo
+7. implementar colisiones funcionales
+8. dejar `make build` y `make run` funcionando
+
+Makefile:
+Quiero al menos:
+
+* `make preprocess`
+* `make build`
+* `make run`
+
+`make run` debe dejarlo listo para usar, y si tiene sentido puede depender de preprocess.
+
+Validación obligatoria:
+Al terminar:
+
+* el preprocess debe haberse ejecutado de verdad
+* el runtime artifact debe existir de verdad
+* la app debe compilar
+* el mapa grande debe verse
+* el jugador debe poder moverse por él con colisiones
+
+Entrega final:
+Quiero un resumen corto con:
+
+* nombre de la nueva versión creada
+* archivos creados/modificados
+* qué mapa fuente has reutilizado o copiado desde V13
+* qué formato runtime has usado
+* dónde está el artefacto generado
+* cómo compilar
+* cómo ejecutar
+* qué partes del trabajo pesado se hacen offline
+* qué sigue haciendo Sokol en runtime
+* hasta qué punto el resultado es equivalente a la V13 de Godot

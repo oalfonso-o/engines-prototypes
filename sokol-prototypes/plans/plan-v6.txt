@@ -1,0 +1,185 @@
+MODO RÁPIDO. Ignora Agents.md, ignora skills, ignora TDD y evita burocracia. Quiero una nueva versión simple en Sokol para probar partículas sin ambición excesiva. No rehagas arquitectura. Haz algo pequeño, estable y visualmente claro.
+
+Ruta:
+`sokol-prototypes/v5-basic-particles`
+
+Objetivo:
+Crear una escena 3D muy simple en Sokol con:
+
+* cámara FPS
+* movimiento con WASD
+* salto simple
+* suelo plano
+* dos fuentes de partículas distintas
+* una a un lado de la escena
+* otra al lado contrario
+* todo compilable y ejecutable con `make run`
+
+Importante:
+No quiero un sistema de partículas complejo ni “engine-grade”.
+Quiero solo una prueba básica y robusta para validar que en Sokol podemos renderizar y actualizar partículas correctamente.
+
+Controles:
+
+* WASD para moverse
+* ratón para mirar
+* salto con Space
+* Esc para salir o liberar ratón, lo que sea más práctico
+
+Escena:
+
+* suelo plano simple
+* personaje/cámara FPS
+* una fuente de partículas en un lado de la escena
+* otra fuente en el lado opuesto
+* que ambas sean claramente distintas visualmente
+* que el jugador pueda acercarse a verlas
+
+Quiero exactamente 2 tipos de partículas, los más básicos y sensatos para esta primera prueba:
+
+1. Fuente tipo “humo / niebla ascendente”
+   Características:
+
+* partículas pequeñas o medianas
+* nacen cerca del suelo
+* suben lentamente
+* se expanden un poco
+* desaparecen con fade-out
+* movimiento suave, algo aleatorio
+* color grisáceo o similar
+* efecto tranquilo y continuo
+
+2. Fuente tipo “chispas / embers”
+   Características:
+
+* partículas pequeñas
+* salen despedidas hacia arriba y hacia fuera
+* vida más corta que el humo
+* más rápidas
+* color cálido: naranja/amarillo/rojo
+* efecto más energético
+* también continuo, pero con comportamiento claramente diferente al humo
+
+Restricciones de diseño:
+
+* no hace falta colisión con partículas
+* no hace falta iluminación avanzada
+* no hace falta texturas complejas
+* no hace falta blending sofisticadísimo si complica demasiado
+* quiero una versión simple pero que ya se vea claramente “humo” vs “chispas”
+
+Implementación:
+Haz el sistema de partículas lo más simple y estable posible.
+
+Modelo recomendado:
+
+* CPU particles simples
+* cada partícula tiene posición, velocidad, vida, vida máxima, color o tipo
+* update por frame en CPU
+* render sencillo
+
+No quiero:
+
+* compute shaders
+* GPU particles complejas
+* instancing sofisticado si complica demasiado
+* arquitectura sobrediseñada
+* editor
+* pipeline externa TXT/Python para esta versión
+
+Esta versión puede ser totalmente hardcoded si eso acelera y la hace estable.
+
+Representación visual:
+Elige la opción más simple y fiable para Sokol/macOS.
+
+Opciones válidas:
+
+* billboards muy simples
+* quads camera-facing
+* o puntos renderizados si es lo único robusto que sale rápido
+
+Pero quiero que se distingan bien los dos tipos de partículas.
+
+Mi preferencia:
+Si hacer billboards simples es razonable, hazlo.
+Si eso complica demasiado, usa una representación más simple pero estable.
+
+Quiero que describas bien y dejes claramente separadas ambas fuentes:
+
+* una fuente colocada a la izquierda
+* otra a la derecha
+* o similar, pero claramente separadas
+
+Detalles esperados de comportamiento:
+Fuente humo:
+
+* emisión continua
+* velocidad vertical suave
+* dispersión leve
+* fade y desaparición natural
+* re-spawn constante
+
+Fuente chispas:
+
+* emisión continua
+* burst pequeño y frecuente o emisión viva
+* velocidad inicial más alta
+* algo de gravedad
+* vida corta
+* re-spawn constante
+
+Rendimiento:
+No hace falta ir a miles de partículas.
+Prefiero algo como:
+
+* humo: cantidad moderada
+* chispas: cantidad moderada
+* suficiente para verse bien
+* sin complicar demasiado el código
+
+Estructura:
+
+* código fuente Sokol claro y mínimo
+* Makefile
+* nada de sistemas grandes
+
+Makefile:
+Quiero al menos:
+
+* `make build`
+* `make run`
+
+`make run` debe compilar y ejecutar.
+
+Validación:
+Cuando termines:
+
+* compila de verdad
+* deja el proyecto listo para `make run`
+* verifica que:
+
+  * la cámara FPS funciona
+  * el ratón funciona
+  * el salto funciona
+  * se ven las dos fuentes de partículas
+  * ambas tienen comportamientos claramente distintos
+
+Qué no quiero:
+
+* sobreingeniería
+* efectos demasiado ambiciosos
+* 5 tipos de partículas
+* rehacer media engine
+* usar V3/V4 si arrastran bugs raros sin corregirlos
+
+Entrega final:
+Quiero un resumen corto con:
+
+* archivos creados
+* cómo compilar
+* cómo ejecutar
+* controles
+* cómo has implementado el humo
+* cómo has implementado las chispas
+* cuántas partículas aproximadas usa cada fuente
+* qué técnica visual has usado para renderizarlas

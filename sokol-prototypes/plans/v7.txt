@@ -1,0 +1,171 @@
+MODO RÁPIDO. Ignora Agents.md, ignora skills, ignora TDD y evita burocracia. Quiero una nueva versión en Sokol, simple pero visualmente interesante, para probar generación procedural de texturas sobre paredes en una escena FPS.
+
+Ruta:
+`sokol-prototypes/v6-procedural-wall-textures`
+
+Objetivo:
+Crear una escena 3D sencilla en Sokol con:
+
+* cámara FPS
+* movimiento con WASD
+* ratón para mirar
+* salto simple si ya sale fácil
+* suelo plano
+* varios muros/paredes colocados en escena
+* hasta 5 estilos de textura distintos, generados proceduralmente
+* una de las paredes debe emitir luz o dar sensación clara de brillo/emisión
+
+Importante:
+No quiero una arquitectura ambiciosa ni un editor. Quiero una escena-muestrario clara, compilable y visual, para validar qué tal se nos da generar materiales/texturas proceduralmente en Sokol.
+
+Escena:
+
+* un suelo plano sencillo
+* el jugador puede moverse en primera persona
+* varias paredes/muros separados, de forma que se puedan inspeccionar uno a uno
+* idealmente colocados en línea o en semicírculo para que sea cómodo recorrerlos
+* cada muro debe mostrar un estilo visual procedural distinto
+* que la escena sea suficientemente oscura o neutra para que la pared emisiva/brillante se note
+
+Quiero exactamente 5 estilos distintos de pared, inspirados en shooters clásicos / estética retro 3D. No tienen que copiar assets reales; tienen que ser evocaciones estilísticas generadas proceduralmente.
+
+Los 5 estilos deseados:
+
+1. Estilo “Doom industrial”
+
+   * pared de paneles metálicos o bloques repetitivos
+   * sensación tosca, retro, oscura
+   * contraste medio
+   * puede incluir líneas horizontales/verticales, remaches, cortes o separación de paneles
+
+2. Estilo “Quake medieval/gótico”
+
+   * piedra oscura, bloques irregulares o ladrillo tosco
+   * sensación más orgánica y sombría
+   * algo más rugoso
+   * tonos oscuros / fríos / terrosos
+
+3. Estilo “tech / sci-fi panel”
+
+   * panelado más limpio
+   * líneas rectas, divisiones geométricas
+   * sensación más futurista
+   * puede tener detalles tipo ranuras, rejillas o zonas más iluminadas
+
+4. Estilo “lava / energía / pared emisiva”
+
+   * debe emitir brillo o dar sensación clara de emisión
+   * puede ser tipo lava, plasma, energía o panel luminoso
+   * esta pared debe servir para probar el efecto de emisión/brillo
+   * que destaque claramente del resto
+
+5. Estilo “hormigón / bunker / utilitario”
+
+   * superficie más plana y sobria
+   * hormigón, cemento, pared funcional
+   * con cierta variación procedural para que no sea un color plano sin más
+   * aspecto austero
+
+Importante:
+No quiero texturas importadas de archivos PNG/JPG.
+Quiero que se generen proceduralmente.
+
+Opciones válidas:
+
+* generar la textura en CPU y subirla como imagen/texture
+* o generar el look proceduralmente en shader
+* o combinación simple de ambas
+
+Elige el approach más sencillo y robusto en Sokol/macOS.
+
+Requisitos visuales:
+
+* los 5 muros deben verse claramente distintos entre sí
+* cada estilo debe ser reconocible a simple vista
+* la pared emisiva debe destacar visualmente
+* no hace falta realismo; sí hace falta personalidad visual
+* prioriza claridad antes que complejidad técnica
+
+Render:
+
+* usa la solución más simple y estable que funcione bien
+* profundidad correcta
+* cámara FPS correcta
+* el ratón horizontal no debe estar invertido
+* no quiero volver a errores de winding/depth/backface raros
+* las paredes deben renderizarse correctamente
+
+Materiales / shaders:
+
+* puedes usar shaders simples si hace falta
+* no hace falta sistema complejo de materiales reusable para siempre
+* pero sí una implementación clara y razonablemente separada por estilo
+* si una pared necesita emisión, implementa lo mínimo necesario para que se note
+
+Iluminación:
+
+* no hace falta sistema de iluminación complejo tipo engine moderna
+* pero quiero algún mínimo contexto visual para que se aprecien las diferencias
+* si usas una luz básica global + emisión en la pared luminosa, perfecto
+* si lo más sencillo es que el shader/modelo ya incorpore color/emission aparente sin iluminación física completa, también vale, siempre que visualmente funcione
+
+Geometría:
+
+* no hace falta pipeline TXT/Python en esta versión si complica demasiado
+* esta escena puede estar hardcoded
+* quiero centrar la validación en texturas/materiales procedurales
+
+Controles:
+
+* WASD para moverse
+* ratón para mirar
+* Esc para salir o liberar ratón
+* salto con Space si es fácil y estable; si no, se puede omitir
+
+Makefile:
+Quiero al menos:
+
+* `make build`
+* `make run`
+
+`make run` debe compilar y ejecutar.
+
+No quiero:
+
+* editor
+* pipeline externa complicada
+* importación de assets pesados
+* texturas desde archivos
+* arquitectura gigante
+* más de 5 estilos
+* partículas
+* colisiones complejas
+* ambición innecesaria
+
+Sí quiero:
+
+* una escena clara y bonita para prototipo
+* 5 muros con 5 looks proceduralmente distintos
+* una pared emisiva que se note
+* movimiento FPS funcional
+* código lo bastante claro para iterar luego
+
+Validación:
+Cuando termines:
+
+* compila de verdad
+* deja el proyecto listo para `make run`
+* verifica que los 5 muros se ven distintos
+* verifica que la pared emisiva destaca
+* verifica que la cámara FPS funciona correctamente
+
+Entrega final:
+Quiero un resumen corto con:
+
+* archivos creados
+* cómo compilar
+* cómo ejecutar
+* controles
+* cómo has implementado cada uno de los 5 estilos
+* cuál de ellos usa emisión/brillo
+* si las texturas se generan en CPU, shader o mixto

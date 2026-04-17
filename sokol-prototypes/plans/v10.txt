@@ -1,0 +1,194 @@
+MODO RÁPIDO. Ignora Agents.md, ignora skills, ignora TDD y evita burocracia. Quiero crear una nueva versión V10 cuyo único objetivo es cerrar de manera totalmente explícita, formal y determinista el sistema de voxels/cubos en Sokol antes de meter wedges/rampas.
+
+Ruta:
+`sokol-prototypes/v10-voxel-ccw-culling-contract`
+
+Objetivo:
+Partiendo del pipeline actual que ya funciona más o menos para cubos:
+
+* TXT
+* preprocess Python
+* runtime artifact
+* runtime Sokol
+
+quiero endurecer y formalizar al 100%:
+
+1. la convención geométrica del cubo
+2. el winding CCW de todas las caras exteriores
+3. el culling estructural de caras internas en preprocess
+4. el backface culling coherente en renderer
+
+No quiero wedges todavía.
+No quiero rampas todavía.
+Quiero primero congelar perfectamente el contrato del voxel/cubo.
+
+Meta principal:
+Que el sistema de voxels quede 100% determinista, sin interpretaciones ambiguas, sin “más o menos funciona”, y sin depender de prueba-error.
+
+Qué quiero exactamente:
+
+* revisar el pipeline actual
+* formalizar la convención del cubo
+* hacer los cambios necesarios en preprocess + runtime + renderer
+* dejar documentado el contrato
+* dejar una versión funcional donde el mundo siga viéndose bien
+* activar culling coherente y robusto
+
+Contexto:
+Ya tenemos definido conceptualmente esto y quiero que se implemente tal cual:
+
+## Convención geométrica global
+
+Toda cara exterior de un cubo debe cumplir:
+
+* `cross(u, v)` apunta hacia fuera del sólido
+* equivalente: la cara se ve en CCW cuando la miras desde fuera
+
+## Expansión de quad en runtime
+
+Cuando una cara se representa como quad:
+
+* `p0 = origin`
+* `p1 = origin + u`
+* `p2 = origin + u + v`
+* `p3 = origin + v`
+
+Y los índices deben ser:
+
+* `0,1,2`
+* `0,2,3`
+
+Eso no se debe reinterpretar.
+
+## Regla de visibilidad de cara en preprocess
+
+Una cara de una celda sólida se emite solo si la celda vecina en la dirección de esa normal:
+
+* está fuera de límites, o
+* no es sólida
+
+Esa es la regla binaria exacta.
+No quiero heurísticas.
+
+## Regla entre materiales distintos
+
+Si dos voxels vecinos son ambos `solid = true`, la cara compartida NO se emite, aunque tengan materiales distintos.
+
+Es decir:
+
+* el culling estructural depende solo de `solid`
+* no depende de `material_key`
+
+## Separación de responsabilidades
+
+* el culling estructural de caras internas ocurre en el preprocess
+* el renderer no decide vecindad voxel
+* el renderer solo hace backface culling de la geometría ya emitida
+
+Esto tiene que quedar claro en código y en la documentación mínima del prototipo.
+
+## Caras del cubo
+
+Quiero que congeles explícitamente la tabla de las 6 caras del cubo:
+
+* +X
+* -X
+* +Y
+* -Y
+* +Z
+* -Z
+
+Y para cada una debe quedar definido, explícitamente en el código o en una estructura equivalente:
+
+* normal esperada
+* vector `u`
+* vector `v`
+* offset del vecino a comprobar
+* que el winding resultante sea CCW visto desde fuera
+
+No me vale que quede solo “deducido”.
+Quiero que quede formalizado como contrato del sistema para evitar reinterpretaciones futuras.
+
+Qué quiero que hagas:
+
+1. Crear V10.
+2. Revisar la implementación actual de cubos/voxels.
+3. Reorganizar lo mínimo necesario para que la convención de cara del cubo quede explícita.
+4. Implementar la tabla fija de las 6 caras del cubo.
+5. Hacer que el preprocess use esa tabla para decidir emisión de caras.
+6. Hacer que el artifact runtime preserve esa convención sin reinterpretarla.
+7. Configurar el renderer Sokol para hacer backface culling coherente con esa convención.
+
+Muy importante sobre Sokol:
+No asumas a ciegas la API exacta.
+Inspecciona la versión local de Sokol disponible en:
+
+* `/Users/oalfonso/pipprojects/sokol`
+* `/Users/oalfonso/pipprojects/sokol-samples`
+
+Y configura la combinación correcta equivalente a:
+
+* front-face = CCW
+* backface culling activado
+
+Si en vuestra versión concreta eso se expresa de una forma ligeramente distinta, adáptalo correctamente.
+Lo importante es el comportamiento final, no el nombre exacto del enum.
+
+Qué no quiero:
+
+* wedges
+* ramps
+* heurísticas
+* nueva arquitectura grande
+* cambios creativos al mapa
+* reescribir media engine
+* dejar el contrato implícito otra vez
+
+Sí quiero:
+
+* cubos perfectamente cerrados
+* regla binaria de emisión de caras
+* convención CCW explícita
+* culling estructural offline
+* backface culling online
+* código más fiable para que luego introducir wedges no sea una lotería
+
+Mapa / caso de prueba:
+No hace falta un mapa nuevo enorme.
+Puedes reutilizar el mapa actual o un mapa pequeño suficiente para validar:
+
+* cubos visibles
+* caras externas
+* caras internas no emitidas
+* render correcto con culling activado
+
+Pero el resultado debe seguir mostrando claramente que el mundo se ve bien.
+
+Validación que quiero:
+Cuando termines, quiero que compruebes explícitamente:
+
+1. el preprocess genera solo caras exteriores según la regla binaria
+2. el renderer dibuja bien las caras visibles
+3. no desaparecen caras exteriores por winding incorrecto
+4. no se ven caras traseras de forma incorrecta
+5. el proyecto compila
+6. el proyecto arranca
+
+Además, quiero que dejes una explicación corta dentro del proyecto o en README/resumen indicando:
+
+* cuál es la regla exacta de emisión de cara
+* cuál es la convención de winding
+* qué hace preprocess
+* qué hace renderer
+
+Entrega final:
+Quiero un resumen corto con:
+
+* qué archivos has creado/modificado
+* dónde está la tabla de las 6 caras del cubo
+* cómo has formalizado la regla de emisión de caras
+* cómo has configurado el backface culling en Sokol
+* qué mapa/caso de prueba has usado
+* cómo compilar
+* cómo ejecutar
+* confirmación de que V10 deja el voxel/cubo totalmente cerrado antes de wedges

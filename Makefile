@@ -1,181 +1,140 @@
 GODOT ?= /Applications/Godot_mono.app/Contents/MacOS/Godot
-V2_ISO3D_PATH := godot-prototypes/v2-iso3d
-V2_ISO3D_TEST := res://tests/integration_runner.gd
-V3_ISO3D_PATH := godot-prototypes/v3-iso3d-targeting
-V3_ISO3D_TEST := res://tests/integration_runner.gd
-V4_ISO3D_PATH := godot-prototypes/v4-iso3d-moba-like
-V4_ISO3D_TEST := res://tests/integration_runner.gd
-V5_CHARACTER_PATH := godot-prototypes/v5-character-prototype
-V5_CHARACTER_TEST := res://tests/integration_runner.gd
-V6_CHARACTER_PATH := godot-prototypes/v6-character-prototype
-V6_CHARACTER_TEST := res://tests/runner.gd
-V7_FPS_PATH := godot-prototypes/v7-fps-prototype
-V7_FPS_TEST := res://tests/runner.gd
-V8_FPS_PATH := godot-prototypes/v8-fps-prototype
-V8_FPS_GUT_CONFIG := res://.gutconfig.json
-V8_FPS_BUILD_DIR := build/v8-fps/mac
-V8_FPS_MAC_APP := $(V8_FPS_BUILD_DIR)/canuter-v8-fps.app
-V9_SPACE_PATH := godot-prototypes/v9-space-survival-prototype
-V9_SPACE_GUT_CONFIG := res://.gutconfig.json
-V10_WALL_LAB_PATH := godot-prototypes/v10-doom-wall-lab
-V11_HOUSE_COMPARISON_PATH := godot-prototypes/v11-house-comparison
-V12_VOXEL_PATH := godot-prototypes/v12-voxel-cross-corridor
-V13_PREPROCESSED_VOXEL_PATH := godot-prototypes/v13-preprocessed-voxel-runtime
-V14_RAMP_VOXEL_PATH := godot-prototypes/v14-ramp-voxel-runtime
 
-.PHONY: help edit-v2-iso3d run-v2-iso3d test-v2-iso3d edit-v3-iso3d run-v3-iso3d test-v3-iso3d edit-v4-iso3d run-v4-iso3d test-v4-iso3d edit-v5-character run-v5-character test-v5-character edit-v6-character run-v6-character test-v6-character edit-v7-fps run-v7-fps test-v7-fps edit-v8-fps run-v8-fps test-v8-fps run-built-v8-fps-mac edit-v9-space run-v9-space test-v9-space edit-v10-wall-lab run-v10-wall-lab edit-v11-house run-v11-house edit-v12-voxel run-v12-voxel edit-v13-voxel run-v13-voxel edit-v14-voxel run-v14-voxel edit-v14-debug-ramp-3x3 run-v14-debug-ramp-3x3
+GOD_V1_PATH := godot-prototypes/v1-canuter-3d-tps
+GOD_V2_PATH := godot-prototypes/v2-iso3d
+GOD_V3_PATH := godot-prototypes/v3-iso3d-targeting
+GOD_V4_PATH := godot-prototypes/v4-iso3d-moba-like
+GOD_V5_PATH := godot-prototypes/v5-character-prototype
+GOD_V6_PATH := godot-prototypes/v6-character-prototype
+GOD_V7_PATH := godot-prototypes/v7-fps-prototype
+GOD_V8_PATH := godot-prototypes/v8-fps-prototype
+GOD_V9_PATH := godot-prototypes/v9-space-survival-prototype
+GOD_V10_PATH := godot-prototypes/v10-doom-wall-lab
+GOD_V11_PATH := godot-prototypes/v11-house-comparison
+GOD_V12_PATH := godot-prototypes/v12-voxel-cross-corridor
+GOD_V13_PATH := godot-prototypes/v13-preprocessed-voxel-runtime
+GOD_V14_PATH := godot-prototypes/v14-ramp-voxel-runtime
 
-help:
-	@printf "Available targets:\n"
-	@printf "  make edit-v2-iso3d  Open v2-iso3d in the Godot editor\n"
-	@printf "  make run-v2-iso3d   Run the v2-iso3d prototype\n"
-	@printf "  make test-v2-iso3d  Run the v2-iso3d headless integration check\n"
-	@printf "  make edit-v3-iso3d  Open v3-iso3d-targeting in the Godot editor\n"
-	@printf "  make run-v3-iso3d   Run the v3-iso3d-targeting prototype\n"
-	@printf "  make test-v3-iso3d  Run the v3-iso3d-targeting headless integration check\n"
-	@printf "  make edit-v4-iso3d  Open v4-iso3d-moba-like in the Godot editor\n"
-	@printf "  make run-v4-iso3d   Run the v4-iso3d-moba-like prototype\n"
-	@printf "  make test-v4-iso3d  Run the v4-iso3d-moba-like headless integration check\n"
-	@printf "  make edit-v5-character  Open the v5-character-prototype sandbox in the Godot editor\n"
-	@printf "  make run-v5-character   Run the v5-character-prototype sandbox\n"
-	@printf "  make test-v5-character  Run the v5-character-prototype headless integration check\n"
-	@printf "  make edit-v6-character  Open the v6-character-prototype sandbox in the Godot editor\n"
-	@printf "  make run-v6-character   Run the v6-character-prototype sandbox\n"
-	@printf "  make test-v6-character  Run the v6-character-prototype headless integration check\n"
-	@printf "  make edit-v7-fps        Open the v7-fps-prototype sandbox in the Godot editor\n"
-	@printf "  make run-v7-fps         Run the v7-fps-prototype sandbox\n"
-	@printf "  make test-v7-fps        Run the v7-fps-prototype headless integration check\n"
-	@printf "  make edit-v8-fps        Open the v8-fps-prototype sandbox in the Godot editor\n"
-	@printf "  make run-v8-fps         Run the v8-fps-prototype sandbox\n"
-	@printf "  make test-v8-fps        Run the v8-fps-prototype GUT suite headlessly\n"
-	@printf "  make run-built-v8-fps-mac  Export the v8-fps-prototype macOS app and open it locally\n"
-	@printf "  make edit-v9-space      Open the v9-space-survival-prototype in the Godot editor\n"
-	@printf "  make run-v9-space       Run the v9-space-survival-prototype\n"
-	@printf "  make test-v9-space      Run the v9-space-survival-prototype GUT suite headlessly\n"
-	@printf "  make edit-v10-wall-lab  Open the v10-doom-wall-lab in the Godot editor\n"
-	@printf "  make run-v10-wall-lab   Run the v10-doom-wall-lab comparison scene\n"
-	@printf "  make edit-v11-house     Open the v11-house-comparison in the Godot editor\n"
-	@printf "  make run-v11-house      Run the v11-house-comparison prototype\n"
-	@printf "  make edit-v12-voxel     Open the v12-voxel-cross-corridor in the Godot editor\n"
-	@printf "  make run-v12-voxel      Run the v12-voxel-cross-corridor prototype\n"
-	@printf "  make edit-v13-voxel     Open the v13-preprocessed-voxel-runtime in the Godot editor\n"
-	@printf "  make run-v13-voxel      Run the v13-preprocessed-voxel-runtime prototype\n"
-	@printf "  make edit-v14-voxel     Open the v14-ramp-voxel-runtime in the Godot editor\n"
-	@printf "  make run-v14-voxel      Run the v14-ramp-voxel-runtime prototype\n"
-	@printf "  make run-v14-debug-ramp-3x3  Run the v14 3x3 ramp debug scene\n"
+PYG_V1_PATH := pygame-prototypes/v1-iso
+SOK_V1_PATH := sokol-prototypes/v1-basic-fps-cube
+SOK_V1_APP := $(SOK_V1_PATH)/build/v1-basic-fps-cube
+SOK_V2_PATH := sokol-prototypes/v2-fixed-camera-cube
+SOK_V2_APP := $(SOK_V2_PATH)/build/v2-fixed-camera-cube
+SOK_V3_PATH := sokol-prototypes/v3-voxel-runtime-pipeline
+SOK_V3_APP := $(SOK_V3_PATH)/build/v3-voxel-runtime-pipeline
+SOK_V4_PATH := sokol-prototypes/v4-single-cube-runtime
+SOK_V5_PATH := sokol-prototypes/v5-v3-map-v4-runtime
+SOK_V6_PATH := sokol-prototypes/v6-basic-particles
+SOK_V7_PATH := sokol-prototypes/v7-procedural-wall-textures
+SOK_V8_PATH := sokol-prototypes/v8-voxel-collision-runtime
+SOK_V9_PATH := sokol-prototypes/v9-v13-map-parity
+SOK_V10_PATH := sokol-prototypes/v10-voxel-ccw-culling-contract
 
-edit-v2-iso3d:
-	"$(GODOT)" --path "$(V2_ISO3D_PATH)" -e
+.PHONY: \
+	run-god-v1 \
+	run-god-v2 \
+	run-god-v3 \
+	run-god-v4 \
+	run-god-v5 \
+	run-god-v6 \
+	run-god-v7 \
+	run-god-v8 \
+	run-god-v9 \
+	run-god-v10 \
+	run-god-v11 \
+	run-god-v12 \
+	run-god-v13 \
+	run-god-v14 \
+	run-pyg-v1 \
+	run-sok-v1 \
+	run-sok-v2 \
+	run-sok-v3 \
+	run-sok-v4 \
+	run-sok-v5 \
+	run-sok-v6 \
+	run-sok-v7 \
+	run-sok-v8 \
+	run-sok-v9 \
+	run-sok-v10
 
-run-v2-iso3d:
-	"$(GODOT)" --path "$(V2_ISO3D_PATH)"
+run-god-v1:
+	"$(GODOT)" --path "$(GOD_V1_PATH)"
 
-test-v2-iso3d:
-	"$(GODOT)" --headless --path "$(V2_ISO3D_PATH)" --script "$(V2_ISO3D_TEST)"
+run-god-v2:
+	"$(GODOT)" --path "$(GOD_V2_PATH)"
 
-edit-v3-iso3d:
-	"$(GODOT)" --path "$(V3_ISO3D_PATH)" -e
+run-god-v3:
+	"$(GODOT)" --path "$(GOD_V3_PATH)"
 
-run-v3-iso3d:
-	"$(GODOT)" --path "$(V3_ISO3D_PATH)"
+run-god-v4:
+	"$(GODOT)" --path "$(GOD_V4_PATH)"
 
-test-v3-iso3d:
-	"$(GODOT)" --headless --path "$(V3_ISO3D_PATH)" --script "$(V3_ISO3D_TEST)"
+run-god-v5:
+	"$(GODOT)" --path "$(GOD_V5_PATH)"
 
-edit-v4-iso3d:
-	"$(GODOT)" --path "$(V4_ISO3D_PATH)" -e
+run-god-v6:
+	"$(GODOT)" --path "$(GOD_V6_PATH)"
 
-run-v4-iso3d:
-	"$(GODOT)" --path "$(V4_ISO3D_PATH)"
+run-god-v7:
+	"$(GODOT)" --path "$(GOD_V7_PATH)"
 
-test-v4-iso3d:
-	"$(GODOT)" --headless --path "$(V4_ISO3D_PATH)" --script "$(V4_ISO3D_TEST)"
+run-god-v8:
+	"$(GODOT)" --path "$(GOD_V8_PATH)"
 
-edit-v5-character:
-	"$(GODOT)" --path "$(V5_CHARACTER_PATH)" -e
+run-god-v9:
+	"$(GODOT)" --path "$(GOD_V9_PATH)"
 
-run-v5-character:
-	"$(GODOT)" --path "$(V5_CHARACTER_PATH)"
+run-god-v10:
+	"$(GODOT)" --path "$(GOD_V10_PATH)"
 
-test-v5-character:
-	"$(GODOT)" --headless --path "$(V5_CHARACTER_PATH)" --script "$(V5_CHARACTER_TEST)"
+run-god-v11:
+	"$(GODOT)" --path "$(GOD_V11_PATH)"
 
-edit-v6-character:
-	"$(GODOT)" --path "$(V6_CHARACTER_PATH)" -e
+run-god-v12:
+	"$(GODOT)" --path "$(GOD_V12_PATH)"
 
-run-v6-character:
-	"$(GODOT)" --path "$(V6_CHARACTER_PATH)"
+run-god-v13:
+	"$(GODOT)" --path "$(GOD_V13_PATH)"
 
-test-v6-character:
-	"$(GODOT)" --headless --path "$(V6_CHARACTER_PATH)" --script "$(V6_CHARACTER_TEST)"
+run-god-v14:
+	"$(GODOT)" --path "$(GOD_V14_PATH)"
 
-edit-v7-fps:
-	"$(GODOT)" --path "$(V7_FPS_PATH)" -e
+run-pyg-v1:
+	cd "$(PYG_V1_PATH)" && if [ -x .venv/bin/python3 ]; then .venv/bin/python3 main.py; else python3 main.py; fi
 
-run-v7-fps:
-	"$(GODOT)" --path "$(V7_FPS_PATH)"
+run-sok-v1:
+	mkdir -p "$(SOK_V1_PATH)/build"
+	clang -std=c11 -O2 -Wall -Wextra -fobjc-arc "$(SOK_V1_PATH)/main.m" -o "$(SOK_V1_APP)" -framework Cocoa -framework QuartzCore -framework Metal -framework MetalKit
+	"$(SOK_V1_APP)"
 
-test-v7-fps:
-	"$(GODOT)" --headless --path "$(V7_FPS_PATH)" --script "$(V7_FPS_TEST)"
+run-sok-v2:
+	mkdir -p "$(SOK_V2_PATH)/build"
+	clang -std=c11 -O2 -Wall -Wextra -fobjc-arc -I"$(SOK_V1_PATH)" "$(SOK_V2_PATH)/main.m" -o "$(SOK_V2_APP)" -framework Cocoa -framework QuartzCore -framework Metal -framework MetalKit
+	"$(SOK_V2_APP)"
 
-edit-v8-fps:
-	"$(GODOT)" --path "$(V8_FPS_PATH)" -e
+run-sok-v3:
+	python3 "$(SOK_V3_PATH)/tools/preprocess_runtime.py"
+	mkdir -p "$(SOK_V3_PATH)/build"
+	clang -std=c11 -O2 -Wall -Wextra -fobjc-arc -I"$(SOK_V1_PATH)" "$(SOK_V3_PATH)/main.m" -o "$(SOK_V3_APP)" -framework Cocoa -framework QuartzCore -framework Metal -framework MetalKit
+	"$(SOK_V3_APP)"
 
-run-v8-fps:
-	"$(GODOT)" --path "$(V8_FPS_PATH)"
+run-sok-v4:
+	$(MAKE) -C "$(SOK_V4_PATH)" run
 
-test-v8-fps:
-	"$(GODOT)" --headless --path "$(V8_FPS_PATH)" --import --quit-after 1
-	"$(GODOT)" --headless -d --path "$(V8_FPS_PATH)" -s addons/gut/gut_cmdln.gd -gconfig="$(V8_FPS_GUT_CONFIG)" -gexit
+run-sok-v5:
+	$(MAKE) -C "$(SOK_V5_PATH)" run
 
-run-built-v8-fps-mac:
-	mkdir -p "$(V8_FPS_BUILD_DIR)"
-	"$(GODOT)" --headless --path "$(V8_FPS_PATH)" --import --quit-after 1
-	"$(GODOT)" --headless --path "$(V8_FPS_PATH)" --export-release "macOS" "$(V8_FPS_MAC_APP)"
-	open "$(V8_FPS_MAC_APP)"
+run-sok-v6:
+	$(MAKE) -C "$(SOK_V6_PATH)" run
 
-edit-v9-space:
-	"$(GODOT)" --path "$(V9_SPACE_PATH)" -e
+run-sok-v7:
+	$(MAKE) -C "$(SOK_V7_PATH)" run
 
-run-v9-space:
-	"$(GODOT)" --path "$(V9_SPACE_PATH)"
+run-sok-v8:
+	$(MAKE) -C "$(SOK_V8_PATH)" run
 
-test-v9-space:
-	"$(GODOT)" --headless --path "$(V9_SPACE_PATH)" --import --quit-after 1
-	"$(GODOT)" --headless -d --path "$(V9_SPACE_PATH)" -s addons/gut/gut_cmdln.gd -gconfig="$(V9_SPACE_GUT_CONFIG)" -gexit
+run-sok-v9:
+	$(MAKE) -C "$(SOK_V9_PATH)" run
 
-edit-v10-wall-lab:
-	"$(GODOT)" --path "$(V10_WALL_LAB_PATH)" -e
-
-run-v10-wall-lab:
-	"$(GODOT)" --path "$(V10_WALL_LAB_PATH)"
-
-edit-v11-house:
-	"$(GODOT)" --path "$(V11_HOUSE_COMPARISON_PATH)" -e
-
-run-v11-house:
-	"$(GODOT)" --path "$(V11_HOUSE_COMPARISON_PATH)"
-
-edit-v12-voxel:
-	"$(GODOT)" --path "$(V12_VOXEL_PATH)" -e
-
-run-v12-voxel:
-	"$(GODOT)" --path "$(V12_VOXEL_PATH)"
-
-edit-v13-voxel:
-	"$(GODOT)" --path "$(V13_PREPROCESSED_VOXEL_PATH)" -e
-
-run-v13-voxel:
-	"$(GODOT)" --path "$(V13_PREPROCESSED_VOXEL_PATH)"
-
-edit-v14-voxel:
-	"$(GODOT)" --path "$(V14_RAMP_VOXEL_PATH)" -e
-
-run-v14-voxel:
-	"$(GODOT)" --path "$(V14_RAMP_VOXEL_PATH)"
-
-edit-v14-debug-ramp-3x3:
-	"$(GODOT)" --path "$(V14_RAMP_VOXEL_PATH)" -e --scene "res://debug_ramp_3x3.tscn"
-
-run-v14-debug-ramp-3x3:
-	"$(GODOT)" --path "$(V14_RAMP_VOXEL_PATH)" --scene "res://debug_ramp_3x3.tscn"
+run-sok-v10:
+	$(MAKE) -C "$(SOK_V10_PATH)" run
