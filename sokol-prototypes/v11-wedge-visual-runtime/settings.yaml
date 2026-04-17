@@ -1,0 +1,15 @@
+contract:
+  version: 1
+  front_face: ccw
+  backface_culling: true
+  quad_rule: cross_uv_outward
+  triangle_rule: cross_edges_outward
+  supports_quads: true
+  supports_triangles: true
+  runtime_reinterprets_geometry: false
+  cube_structural_culling: cube_vs_cube_only
+  wedge_structural_culling: none
+  wedge_collision: none
+  debug_artifact: runtime_world.debug.json
+preprocessing:
+  debug: false

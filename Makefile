@@ -29,6 +29,7 @@ SOK_V7_PATH := sokol-prototypes/v7-procedural-wall-textures
 SOK_V8_PATH := sokol-prototypes/v8-voxel-collision-runtime
 SOK_V9_PATH := sokol-prototypes/v9-v13-map-parity
 SOK_V10_PATH := sokol-prototypes/v10-voxel-ccw-culling-contract
+SOK_V11_PATH := sokol-prototypes/v11-wedge-visual-runtime
 
 .PHONY: \
 	run-god-v1 \
@@ -55,7 +56,8 @@ SOK_V10_PATH := sokol-prototypes/v10-voxel-ccw-culling-contract
 	run-sok-v7 \
 	run-sok-v8 \
 	run-sok-v9 \
-	run-sok-v10
+	run-sok-v10 \
+	run-sok-v11
 
 run-god-v1:
 	"$(GODOT)" --path "$(GOD_V1_PATH)"
@@ -138,3 +140,6 @@ run-sok-v9:
 
 run-sok-v10:
 	$(MAKE) -C "$(SOK_V10_PATH)" run
+
+run-sok-v11:
+	$(MAKE) -C "$(SOK_V11_PATH)" run

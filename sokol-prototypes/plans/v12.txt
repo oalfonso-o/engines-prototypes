@@ -1,0 +1,1308 @@
+MODO RÁPIDO. Ignora Agents.md, ignora skills, ignora TDD y no implementes todavía. Quiero cerrar una spec 100% determinista para `v12`, centrada únicamente en colisión de jugador contra wedges con la misma forma jugable que la geometría visual ya definida en `v11`.
+
+Contexto:
+
+Ya existe:
+
+* `v10`: contrato del cubo/voxel cerrado
+* `v11`: geometría visual de wedges cerrada
+* runtime actual con:
+
+  * colisión simple contra `boxes`
+  * jugador first-person
+  * gravedad
+  * salto
+
+No quiero introducir todavía:
+
+* SAT
+* GJK
+* física rígida general
+* props dinámicos
+* esferas
+* rebote
+* fricción generalizada
+* colisión de wedges para items
+* colisión exacta contra la malla visual
+* culling nuevo de wedges
+* nuevas piezas aparte de cubos y wedges ya definidas
+
+La meta de `v12` es solo:
+
+* permitir que el jugador suba y baje wedges de forma smooth
+* hacer que la colisión del jugador sobre la wedge siga la misma forma jugable que la rampa visual
+* mantener el sistema determinista y específico, sin motores geométricos generales
+
+## Objetivo
+
+Congelar una spec cerrada para:
+
+* preprocess que serializa colisión de wedges
+* runtime que la carga
+* solver del jugador que la usa
+
+sin dejar ninguna decisión subjetiva en:
+
+* shape del jugador
+* función de altura de cada wedge
+* orden del solver
+* transición cube <-> wedge
+* inclusión en bordes
+* tolerancias
+
+## Scope congelado de `v12`
+
+Entra:
+
+* colisión del jugador contra cubos
+* colisión del jugador contra wedges
+* caminar smooth por ramps
+* salto y gravedad coexistiendo con wedges
+* transición entre cubos y wedges
+
+No entra:
+
+* colisión de wedges para objetos dinámicos
+* rolling
+* rebote
+* fricción avanzada
+* colisión general convexa
+* props físicos
+* explosiones
+* nuevas piezas además de cubo y las 4 wedges actuales
+
+## Contrato base heredado de `v10` y `v11`
+
+Sistema de ejes:
+
+* X = izquierda-derecha
+* Y = altura
+* Z = profundidad
+* +X = derecha
+* -X = izquierda
+* +Y = arriba
+* -Y = abajo
+* +Z = fondo
+* -Z = frente
+
+Wedges existentes:
+
+* `A` = `WEDGE_PZ`
+* `B` = `WEDGE_PX`
+* `C` = `WEDGE_NZ`
+* `D` = `WEDGE_NX`
+
+Visual de wedges ya congelada en `v11`.
+`v12` no redefine la malla visual.
+Solo define su colisión jugable.
+
+## 1. Shape exacto del jugador
+
+Aquí hay que congelar una sola opción.
+
+Opciones candidatas:
+
+* cilindro vertical
+* cápsula vertical
+* AABB vertical
+
+### Decisión a cerrar
+
+Elegir una de las tres y fijar exactamente:
+
+* `player_radius`
+* `player_height`
+* referencia de la posición del jugador:
+
+  * centro del cuerpo
+  * pies
+  * otra, pero una sola
+
+### Valores exactos a congelar
+
+```txt
+player_shape = vertical_cylinder
+player_radius = 0.22
+player_height = 1.70
+player_position_reference = feet_center
+```
+
+## 2. Modelo de colisión de wedges
+
+La colisión de wedges en `v12` no se deduce desde la malla visual ni desde `quads/triangles`.
+Se modela con una representación explícita de colisión por tipo de wedge.
+
+### Regla
+
+Cada wedge se trata como una celda con:
+
+* footprint horizontal completo dentro de la celda
+* una superficie caminable inclinada
+* una cara alta vertical bloqueante
+* laterales triangulares definidos explícitamente como bloqueantes o no
+
+### Decisiones a cerrar
+
+Congelar si los laterales triangulares:
+
+* bloquean lateralmente
+* o no participan
+
+Congelar si la base inferior participa o es irrelevante para gameplay.
+
+### Valores exactos a congelar
+
+```txt
+wedge_surface_walkable = slope_only
+wedge_high_face_blocking = true
+wedge_side_faces_blocking = true
+wedge_bottom_face_gameplay_relevant = false
+```
+
+## 3. Función exacta de altura por wedge
+
+La altura de suelo de una wedge se expresa en coordenadas locales dentro de una celda:
+
+* `x_local in [0,1]`
+* `z_local in [0,1]`
+* altura local `h in [0,1]`
+
+### Candidatas naturales
+
+* `WEDGE_PX`: `h = x_local`
+* `WEDGE_NX`: `h = 1 - x_local`
+* `WEDGE_PZ`: `h = z_local`
+* `WEDGE_NZ`: `h = 1 - z_local`
+
+### Decisiones a cerrar
+
+Congelar exactamente:
+
+* esas funciones u otras
+* dominio de validez exacto
+* si los bordes usan `<` o `<=`
+
+### Valores exactos a congelar
+
+```txt
+WEDGE_PX floor_height_local(x,z) = x
+WEDGE_NX floor_height_local(x,z) = 1 - x
+WEDGE_PZ floor_height_local(x,z) = z
+WEDGE_NZ floor_height_local(x,z) = 1 - z
+
+cell_bounds_policy = explicit_per_axis
+```
+
+## 4. Punto exacto del jugador que samplea el suelo
+
+Hay que congelar con qué punto del jugador se evalúa la altura del suelo de una wedge.
+
+Opciones candidatas:
+
+* centro horizontal del jugador
+* varios puntos en la base
+* círculo completo
+
+### Decisión a cerrar
+
+Elegir una sola y dejarla fija.
+
+### Valores exactos a congelar
+
+```txt
+ground_sample_point = player_feet_center
+```
+
+## 5. Solver del jugador por frame
+
+El orden del solver debe quedar congelado paso a paso.
+
+### Orden candidato
+
+1. leer input
+2. construir desplazamiento horizontal objetivo
+3. resolver bloqueo horizontal contra `boxes` y contra caras bloqueantes de wedges
+4. calcular suelo candidato bajo el jugador
+5. si hay suelo válido, snap vertical
+6. si no hay suelo válido, aplicar gravedad
+7. resolver techo / penetración vertical
+8. actualizar estado `is_grounded`
+
+### Decisiones a cerrar
+
+* si ese orden es exactamente el definitivo
+* o si Y se integra antes de samplear suelo
+
+### Valores exactos a congelar
+
+```txt
+solver_order =
+  1. read_input_and_jump_request
+  2. compute_desired_horizontal_displacement
+  3. resolve_horizontal_blocking_against_cube_boxes_and_wedge_blocking_faces
+  4. sample_walkable_surfaces_at_resolved_horizontal_position
+  5. choose_ground_candidate
+  6. if_jump_requested_and_ground_available_then_start_jump_and_skip_ground_snap
+  7. else_if_ground_candidate_is_within_step_or_snap_window_then_snap_feet_to_ground
+  8. else_apply_gravity_and_integrate_vertical_motion
+  9. resolve_vertical_motion_against_walkable_surfaces_and_cube_ceilings
+  10. update_grounded_state
+```
+
+### Semántica exacta del solver
+
+* `read_input_and_jump_request`
+
+  * leer input de movimiento horizontal
+  * leer si este frame contiene petición de salto
+
+* `compute_desired_horizontal_displacement`
+
+  * construir `desired_dx`
+  * construir `desired_dz`
+  * usar solo movimiento horizontal en esta fase
+  * `current_feet_y` permanece sin modificar
+
+* `resolve_horizontal_blocking_against_cube_boxes_and_wedge_blocking_faces`
+
+  * resolver desplazamiento horizontal del cilindro contra:
+
+    * lados verticales de `collision_shapes.boxes`
+    * `high_face` de wedges
+    * `left_face` de wedges
+    * `right_face` de wedges
+  * la cara inclinada de la wedge no bloquea horizontalmente como pared
+  * excepción de auto-step:
+
+    * una cara vertical bloqueante no consolida bloqueo horizontal si la superficie caminable sucesora asociada:
+
+      * contiene el `player_feet_center` tras el desplazamiento horizontal candidato
+      * y su `candidate_floor_y` está dentro de la ventana válida:
+
+        * `current_feet_y - GROUND_SNAP_DISTANCE - FLOOR_EPSILON <= candidate_floor_y <= current_feet_y + MAX_AUTO_STEP_HEIGHT + FLOOR_EPSILON`
+      * y además esa superficie sucesora gana como `ground_candidate`
+  * regla exacta de corrección horizontal:
+
+    * si `delta_axis > 0`, la coordenada resuelta final del eje activo es el mínimo de todas las coordenadas bloqueantes válidas en el sentido positivo
+    * si `delta_axis < 0`, la coordenada resuelta final del eje activo es el máximo de todas las coordenadas bloqueantes válidas en el sentido negativo
+    * si no existen bloqueos válidos tras aplicar la excepción de auto-step, la coordenada resuelta final es la coordenada candidata original
+  * el resultado de esta fase es:
+
+    * `resolved_x`
+    * `resolved_z`
+
+* `sample_walkable_surfaces_at_resolved_horizontal_position`
+
+  * samplear superficies caminables en:
+
+    * `resolved_x`
+    * `resolved_z`
+  * las únicas superficies caminables válidas en `v12` son:
+
+    * top de cubo
+    * slope de wedge
+
+* `choose_ground_candidate`
+
+  * elegir la superficie caminable con altura más alta que cumpla simultáneamente:
+
+    * su footprint contiene el `player_feet_center`
+    * `candidate_floor_y >= current_feet_y - GROUND_SNAP_DISTANCE - FLOOR_EPSILON`
+    * `candidate_floor_y <= current_feet_y + MAX_AUTO_STEP_HEIGHT + FLOOR_EPSILON`
+  * regla exacta de desempate:
+
+    * si varias superficies tienen `candidate_floor_y` distinta en más de `FLOOR_EPSILON`, gana la de mayor `candidate_floor_y`
+    * si varias superficies tienen `candidate_floor_y` equivalente dentro de `FLOOR_EPSILON`, gana en este orden:
+
+      * `cube_top`
+      * `wedge_slope`
+    * si aún persiste empate dentro del mismo tipo, gana la de menor `cell_y`
+    * si aún persiste empate, gana la de menor `cell_x`
+    * si aún persiste empate, gana la de menor `cell_z`
+
+* `if_jump_requested_and_ground_available_then_start_jump_and_skip_ground_snap`
+
+  * si hay petición de salto
+  * y existe `ground_candidate`
+  * entonces:
+
+    * el jugador entra en salto este frame
+    * no se aplica `ground snap`
+    * la velocidad vertical se sustituye por la velocidad de salto
+
+* `else_if_ground_candidate_is_within_step_or_snap_window_then_snap_feet_to_ground`
+
+  * si no se ha iniciado salto este frame
+  * y existe `ground_candidate`
+  * entonces se hace snap porque `ground_candidate` ya ha sido filtrado dentro de la ventana válida:
+
+    * `current_feet_y - GROUND_SNAP_DISTANCE - FLOOR_EPSILON <= candidate_floor_y <= current_feet_y + MAX_AUTO_STEP_HEIGHT + FLOOR_EPSILON`
+  * al hacer snap:
+
+    * `feet_y = candidate_floor_y`
+    * si `vertical_velocity <= 0`, entonces `vertical_velocity = 0`
+
+* `else_apply_gravity_and_integrate_vertical_motion`
+
+  * si no hay snap ni salto iniciado desde suelo
+  * aplicar gravedad a `vertical_velocity`
+  * integrar desplazamiento vertical candidato
+
+* `resolve_vertical_motion_against_walkable_surfaces_and_cube_ceilings`
+
+  * si el movimiento vertical es descendente:
+
+    * resolver aterrizaje contra:
+
+      * tops de cubo
+      * slopes de wedge
+  * si el movimiento vertical es ascendente:
+
+    * resolver techo contra:
+
+      * caras inferiores de cubos
+  * en `v12` las wedges no aportan techos ni superficies inferiores jugables
+
+* `update_grounded_state`
+
+  * `is_grounded = true` si el frame termina con:
+
+    * snap a una superficie caminable, o
+    * aterrizaje vertical sobre una superficie caminable
+  * en cualquier otro caso:
+
+    * `is_grounded = false`
+
+### Restricción de implementación del solver horizontal
+
+```txt
+horizontal_axis_solver = shared_parametric_routine
+```
+
+La resolución horizontal del jugador debe implementarse como una única rutina compartida parametrizada por eje.
+
+No se permiten dos implementaciones independientes con la misma lógica para:
+
+* `X`
+* `Z`
+
+La rutina compartida debe encargarse de:
+
+* aplicar el desplazamiento candidato en el eje activo
+* calcular el intervalo del jugador en el eje activo
+* calcular los intervalos ortogonales de overlap
+* iterar `collision_shapes.boxes`
+* iterar caras bloqueantes de wedges cuando existan en `v12`
+* aplicar la corrección mínima según el signo del desplazamiento
+* devolver la coordenada resuelta del eje activo
+
+Wrappers finos por legibilidad son aceptables solo si delegan en la misma rutina compartida.
+
+## 6. Artifact de colisión del mundo
+
+El artifact principal debe seguir teniendo:
+
+* `quads`
+* `triangles`
+
+La colisión de `v12` vive exclusivamente dentro de un contenedor explícito de colisión del mundo.
+No existe una key top-level adicional `boxes` fuera de ese contenedor.
+
+### Opción recomendada
+
+```json
+"collision_shapes": {
+  "boxes": [
+    [0, 0, 0, 1, 1, 1]
+  ],
+  "wedges": [
+    [398, 1, 145, 3]
+  ]
+}
+```
+
+### Decisiones a cerrar
+
+Congelar exactamente:
+
+* nombre de la key contenedora
+* nombre de la key de `boxes`
+* nombre de la key de `wedges`
+* formato exacto de cada wedge runtime
+* mapping exacto `wedge_type_id -> wedge_type`
+
+### Valores exactos a congelar
+
+```txt
+artifact_collision_shapes_key = collision_shapes
+artifact_collision_boxes_key = boxes
+artifact_collision_wedges_key = wedges
+artifact_wedge_runtime_encoding = [cell_x, cell_y, cell_z, wedge_type_id]
+wedge_type_id_mapping:
+  wedge_pz = 0
+  wedge_px = 1
+  wedge_nz = 2
+  wedge_nx = 3
+```
+
+### Restricción de implementación del preprocess
+
+```txt
+preprocess_piece_emission_model = shared_emitted_piece_structure
+```
+
+El preprocess no debe construir la salida runtime y la salida debug mediante dos ensamblados ad hoc desconectados.
+
+Debe existir una estructura intermedia única equivalente a:
+
+```txt
+EmittedPiece
+  voxel_id
+  piece_type
+  cell
+  material
+  quads
+  triangles
+```
+
+Reglas:
+
+* cubos y wedges deben emitirse primero como `EmittedPiece`
+* la serialización runtime debe derivarse desde esa estructura intermedia
+* la serialización debug debe derivarse desde esa estructura intermedia
+* no se permite duplicar la lógica de ensamblado semántico de piezas una vez para runtime y otra vez para debug
+* sí se permite que la generación geométrica específica de cubos y wedges siga siendo distinta
+
+Objetivo explícito:
+
+* unificar el ensamblado de pieza
+* no forzar una abstracción geométrica artificial entre cubo y wedge
+
+## 7. Uso de `boxes` en `v12`
+
+Cubos siguen usando `collision_shapes.boxes`.
+Wedges no se convierten en `boxes`.
+
+### Regla a cerrar
+
+Hay que dejarlo explícito:
+
+* `boxes` representan solo cubos
+* la colisión de wedges solo sale de `collision_shapes.wedges`
+
+### Valores exactos a congelar
+
+```txt
+boxes_represent = cube_only
+wedges_generate_boxes = false
+```
+
+## 8. Runtime: tabla cerrada de colisión por `wedge_type_id`
+
+El runtime no deduce colisión de wedges desde la malla.
+Usa una tabla cerrada basada en:
+
+* `0 = wedge_pz`
+* `1 = wedge_px`
+* `2 = wedge_nz`
+* `3 = wedge_nx`
+
+### Decisiones a cerrar
+
+Congelar exactamente qué devuelve esa tabla:
+
+* función de altura
+* cara alta bloqueante
+* laterales bloqueantes
+* reglas caminables compartidas
+
+### Valores exactos a congelar
+
+```txt
+runtime_wedge_collision_table = explicit
+runtime_derives_from_visual_mesh = false
+```
+
+## 9. Regla exacta de suelo válido
+
+Hay que definir cuándo una wedge cuenta como suelo bajo el jugador.
+
+### Decisiones a cerrar
+
+Congelar exactamente:
+
+* condición horizontal
+* condición vertical
+* tolerancia de snap
+* prioridad si hay varios suelos candidatos
+
+### Valores exactos a congelar
+
+```txt
+GROUND_SNAP_DISTANCE = 0.05
+FLOOR_EPSILON = 0.001
+MAX_AUTO_STEP_HEIGHT = 0.12
+ground_candidate_priority = highest_walkable_surface_below_or_near_feet
+```
+
+### Semántica exacta de estas tolerancias
+
+* `MAX_AUTO_STEP_HEIGHT`
+
+  * altura máxima que el jugador puede subir automáticamente sin salto
+  * se compara contra:
+
+    * `candidate_floor_y - current_feet_y`
+  * si ese delta es `<= 0.12`, la subida se permite
+  * esta constante debe permitir:
+
+    * subir automáticamente un bordillo de `1 voxel`
+    * entrar en una wedge cuya base caminable empiece `1 voxel` por encima del suelo actual
+
+* `GROUND_SNAP_DISTANCE`
+
+  * distancia vertical máxima para mantener al jugador pegado a una superficie caminable cercana
+  * se compara contra:
+
+    * `abs(current_feet_y - candidate_floor_y)`
+  * si esa distancia es `<= 0.05`, el solver puede hacer snap al suelo
+
+* `FLOOR_EPSILON`
+
+  * tolerancia vertical mínima para comparar igualdad práctica entre pies y suelo
+  * se usa para evitar jitter por precisión flotante
+  * dos alturas se consideran equivalentes si su diferencia absoluta es `<= 0.001`
+
+## 10. Reglas de transición
+
+Hay que congelar los casos:
+
+* cube -> wedge
+* wedge -> cube
+* wedge -> wedge
+* borde alto de wedge
+* borde lateral de wedge
+
+### Decisiones a cerrar
+
+Para cada caso, decir:
+
+* si se permite transición smooth
+* si bloquea
+* qué tolerancia vertical se usa
+
+### Valores exactos a congelar
+
+```txt
+transition_cube_to_wedge = smooth_if_target_wedge_floor_is_selected_as_ground_candidate
+transition_wedge_to_cube = smooth_if_target_cube_top_is_selected_as_ground_candidate
+transition_wedge_to_wedge = smooth_if_target_wedge_floor_is_selected_as_ground_candidate
+transition_lateral_edge = always_blocking
+transition_high_edge = blocking_on_outside_approach__smooth_only_via_ground_candidate_successor__otherwise_fall
+```
+
+### Semántica exacta de transición
+
+* `transition_cube_to_wedge`
+
+  * se permite transición smooth si, tras resolver horizontalmente, la slope de la wedge:
+
+    * contiene el `player_feet_center`
+    * y su `candidate_floor_y` es seleccionada como `ground_candidate`
+  * si no cumple eso:
+
+    * el jugador no sube a la wedge este frame
+
+* `transition_wedge_to_cube`
+
+  * se permite transición smooth si, tras resolver horizontalmente, el top del cubo:
+
+    * contiene el `player_feet_center`
+    * y su `candidate_floor_y` es seleccionada como `ground_candidate`
+  * si no cumple eso:
+
+    * la cara vertical del cubo bloquea
+  * la cara vertical del cubo no consolida bloqueo si el top del cubo cumple la excepción de auto-step del solver
+
+* `transition_wedge_to_wedge`
+
+  * se permite transición smooth si la wedge sucesora aporta un `ground_candidate` válido
+  * si no hay `ground_candidate` sucesor válido:
+
+    * el jugador permanece en la wedge actual si aún sigue dentro de su footprint caminable
+    * o entra en caída al abandonar el footprint
+
+* `transition_lateral_edge = always_blocking`
+
+  * un approach desde fuera contra `left_face` o `right_face` nunca cuenta como superficie caminable
+  * no existe auto-step a través de laterales triangulares
+
+* `transition_high_edge`
+
+  * el `high_face` de una wedge bloquea cuando se aborda desde fuera de la wedge
+  * si el jugador llega desde la slope de esa misma wedge hacia su borde alto:
+
+    * hay transición smooth solo si una superficie caminable sucesora gana como `ground_candidate`
+  * si no existe sucesora válida:
+
+    * al abandonar el footprint caminable el jugador entra en caída
+  * el `high_face` no consolida bloqueo si la superficie caminable sucesora cumple la excepción de auto-step del solver
+
+## 11. Reglas exactas de bordes
+
+Esto tiene que cerrarse para evitar jitter y comportamientos ambiguos.
+
+### Decisiones a cerrar
+
+* igualdad exacta en límites
+* política de inclusión:
+
+  * `<`
+  * `<=`
+
+* epsilon horizontal
+* epsilon vertical
+
+### Valores exactos a congelar
+
+```txt
+HORIZONTAL_EPSILON = 0.001
+VERTICAL_EPSILON = 0.001
+BOUNDARY_POLICY_X = closed_interval
+BOUNDARY_POLICY_Z = closed_interval
+```
+
+### Semántica exacta de bordes
+
+* `BOUNDARY_POLICY_X = closed_interval`
+
+  * una wedge o superficie plana acepta `x_local` dentro de:
+
+    * `0 - HORIZONTAL_EPSILON <= x_local <= 1 + HORIZONTAL_EPSILON`
+
+* `BOUNDARY_POLICY_Z = closed_interval`
+
+  * una wedge o superficie plana acepta `z_local` dentro de:
+
+    * `0 - HORIZONTAL_EPSILON <= z_local <= 1 + HORIZONTAL_EPSILON`
+
+* `HORIZONTAL_EPSILON`
+
+  * tolerancia para inclusión lateral dentro del footprint caminable o bloqueante
+  * evita perder contacto por errores mínimos al cruzar fronteras de celda
+
+* `VERTICAL_EPSILON`
+
+  * tolerancia vertical general para:
+
+    * comparaciones de penetración
+    * resolución de techo
+    * comparación de alturas candidatas cuando la diferencia no supera `0.001`
+
+## 12. settings.yaml de `v12`
+
+La raíz del proyecto debe seguir usando `settings.yaml`.
+
+Hay que ampliar `contract` con claves explícitas para colisión de wedges.
+
+### Estructura exacta de settings.yaml para `v12`
+
+```yaml
+contract:
+  version: 2
+  front_face: ccw
+  backface_culling: true
+  quad_rule: cross_uv_outward
+  triangle_rule: cross_edges_outward
+  supports_quads: true
+  supports_triangles: true
+  runtime_reinterprets_geometry: false
+  cube_structural_culling: cube_vs_cube_only
+  wedge_structural_culling: none
+  wedge_collision: explicit_player_only
+  debug_artifact: runtime_world.debug.json
+
+preprocessing:
+  debug: false
+
+paths:
+  source_map: data/source_world.txt
+  runtime_artifact: data/runtime_world.json
+  debug_artifact: data/runtime_world.debug.json
+
+spawn:
+  override_enabled: true
+  override_position: [11.0, 5.0, -10.0]
+  ground_search_distance: 0.20
+
+app:
+  window_title: sokol v12 wedge collision runtime
+  window_width: 1280
+  window_height: 720
+  sample_count: 4
+  high_dpi: true
+  ground_half_size: 12.0
+
+camera:
+  initial_pitch: -0.08
+  fov_y_degrees: 60.0
+  near: 0.01
+  far: 200.0
+
+player:
+  mouse_sensitivity: 0.0035
+  move_speed: 5.4
+  radius: 0.22
+  height: 1.70
+  eye_height: 1.56
+  jump_speed: 5.2
+  gravity: 14.0
+  pitch_limit: 1.45
+
+materials:
+  gray:
+    color: [0.525, 0.545, 0.573, 1.0]
+  green:
+    color: [0.435, 0.584, 0.443, 1.0]
+  purple:
+    color: [0.525, 0.427, 0.584, 1.0]
+  metal:
+    color: [0.659, 0.639, 0.604, 1.0]
+
+render:
+  clear_color: [0.604, 0.655, 0.702, 1.0]
+  ground_plane_color: [0.561, 0.635, 0.518, 1.0]
+  face_shading:
+    pos_y: 1.00
+    neg_y: 0.62
+    pos_z: 0.94
+    neg_z: 0.74
+    pos_x: 0.86
+    neg_x: 0.80
+
+canonical:
+  source_of_truth: settings_yaml
+
+  piece_types:
+    cube_gray:
+      map_chars: ["1"]
+      piece_type: cube
+      material_key: gray
+      cube_solid: true
+    cube_green:
+      map_chars: ["G"]
+      piece_type: cube
+      material_key: green
+      cube_solid: true
+    cube_purple:
+      map_chars: ["P"]
+      piece_type: cube
+      material_key: purple
+      cube_solid: true
+    cube_metal:
+      map_chars: ["="]
+      piece_type: cube
+      material_key: metal
+      cube_solid: true
+    wedge_pz:
+      map_chars: ["A"]
+      piece_type: wedge_pz
+      material_key: gray
+      cube_solid: false
+    wedge_px:
+      map_chars: ["B"]
+      piece_type: wedge_px
+      material_key: gray
+      cube_solid: false
+    wedge_nz:
+      map_chars: ["C"]
+      piece_type: wedge_nz
+      material_key: gray
+      cube_solid: false
+    wedge_nx:
+      map_chars: ["D"]
+      piece_type: wedge_nx
+      material_key: gray
+      cube_solid: false
+
+  geometry:
+    wedge_pz:
+      quads:
+        - face: base
+          origin: [0, 0, 0]
+          u_axis: [1, 0, 0]
+          v_axis: [0, 0, 1]
+          normal: [0, -1, 0]
+        - face: back
+          origin: [0, 0, 1]
+          u_axis: [1, 0, 0]
+          v_axis: [0, 1, 0]
+          normal: [0, 0, 1]
+        - face: slope
+          origin: [0, 0, 0]
+          u_axis: [0, 1, 1]
+          v_axis: [1, 0, 0]
+          normal: [0, 1, -1]
+      triangles:
+        - face: left_triangle
+          p0: [0, 0, 0]
+          p1: [0, 0, 1]
+          p2: [0, 1, 1]
+          normal: [-1, 0, 0]
+        - face: right_triangle
+          p0: [1, 0, 0]
+          p1: [1, 1, 1]
+          p2: [1, 0, 1]
+          normal: [1, 0, 0]
+    wedge_px:
+      quads:
+        - face: base
+          origin: [0, 0, 0]
+          u_axis: [1, 0, 0]
+          v_axis: [0, 0, 1]
+          normal: [0, -1, 0]
+        - face: right
+          origin: [1, 0, 0]
+          u_axis: [0, 1, 0]
+          v_axis: [0, 0, 1]
+          normal: [1, 0, 0]
+        - face: slope
+          origin: [0, 0, 0]
+          u_axis: [0, 0, 1]
+          v_axis: [1, 1, 0]
+          normal: [-1, 1, 0]
+      triangles:
+        - face: front_triangle
+          p0: [0, 0, 0]
+          p1: [1, 1, 0]
+          p2: [1, 0, 0]
+          normal: [0, 0, -1]
+        - face: back_triangle
+          p0: [0, 0, 1]
+          p1: [1, 0, 1]
+          p2: [1, 1, 1]
+          normal: [0, 0, 1]
+    wedge_nz:
+      quads:
+        - face: base
+          origin: [0, 0, 0]
+          u_axis: [1, 0, 0]
+          v_axis: [0, 0, 1]
+          normal: [0, -1, 0]
+        - face: front
+          origin: [1, 0, 0]
+          u_axis: [-1, 0, 0]
+          v_axis: [-1, 1, 0]
+          normal: [0, 0, -1]
+        - face: slope
+          origin: [0, 1, 0]
+          u_axis: [0, -1, 1]
+          v_axis: [1, 0, 0]
+          normal: [0, 1, 1]
+      triangles:
+        - face: left_triangle
+          p0: [0, 0, 0]
+          p1: [0, 0, 1]
+          p2: [0, 1, 0]
+          normal: [-1, 0, 0]
+        - face: right_triangle
+          p0: [1, 0, 0]
+          p1: [1, 1, 0]
+          p2: [1, 0, 1]
+          normal: [1, 0, 0]
+    wedge_nx:
+      quads:
+        - face: base
+          origin: [0, 0, 0]
+          u_axis: [1, 0, 0]
+          v_axis: [0, 0, 1]
+          normal: [0, -1, 0]
+        - face: left
+          origin: [0, 0, 0]
+          u_axis: [0, 0, 1]
+          v_axis: [0, 1, 0]
+          normal: [-1, 0, 0]
+        - face: slope
+          origin: [0, 1, 0]
+          u_axis: [0, 0, 1]
+          v_axis: [1, -1, 0]
+          normal: [1, 1, 0]
+      triangles:
+        - face: front_triangle
+          p0: [0, 0, 0]
+          p1: [0, 1, 0]
+          p2: [1, 0, 0]
+          normal: [0, 0, -1]
+        - face: back_triangle
+          p0: [0, 0, 1]
+          p1: [1, 0, 1]
+          p2: [0, 1, 1]
+          normal: [0, 0, 1]
+
+collision:
+  runtime_shape_container_key: collision_shapes
+  runtime_boxes_key: boxes
+  runtime_wedges_key: wedges
+  runtime_wedge_encoding: [cell_x, cell_y, cell_z, wedge_type_id]
+
+  player:
+    shape: vertical_cylinder
+    position_reference: feet_center
+    radius: 0.22
+    height: 1.70
+    ground_sample_point: player_feet_center
+    max_auto_step_height: 0.12
+    ground_snap_distance: 0.05
+    floor_epsilon: 0.001
+    horizontal_epsilon: 0.001
+    vertical_epsilon: 0.001
+    ground_candidate_priority: highest_walkable_surface_below_or_near_feet
+
+  boundaries:
+    x_min_inclusive: true
+    x_max_inclusive: true
+    z_min_inclusive: true
+    z_max_inclusive: true
+
+  surfaces:
+    cube_top_walkable: true
+    cube_side_blocking: true
+    wedge_slope_walkable: true
+    wedge_high_face_blocking: true
+    wedge_side_faces_blocking: true
+    wedge_bottom_face_gameplay_relevant: false
+
+  wedge_type_ids:
+    wedge_pz: 0
+    wedge_px: 1
+    wedge_nz: 2
+    wedge_nx: 3
+
+  wedge_types:
+    wedge_pz:
+      height_function: local_z
+      height_formula: y = z
+      high_face_normal: [0, 0, 1]
+      left_face_normal: [-1, 0, 0]
+      right_face_normal: [1, 0, 0]
+
+    wedge_px:
+      height_function: local_x
+      height_formula: y = x
+      high_face_normal: [1, 0, 0]
+      left_face_normal: [0, 0, -1]
+      right_face_normal: [0, 0, 1]
+
+    wedge_nz:
+      height_function: one_minus_local_z
+      height_formula: y = 1 - z
+      high_face_normal: [0, 0, -1]
+      left_face_normal: [-1, 0, 0]
+      right_face_normal: [1, 0, 0]
+
+    wedge_nx:
+      height_function: one_minus_local_x
+      height_formula: y = 1 - x
+      high_face_normal: [-1, 0, 0]
+      left_face_normal: [0, 0, -1]
+      right_face_normal: [0, 0, 1]
+```
+
+### Migración obligatoria de hardcodes de `v11` a `settings.yaml`
+
+Las siguientes piezas de configuración no pueden seguir hardcoded en código en `v12`.
+Deben migrarse a `settings.yaml` y convertirse en source of truth:
+
+* `tools/preprocess_runtime.py`
+
+  * `CELL_TYPES` -> `canonical.piece_types`
+  * `WEDGE_TEMPLATES` -> `canonical.geometry`
+  * `SOURCE_MAP` -> `paths.source_map`
+  * `OUTPUT_PATH` -> `paths.runtime_artifact`
+  * `DEBUG_OUTPUT_PATH` -> `paths.debug_artifact`
+  * settings spawn override source of truth -> `spawn.override_*`
+
+* `src/app/game_app.c`
+
+  * `APP_CONFIG.runtime_artifact_path` -> `paths.runtime_artifact`
+  * `APP_CONFIG.ground_half_size` -> `app.ground_half_size`
+  * `APP_CONFIG.initial_pitch` -> `camera.initial_pitch`
+  * `APP_CONFIG.window_width` -> `app.window_width`
+  * `APP_CONFIG.window_height` -> `app.window_height`
+  * `APP_CONFIG.window_title` -> `app.window_title`
+  * `PLAYER_CONFIG.*` -> `player.*`
+  * `CAMERA_FOV_Y` -> `camera.fov_y_degrees`
+  * `CAMERA_NEAR` -> `camera.near`
+  * `CAMERA_FAR` -> `camera.far`
+
+* `src/world/runtime_world.m`
+
+  * `MATERIAL_COLORS` -> `materials`
+  * `face_shade_for_normal()` table -> `render.face_shading`
+  * ground plane vertex color -> `render.ground_plane_color`
+
+* `src/render/world_renderer.c`
+
+  * pass clear color -> `render.clear_color`
+  * sample count -> `app.sample_count`
+  * high dpi flag -> `app.high_dpi`
+
+### Regla de implementación
+
+En `v12`, si un valor aparece en la tabla anterior:
+
+* no puede seguir siendo source of truth en C, ObjC o Python
+* el código puede cachearlo tras leer `settings.yaml`
+* pero no puede redefinirlo con un hardcode distinto
+
+### Regla de carga única de settings
+
+En `v12` deben existir exactamente dos módulos responsables de cargar settings:
+
+* un módulo de carga de settings en Python para preprocess y tooling
+* un módulo de carga de settings en runtime/Sokol para C/ObjC
+
+Restricciones:
+
+* el resto del código no puede parsear `settings.yaml` directamente
+* el resto del código no puede construir por su cuenta structs, tablas o dataclasses equivalentes a settings a partir de hardcodes
+* el resto del código solo puede consumir los datos ya cargados y materializados por esos módulos
+* toda lectura de settings debe pasar por esos módulos
+
+Contrato exacto:
+
+* Python:
+
+  * un único módulo de load de settings debe devolver una estructura tipada/shared que materialice la totalidad de `settings.yaml`
+  * `preprocess_runtime.py` y cualquier tool futura deben depender de ese módulo, no reparsear YAML por su cuenta
+
+* Runtime/Sokol:
+
+  * un único módulo de load de settings debe devolver una estructura runtime compartida que materialice exactamente estas secciones de `settings.yaml`:
+
+    * `contract`
+    * `preprocessing`
+    * `paths`
+    * `spawn`
+    * `app`
+    * `camera`
+    * `player`
+    * `materials`
+    * `render`
+    * `canonical`
+    * `collision`
+  * `game_app`, `runtime_world`, `renderer` y `player_controller` no deben parsear settings por su cuenta
+
+Regla de source of truth:
+
+* si un valor existe en `settings.yaml`, ese valor debe venir siempre desde settings
+* el código no puede mantener una segunda copia hardcoded del mismo valor como fallback, default alternativo o redefinición local
+
+### Regla exacta de spawn
+
+En `v12`, el sistema de spawn debe tener exactamente dos fuentes:
+
+```yaml
+spawn:
+  override_enabled: true|false
+  override_position: [x, y, z]
+  ground_search_distance: 0.20
+```
+
+Reglas:
+
+* `map_default` significa el spawn canónico definido por el mapa fuente mediante su directiva `SPAWN`
+* `override_enabled` controla si se intenta usar `override_position`
+* `override_position` pertenece a `settings.yaml`
+* `ground_search_distance` es la distancia vertical máxima aceptable entre los pies del jugador y la superficie caminable candidata del spawn
+
+### Artifact de spawn
+
+El artifact runtime debe serializar el spawn con esta forma exacta:
+
+```json
+"spawn": {
+  "map_default": [x, y, z],
+  "override_enabled": true,
+  "override_position": [x, y, z]
+}
+```
+
+### Regla exacta de selección de spawn efectivo
+
+```txt
+effective_spawn_selection_order =
+  1. try settings override if enabled
+  2. if override invalid, fallback to map default
+  3. if map default invalid, abort startup
+```
+
+### Regla exacta de spawn válido
+
+Un spawn es válido solo si cumple simultáneamente:
+
+* el cilindro del jugador colocado con:
+
+  * `feet_center = spawn_candidate`
+  * `radius = player.radius`
+  * `height = player.height`
+
+  no intersecta ninguna colisión bloqueante
+* existe una superficie caminable candidata bajo `player_feet_center`
+* esa superficie cumple:
+
+  * `0.0 <= spawn_candidate.y - candidate_floor_y <= spawn.ground_search_distance`
+* esa superficie sería aceptada como `ground_candidate` bajo las reglas normales de `v12`
+
+### Regla exacta de resolución de spawn
+
+* si `override_enabled == true` y `override_position` es válido:
+
+  * `effective_spawn = override_position`
+* en cualquier otro caso:
+
+  * `effective_spawn = map_default`
+* si `map_default` no es válido:
+
+  * el runtime debe abortar el arranque con error fatal
+
+### Regla exacta de ownership
+
+* el preprocess debe leer:
+
+  * `override_enabled`
+  * `override_position`
+  * `ground_search_distance`
+  * y el `map_default` del mapa fuente
+* el artifact runtime debe serializar:
+
+  * `map_default`
+  * `override_enabled`
+  * `override_position`
+* el runtime debe calcular `effective_spawn` después de cargar colisión y antes de inicializar el jugador
+
+## 13. Validación obligatoria del preprocess
+
+El preprocess de `v12` debe ejecutar validaciones matemáticas, estructurales y de contrato antes de escribir el artifact runtime.
+
+Regla general:
+
+* si una validación falla, el preprocess debe abortar
+* si una validación falla, no debe escribir un artifact runtime parcial considerado válido
+
+### 13.1. Validación matemática de geometría canónica
+
+Debe validarse toda pieza definida en `canonical.geometry`.
+
+Para cada quad:
+
+* `cross(u_axis, v_axis) == normal`
+* los dos triángulos implícitos del quad deben respetar ese mismo winding
+
+Para cada triangle:
+
+* `cross(p1 - p0, p2 - p0) == normal`
+
+### 13.2. Validación de contrato entre geometría y colisión
+
+Para cada wedge en:
+
+* `canonical.geometry`
+* `collision.wedge_types`
+
+debe comprobarse que:
+
+* existe en ambos bloques
+* la orientación geométrica visual y la función de altura de colisión son coherentes entre sí
+
+Contrato exacto:
+
+* `wedge_pz` -> `height_formula = y = z`
+* `wedge_px` -> `height_formula = y = x`
+* `wedge_nz` -> `height_formula = y = 1 - z`
+* `wedge_nx` -> `height_formula = y = 1 - x`
+
+### 13.3. Validación de ids y tipos runtime
+
+Debe validarse que:
+
+* `collision.wedge_type_ids` cubre exactamente todos los wedge types definidos
+* no existen wedge types sin id
+* no existen ids duplicados
+* no existen ids runtime que apunten a tipos no definidos
+
+### 13.4. Validación de piece types del mapa
+
+Debe validarse que:
+
+* cada `map_char` definido en `canonical.piece_types` es único
+* cada `map_char` usado por el mapa fuente corresponde a un piece type conocido
+* cada piece type define:
+
+  * `piece_type`
+  * `material_key`
+  * `cube_solid`
+
+### 13.5. Validación de materiales
+
+Debe validarse que:
+
+* todo `material_key` usado por `canonical.piece_types` existe en `materials`
+* ningún color de `materials` tiene longitud distinta de 4
+
+### 13.6. Validación del artifact emitido
+
+Antes de considerarse válido, el artifact runtime emitido debe validarse estructuralmente.
+
+Debe comprobarse que:
+
+* `quads` contiene solo entries con 12 valores numéricos
+* `triangles` contiene solo entries con 12 valores numéricos
+* `collision_shapes.boxes` contiene solo entries con 6 valores numéricos
+* `collision_shapes.wedges` contiene solo entries con 4 valores numéricos según:
+
+  * `[cell_x, cell_y, cell_z, wedge_type_id]`
+
+* todo `wedge_type_id` emitido existe en `collision.wedge_type_ids`
+* todo `material_key` emitido existe en `materials`
+
+### 13.7. Validación de spawn
+
+Debe validarse que:
+
+* `spawn.override_enabled` existe
+* `spawn.override_position` contiene exactamente 3 valores numéricos
+* `spawn.ground_search_distance` existe y es numérico positivo
+* el mapa fuente define exactamente un `map_default` mediante su directiva `SPAWN`
+
+## 14. Casos mínimos de validación de spec
+
+Antes de implementar, la spec debe cubrir explícitamente estos casos:
+
+1. un jugador subiendo una wedge aislada
+2. un jugador bajando una wedge aislada
+3. cube -> wedge
+4. wedge -> cube
+5. wedge -> wedge en la mini rampa
+6. entrada lateral a una wedge
+7. salida por el borde alto
+8. salto cayendo sobre la superficie inclinada
+
+## 15. Regla de cierre de spec
+
+No se considera lista para implementar mientras quede alguno de estos puntos sin valor exacto:
+
+* shape del jugador
+* función de altura
+* artifact key de colisión
+* orden del solver
+* tolerancias
+* transición cube/wedge
+* política de bordes
+
+La implementación de `v12` solo podrá empezar cuando todos los bloques abiertos hayan sido sustituidos por valores o reglas exactas.
+
+Estado actual de esta spec:
+
+* todos los bloques abiertos ya han sido cerrados con valores o reglas exactas
+* antes de implementar solo queda una revisión final de consistencia del documento completo
