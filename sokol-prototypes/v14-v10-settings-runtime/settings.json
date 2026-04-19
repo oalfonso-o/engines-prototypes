@@ -1,0 +1,52 @@
+{
+  "paths": {
+    "source_map": "../../godot-prototypes/v12-voxel-cross-corridor/maps/cross_cube_map.txt",
+    "runtime_artifact": "data/runtime_world.json"
+  },
+  "app": {
+    "window_title": "sokol v10 voxel ccw culling contract",
+    "window_width": 1280,
+    "window_height": 720,
+    "sample_count": 4,
+    "high_dpi": true
+  },
+  "camera": {
+    "initial_pitch": -0.08,
+    "fov_y_degrees": 60.0,
+    "near": 0.01,
+    "far": 200.0
+  },
+  "player": {
+    "mouse_sensitivity": 0.0035,
+    "move_speed": 5.4,
+    "radius": 0.22,
+    "height": 1.7,
+    "eye_height": 1.56,
+    "jump_speed": 5.2,
+    "gravity": 14.0,
+    "pitch_limit": 1.45
+  },
+  "world": {
+    "ground_half_size": 30.0,
+    "world_y_offset": 0.02,
+    "spawn": [0.0, 0.0, -20.0]
+  },
+  "materials": {
+    "gray": { "color": [0.525, 0.545, 0.573, 1.0] },
+    "green": { "color": [0.435, 0.584, 0.443, 1.0] },
+    "purple": { "color": [0.525, 0.427, 0.584, 1.0] },
+    "metal": { "color": [0.659, 0.639, 0.604, 1.0] }
+  },
+  "render": {
+    "clear_color": [0.604, 0.655, 0.702, 1.0],
+    "ground_plane_color": [0.561, 0.635, 0.518, 1.0],
+    "face_shading": {
+      "pos_y": 1.0,
+      "neg_y": 0.62,
+      "pos_z": 0.94,
+      "neg_z": 0.74,
+      "pos_x": 0.86,
+      "neg_x": 0.8
+    }
+  }
+}

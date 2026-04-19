@@ -96,6 +96,23 @@ Visual de wedges ya congelada en `v11`.
 `v12` no redefine la malla visual.
 Solo define su colisión jugable.
 
+## Regla global de mundo
+
+En `v12` no existe ninguna noción de `ground` implícito, global o añadido por runtime.
+
+La única geometría visual y la única colisión del mundo salen del mapa fuente y de sus piezas explícitas:
+
+* cubos
+* wedges
+
+Consecuencias exactas:
+
+* el runtime no debe añadir ningún `ground_plane`
+* el preprocess no debe serializar ningún suelo implícito
+* si no existe geometría del mapa bajo el jugador:
+
+  * el jugador cae
+
 ## 1. Shape exacto del jugador
 
 Aquí hay que congelar una sola opción.
@@ -741,7 +758,6 @@ app:
   window_height: 720
   sample_count: 4
   high_dpi: true
-  ground_half_size: 12.0
 
 camera:
   initial_pitch: -0.08
@@ -771,7 +787,6 @@ materials:
 
 render:
   clear_color: [0.604, 0.655, 0.702, 1.0]
-  ground_plane_color: [0.561, 0.635, 0.518, 1.0]
   face_shading:
     pos_y: 1.00
     neg_y: 0.62
@@ -1025,7 +1040,6 @@ Deben migrarse a `settings.yaml` y convertirse en source of truth:
 * `src/app/game_app.c`
 
   * `APP_CONFIG.runtime_artifact_path` -> `paths.runtime_artifact`
-  * `APP_CONFIG.ground_half_size` -> `app.ground_half_size`
   * `APP_CONFIG.initial_pitch` -> `camera.initial_pitch`
   * `APP_CONFIG.window_width` -> `app.window_width`
   * `APP_CONFIG.window_height` -> `app.window_height`
@@ -1039,7 +1053,6 @@ Deben migrarse a `settings.yaml` y convertirse en source of truth:
 
   * `MATERIAL_COLORS` -> `materials`
   * `face_shade_for_normal()` table -> `render.face_shading`
-  * ground plane vertex color -> `render.ground_plane_color`
 
 * `src/render/world_renderer.c`
 
@@ -1115,6 +1128,8 @@ Reglas:
 * `override_enabled` controla si se intenta usar `override_position`
 * `override_position` pertenece a `settings.yaml`
 * `ground_search_distance` es la distancia vertical máxima aceptable entre los pies del jugador y la superficie caminable candidata del spawn
+* `map_default` no se valida como spawn jugable
+* `map_default` se usa exactamente tal como venga definido en el mapa fuente
 
 ### Artifact de spawn
 
@@ -1134,12 +1149,13 @@ El artifact runtime debe serializar el spawn con esta forma exacta:
 effective_spawn_selection_order =
   1. try settings override if enabled
   2. if override invalid, fallback to map default
-  3. if map default invalid, abort startup
 ```
 
 ### Regla exacta de spawn válido
 
-Un spawn es válido solo si cumple simultáneamente:
+En `v12`, la validación de spawn se aplica solo a `override_position`.
+
+`override_position` es válido solo si cumple simultáneamente:
 
 * el cilindro del jugador colocado con:
 
@@ -1162,9 +1178,6 @@ Un spawn es válido solo si cumple simultáneamente:
 * en cualquier otro caso:
 
   * `effective_spawn = map_default`
-* si `map_default` no es válido:
-
-  * el runtime debe abortar el arranque con error fatal
 
 ### Regla exacta de ownership
 
@@ -1180,6 +1193,7 @@ Un spawn es válido solo si cumple simultáneamente:
   * `override_enabled`
   * `override_position`
 * el runtime debe calcular `effective_spawn` después de cargar colisión y antes de inicializar el jugador
+* el runtime no debe reinterpretar `map_default` ni corregirlo automáticamente
 
 ## 13. Validación obligatoria del preprocess
 
@@ -1274,6 +1288,10 @@ Debe validarse que:
 * `spawn.override_position` contiene exactamente 3 valores numéricos
 * `spawn.ground_search_distance` existe y es numérico positivo
 * el mapa fuente define exactamente un `map_default` mediante su directiva `SPAWN`
+* `map_default` solo se valida estructuralmente:
+
+  * existe exactamente una directiva `SPAWN`
+  * contiene exactamente 3 valores numéricos
 
 ## 14. Casos mínimos de validación de spec
 

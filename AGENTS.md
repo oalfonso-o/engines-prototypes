@@ -14,6 +14,7 @@
 - Before implementing a feature, first check that the spec is fully deterministic and boolean-clear, with nothing left open to interpretation; if something is ambiguous, ask before coding.
 - Prefer a root-level `settings.yaml` in each project for stable project configuration and contracts; put contract rules under a `contract:` block with explicit child keys instead of hiding them in one opaque string.
 - Default verification is: build passes and the prototype starts without crashing.
+- In voxel source maps, `ROW` directives inside each `LAYER` must always appear in strictly ascending row index order.
 
 ## Geometry and winding convention
 

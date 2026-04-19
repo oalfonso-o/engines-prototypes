@@ -1,0 +1,368 @@
+v13 base-disk grounding contract
+================================
+
+Purpose
+-------
+
+`v13` defines the next step after `v12`:
+
+- grounding and support are no longer sampled from a single point at the center of the player's feet
+- grounding is evaluated against the full horizontal base disk of the player cylinder
+
+This spec does **not** redesign horizontal wall sliding.
+That work remains separate and is tracked in `plans/fix-v12.txt`.
+
+
+Scope
+-----
+
+`v13` changes only:
+
+- how support / grounding is evaluated
+- how walkable support height is selected under the player base
+- how spawn override validation evaluates support
+
+`v13` does not change:
+
+- box compaction
+- preprocess artifact structure for boxes
+- preprocess artifact structure for wedges
+- wedge visual geometry
+- horizontal wall-slide solver design
+- vertical gravity / jump constants
+- artifact optimization
+
+
+Inherited contracts
+-------------------
+
+`v13` inherits from:
+
+- `v10`: cube visual and box collision contract
+- `v11`: wedge visual geometry contract
+- `v12`: wedge collision height functions and world collision representation
+
+`v13` does not redefine:
+
+- axis system
+- canonical wedge orientations
+- `collision_shapes.boxes`
+- `collision_shapes.wedges`
+
+
+1. World support model
+----------------------
+
+In `v13` there is still no implicit world ground.
+
+Only explicit map geometry can support the player:
+
+- cube tops
+- wedge slopes
+
+If no walkable support geometry intersects the player's base disk, the player is not grounded and falls.
+
+
+2. Player support shape
+-----------------------
+
+The player support shape is the full horizontal base disk of the cylinder.
+
+Frozen values:
+
+```txt
+player_shape = vertical_cylinder
+player_radius = 0.22
+player_height = 1.70
+player_position_reference = feet_center
+```
+
+The horizontal base disk `D` is defined as:
+
+```txt
+D(center_x, center_z, radius) =
+  { (x, z) | (x - center_x)^2 + (z - center_z)^2 <= radius^2 }
+```
+
+The support query in `v13` must use `D`.
+It must not use only `player_feet_center` as the support sample.
+
+
+3. Walkable surfaces
+--------------------
+
+Only these surfaces are walkable:
+
+- cube top
+- wedge slope
+
+These surfaces are not walkable:
+
+- cube sides
+- wedge high face
+- wedge side triangles
+- wedge bottom face
+
+Frozen walkability rule:
+
+```txt
+walkable_max_angle_degrees = 45.0
+walkable_max_angle_inclusive = true
+```
+
+For the currently supported pieces:
+
+- cube top is walkable
+- current wedge slopes are exactly `45°` and are walkable
+
+No other surface can count as support in `v13`.
+
+
+4. Support footprints and height functions
+------------------------------------------
+
+For cube support:
+
+- horizontal footprint is the closed rectangle:
+
+```txt
+[box.min_x, box.max_x] × [box.min_z, box.max_z]
+```
+
+- support height is constant:
+
+```txt
+floor_height_cube(x, z) = box.max_y
+```
+
+For wedge support:
+
+- horizontal footprint is the closed cell rectangle:
+
+```txt
+[wedge.min_x, wedge.max_x] × [wedge.min_z, wedge.max_z]
+```
+
+- support height uses the inherited `v12` local wedge functions:
+
+```txt
+WEDGE_PX floor_height_local(x, z) = x
+WEDGE_NX floor_height_local(x, z) = 1 - x
+WEDGE_PZ floor_height_local(x, z) = z
+WEDGE_NZ floor_height_local(x, z) = 1 - z
+```
+
+where local coordinates are normalized to `[0, 1]` within the wedge cell.
+
+
+5. Base-disk support rule
+-------------------------
+
+A surface contributes support if and only if:
+
+1. the surface is walkable under section 3
+2. the intersection between the player's base disk `D` and the surface horizontal footprint is non-empty
+
+This is the exact meaning of:
+
+- "if even one point of the base circle touches a walkable surface, that surface can support the player"
+
+There is no center-point exception in `v13`.
+
+The support relation is purely geometric:
+
+```txt
+support_exists(surface, D) = (D ∩ footprint(surface)) ≠ ∅
+```
+
+
+6. Candidate support height
+---------------------------
+
+For every walkable surface whose intersection with `D` is non-empty, define a candidate support height.
+
+For a cube top:
+
+```txt
+candidate_floor_y(surface, D) = box.max_y
+```
+
+For a wedge slope:
+
+```txt
+candidate_floor_y(surface, D) =
+  max floor_height_wedge(x, z)
+  for all (x, z) in D ∩ footprint(surface)
+```
+
+This rule is frozen.
+
+Consequences:
+
+- if only one tiny part of the disk touches the wedge, that still counts
+- the selected wedge support height is the highest walkable point touched by the disk
+
+This behavior is intentional in `v13`.
+
+
+7. Effective support height selection
+-------------------------------------
+
+Let `C` be the set of all candidate support heights from section 6.
+
+If `C` is empty:
+
+```txt
+effective_support_exists = false
+```
+
+If `C` is non-empty:
+
+```txt
+effective_support_exists = true
+effective_support_floor_y = max(C)
+```
+
+If multiple candidates have the same height within `floor_epsilon`, tie-break order is:
+
+1. cube top
+2. wedge slope
+3. lower `cell_y`
+4. lower `cell_x`
+5. lower `cell_z`
+
+This tie-break order is frozen for determinism.
+
+
+8. Grounded / snap / fall decision
+----------------------------------
+
+Let:
+
+- `feet_y` = current player feet height
+- `support_y` = `effective_support_floor_y`
+
+Inherited tolerances remain:
+
+```txt
+max_auto_step_height = 0.12
+ground_snap_distance = 0.05
+floor_epsilon = 0.001
+horizontal_epsilon = 0.001
+vertical_epsilon = 0.001
+```
+
+The support decision order is:
+
+1. if `effective_support_exists == false`
+   - player is not grounded
+   - player falls
+
+2. else if `support_y > feet_y` and:
+
+```txt
+support_y - feet_y <= max_auto_step_height + floor_epsilon
+```
+
+   - player snaps up to `support_y`
+   - player is grounded
+
+3. else if `feet_y >= support_y` and:
+
+```txt
+feet_y - support_y <= ground_snap_distance + floor_epsilon
+```
+
+   - player snaps down to `support_y`
+   - player is grounded
+
+4. else if:
+
+```txt
+abs(feet_y - support_y) <= vertical_epsilon
+```
+
+   - player remains at `support_y`
+   - player is grounded
+
+5. else
+   - player is not grounded
+   - player falls
+
+This decision tree is frozen.
+
+
+9. Spawn validation under v13
+-----------------------------
+
+`v13` changes only override spawn validation.
+
+Override spawn validation must use the same base-disk support rule as gameplay grounding.
+
+Given an override spawn candidate:
+
+- compute player base disk `D`
+- compute `effective_support_exists`
+- compute `effective_support_floor_y`
+- validate against the same support rules in section 8
+
+The map default spawn rule remains unchanged:
+
+- `map_default` from the map is used as authored
+- it is not gameplay-validated
+
+
+10. Out-of-scope clarifications
+-------------------------------
+
+`v13` does not define:
+
+- horizontal wall slide solver
+- horizontal box contact projection
+- wedge side blocking redesign
+- support from non-canonical future piece types
+- artifact compression changes
+
+Those topics remain outside this spec.
+
+
+11. Required code redesign areas
+--------------------------------
+
+The first places that must change under `v13` are:
+
+1. support selection logic
+   - current center-point grounding must be replaced
+   - current location:
+     - `src/player/player_controller.c`
+     - `select_ground_candidate(...)`
+
+2. support use in player update
+   - current `player_feet_center` support lookup must consume the new base-disk support query
+   - current location:
+     - `src/player/player_controller.c`
+     - `player_update(...)`
+
+3. override spawn validation
+   - current support validation must use the same base-disk support logic
+   - current location:
+     - `src/player/player_controller.c`
+     - `spawn_candidate_is_valid(...)`
+
+These are the only mandatory redesign targets for `v13`.
+
+
+12. Short conclusion
+--------------------
+
+`v13` freezes this rule:
+
+- support is determined by the full base disk of the player cylinder
+- not by a single center sample
+
+The player is grounded if at least one point of the base disk intersects a walkable support surface and the vertical relation satisfies the frozen snap / step rules above.
+
+If no walkable support intersects the disk:
+
+- the player is not grounded
+- the player falls

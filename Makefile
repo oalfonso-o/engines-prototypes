@@ -30,6 +30,9 @@ SOK_V8_PATH := sokol-prototypes/v8-voxel-collision-runtime
 SOK_V9_PATH := sokol-prototypes/v9-v13-map-parity
 SOK_V10_PATH := sokol-prototypes/v10-voxel-ccw-culling-contract
 SOK_V11_PATH := sokol-prototypes/v11-wedge-visual-runtime
+SOK_V12_PATH := sokol-prototypes/v12-wedge-collision-runtime
+SOK_V13_PATH := sokol-prototypes/v13-wedge-collision-no-autostep-runtime
+SOK_V14_PATH := sokol-prototypes/v14-v10-settings-runtime
 
 .PHONY: \
 	run-god-v1 \
@@ -57,7 +60,10 @@ SOK_V11_PATH := sokol-prototypes/v11-wedge-visual-runtime
 	run-sok-v8 \
 	run-sok-v9 \
 	run-sok-v10 \
-	run-sok-v11
+	run-sok-v11 \
+	run-sok-v12 \
+	run-sok-v13 \
+	run-sok-v14
 
 run-god-v1:
 	"$(GODOT)" --path "$(GOD_V1_PATH)"
@@ -143,3 +149,12 @@ run-sok-v10:
 
 run-sok-v11:
 	$(MAKE) -C "$(SOK_V11_PATH)" run
+
+run-sok-v12:
+	$(MAKE) -C "$(SOK_V12_PATH)" run
+
+run-sok-v13:
+	$(MAKE) -C "$(SOK_V13_PATH)" run
+
+run-sok-v14:
+	$(MAKE) -C "$(SOK_V14_PATH)" run

@@ -1,0 +1,93 @@
+```text
+Quiero que implementes un modo de testing end-to-end dentro del juego actual (in-place, sin crear una nueva versión del proyecto). El objetivo es poder ejecutar tests levantando el juego real con distintos settings, uno por test.
+
+Objetivo
+- Ejecutar el juego compilado una vez y poder lanzarlo múltiples veces con distintos settings (uno por test).
+- Cada test define:
+  - mapa
+  - posición de spawn
+  - test a ejecutar
+- El propio juego ejecuta el test dentro del loop y termina con éxito o error.
+
+Diseño
+
+1. Settings
+- Usar el mismo struct de settings existente.
+- Añadir estos campos:
+  - `bool test_mode`
+  - `char* test_name` (o equivalente)
+  - `char* test_map` (si no existe ya en settings)
+  - `Vec2 test_spawn` (o equivalente según tu sistema)
+
+- El juego debe leer el settings desde una variable de entorno (ej: SETTINGS_PATH).
+- `make run` usará el settings normal.
+- `make test` usará settings específicos por test.
+
+2. Entry point de test
+- Si `test_mode == true`:
+  - Inicializar el juego usando:
+    - mapa del test
+    - spawn del test
+  - Registrar el test correspondiente según `test_name`
+  - Entrar en el game loop normal
+
+3. Sistema de tests
+- Crear un módulo `test_runner` con:
+  - typedef de función de test: `void (*TestFn)(GameState* state)`
+  - registro simple de tests (switch por nombre o tabla de strings → función)
+- Cada test es una función que:
+  - se ejecuta dentro del loop
+  - tiene acceso al estado completo del juego
+  - ejecuta acciones (mover player, etc.)
+  - hace asserts directamente sobre el estado
+
+4. Ejecución dentro del loop
+- En cada frame:
+  - si estamos en test_mode:
+    - ejecutar la función de test activa
+- El test controla su propio ciclo de vida:
+  - puede usar contadores de frames o estado interno
+  - cuando termina:
+    - si OK → imprimir "TEST PASSED: <name>" y exit(0)
+    - si FAIL → imprimir "TEST FAILED: <name> + info" y exit(1)
+
+5. Helpers para tests
+- Añadir macros simples:
+  - ASSERT(cond, msg)
+    - si falla: print + exit(1)
+- No usar frameworks externos
+
+6. Ejemplo de test
+- Crear al menos un test de ejemplo:
+  - mueve el player hacia delante
+  - valida posición esperada
+  - valida colisión si aplica
+
+7. Build y ejecución
+- No recompilar por test
+- El binario debe aceptar SETTINGS_PATH
+- Flujo esperado:
+  - build una vez
+  - ejecutar N veces el binario con distintos settings
+
+8. Script de test
+- Añadir script simple (bash o python):
+  - itera sobre una lista de settings de test
+  - export SETTINGS_PATH
+  - ejecuta el juego
+  - para en el primer fallo
+
+Restricciones
+- No modificar la lógica del juego salvo lo necesario para insertar el modo test
+- No introducir overengineering
+- Mantener todo simple y directo
+- Tests ejecutan el juego real (no mocks)
+
+Resultado esperado
+- Modo test funcional
+- Tests ejecutándose dentro del loop real
+- Salida clara en consola (pass/fail)
+- Posibilidad de añadir nuevos tests fácilmente creando:
+  - un settings
+  - una función de test
+```

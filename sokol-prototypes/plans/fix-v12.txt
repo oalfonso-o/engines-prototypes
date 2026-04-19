@@ -1,0 +1,438 @@
+v12 horizontal collision analysis
+================================
+
+Scope
+-----
+
+This note is intentionally narrow.
+
+- It analyzes only the current horizontal player solver against compacted box collisions.
+- It does not question box compaction.
+- It does not reopen preprocess design.
+- It does not mix wedges, ramps, or artifact size concerns.
+- It does not propose a quick patch.
+- It does not implement anything.
+
+The goal is to explain why the current player-vs-box behavior feels like:
+
+- approach wall diagonally
+- get a harsh rejection
+- appear to snap toward the nearest legal corner
+
+and to define what kind of solver redesign would be needed to get stable wall sliding.
+
+
+1. How it works right now
+-------------------------
+
+The current horizontal movement is resolved axis by axis, not as one horizontal vector.
+
+This happens in:
+
+- `src/player/player_controller.c:417`
+- `src/player/player_controller.c:418`
+
+The code does:
+
+- resolve `x`
+- then resolve `z`
+
+via:
+
+- `resolve_horizontal_axis(state, ..., 'x', movement.x)`
+- `resolve_horizontal_axis(state, ..., 'z', movement.z)`
+
+The movement vector itself is built earlier in:
+
+- `src/player/player_controller.c:397-415`
+
+and normalized to one horizontal delta for the frame.
+
+The actual solver is:
+
+- `src/player/player_controller.c:230-372`
+
+Inside that function, the path is:
+
+1. build a candidate coordinate for the active axis
+   - `candidate_x` / `candidate_z`
+   - `src/player/player_controller.c:236-237`
+
+2. inspect collision boxes one by one
+   - `src/player/player_controller.c:254-299`
+
+3. reject boxes that do not overlap the player's current vertical span
+   - `src/player/player_controller.c:256-257`
+
+4. reject boxes whose top is at or below current feet height
+   - `src/player/player_controller.c:259-260`
+   - this is there to avoid treating current support floor as a horizontal wall
+
+5. check horizontal overlap against the candidate position
+   - for `x`: `src/player/player_controller.c:263-267`
+   - for `z`: `src/player/player_controller.c:281-285`
+
+6. if blocking, replace the active coordinate with a blocking boundary
+   - `+x` movement:
+     - `block = box.min_x - radius`
+     - `src/player/player_controller.c:272-274`
+   - `-x` movement:
+     - `block = box.max_x + radius`
+     - `src/player/player_controller.c:275-277`
+   - `+z` movement:
+     - `block = box.min_z - radius`
+     - `src/player/player_controller.c:290-292`
+   - `-z` movement:
+     - `block = box.max_z + radius`
+     - `src/player/player_controller.c:293-295`
+
+If several boxes block, the solver keeps the most restrictive boundary with:
+
+- `math3d_minf(...)`
+- `math3d_maxf(...)`
+
+and returns the final clamped coordinate:
+
+- `src/player/player_controller.c:372`
+
+That is the core shape of the current solver:
+
+- one axis at a time
+- candidate position on that axis
+- overlap test
+- hard clamp to nearest allowed boundary
+
+
+2. Why it gives the current problem
+-----------------------------------
+
+The visible "snap to corner" behavior comes from the solver design itself:
+
+- axis-separated resolution
+- hard coordinate clamp
+- sequential application of the two axes
+
+The important point is this:
+
+- the solver does not resolve one horizontal vector in XZ
+- it resolves one 1D problem in `x`
+- then another 1D problem in `z`
+
+That means when you move diagonally into a wall corner:
+
+1. the `x` pass can abruptly clamp your `x` to a wall plane
+2. then the `z` pass uses that already-corrected position and clamps `z`
+3. visually, you appear to get kicked into the nearest legal corner configuration
+
+This is not a rendering artifact.
+It is the expected consequence of:
+
+- `player_update(...)` calling two axis solvers in sequence
+  - `src/player/player_controller.c:417-418`
+- `resolve_horizontal_axis(...)` clamping directly to box boundaries
+  - `src/player/player_controller.c:272-277`
+  - `src/player/player_controller.c:290-295`
+
+Why it feels harsh:
+
+- there is no continuous slide computation
+- there is no "keep the tangential part of the intended motion"
+- there is no contact manifold
+- there is no projection of motion onto the wall direction
+
+Instead, the active axis is simply forced to the nearest legal value for that axis.
+
+That is what "hard clamp" means in this context:
+
+- candidate coordinate was `C`
+- obstacle boundary is `B`
+- final coordinate becomes exactly `B`
+
+not:
+
+- resolve along contact tangent
+- conserve wall-parallel motion
+- clip only the normal component of velocity/displacement
+
+
+3. Root cause vs non-causes
+---------------------------
+
+Root cause
+~~~~~~~~~~
+
+The root cause is the current horizontal solver architecture:
+
+- axis-by-axis resolution
+- boundary clamp response
+- no vector-based contact response
+
+More specifically:
+
+- `src/player/player_controller.c:230-372`
+- `src/player/player_controller.c:417-418`
+
+This design is sufficient for "don't cross walls", but not for:
+
+- stable FPS sliding along walls
+- smooth diagonal contact
+- non-harsh corner behavior
+
+What is *not* the main problem
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The compacted boxes are not the primary problem.
+
+They are built in:
+
+- `tools/preprocess_runtime.py:472-522`
+
+That code merges cube solids into larger AABBs by expanding:
+
+- width in `x`
+- depth in `z`
+- height in `y`
+
+This is good:
+
+- fewer collision shapes
+- cheaper broad checks
+- cleaner world representation
+
+The runtime then loads them directly as `CollisionBox` AABBs in:
+
+- `src/world/runtime_world.m:266-285`
+
+Nothing in that loading path is inherently causing the snap behavior.
+
+The same compacted boxes could support smooth sliding if the player solver used a better horizontal response model.
+
+So:
+
+- compacted boxes are fine
+- preprocess is not the main culprit
+- artifact format is not the main culprit
+- the issue lives in the player horizontal response
+
+
+4. Desired behavior
+-------------------
+
+The target behavior is a standard FPS-style horizontal collision response:
+
+- stable horizontal movement
+- collision against compacted AABBs
+- diagonal movement into a wall should slide along that wall
+- corner contact should not feel like snapping to a nearby corner
+- no harsh rejection when only part of the intended movement is blocked
+
+In practical terms:
+
+- if intended motion points partly into a wall and partly along it
+- the into-wall component should be removed
+- the along-wall component should remain
+
+That is the essence of wall sliding.
+
+The important thing is that this target behavior does not require:
+
+- abandoning compacted boxes
+- returning to per-voxel collision
+- redesigning vertical collision first
+- reopening wedges
+
+
+5. Reasonable conceptual alternatives
+-------------------------------------
+
+The alternatives below are framed specifically against the current code structure.
+
+Option A: Keep axis-by-axis and try to soften the clamps
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This would mean keeping:
+
+- `player_update(...)` with separate `x` then `z`
+- `resolve_horizontal_axis(...)` as the core model
+
+and only trying to reduce harshness around the edges.
+
+Why this is weak:
+
+- the main issue is not a numeric constant
+- it is the separable 1D resolution model itself
+- diagonal motion against corners will still be structurally awkward
+
+This may reduce symptoms, but it does not address the root cause.
+
+Option B: Full horizontal vector solve with wall slide
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This is the most directly aligned with the behavior we want.
+
+Conceptually:
+
+1. take the desired horizontal delta as one 2D vector in XZ
+2. test that movement against candidate AABBs
+3. find the first relevant contact
+4. derive the contact normal
+5. remove the component of the remaining motion that points into the normal
+6. continue with the wall-parallel remainder
+
+This would replace the current:
+
+- "clamp x"
+- "then clamp z"
+
+model with:
+
+- "move in XZ"
+- "collide"
+- "slide along obstacle"
+
+This is the conceptual model used by many simple FPS controllers.
+
+Option C: Push-out after penetration
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Another option is:
+
+- apply the full horizontal move
+- if overlapping boxes, push the player out by minimum penetration
+
+Why this is less attractive here:
+
+- more sensitive to overlap ordering
+- can jitter in corners
+- usually less clean than contact-time / slide style movement
+- easier to get "sticky" or oscillatory behavior
+
+It is workable, but not the best fit for the desired feel.
+
+Option D: 2D sweep against expanded boxes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This is the most concrete version of Option B for this prototype.
+
+Since the player is horizontally represented by:
+
+- center position in XZ
+- radius
+
+the box collision can be treated as:
+
+- point motion in XZ
+- against AABBs expanded by the player radius
+
+Then the solver can:
+
+1. sweep the point along the intended delta
+2. find earliest contact with expanded box
+3. move to just before the hit
+4. compute the hit normal
+5. project the remaining delta onto the tangent
+6. iterate once or twice if needed
+
+Why this matches the prototype well:
+
+- it keeps the current box representation
+- it fits the current cylinder-footprint abstraction
+- it stays focused on horizontal motion only
+- it gives the right FPS feel without a huge physics rewrite
+
+
+6. Recommendation
+-----------------
+
+Recommended direction
+~~~~~~~~~~~~~~~~~~~~~
+
+For this prototype, the best balance is:
+
+- keep compacted boxes exactly as they are
+- redesign only the horizontal player solver
+- move from axis-by-axis clamp response
+- to vector-based XZ sweep + slide response
+
+Why this is the best balance:
+
+- it addresses the real root cause
+- it preserves the current world collision representation
+- it does not require reopening preprocess
+- it does not require touching vertical grounding first
+- it matches the target FPS wall-slide behavior
+
+What should remain unchanged
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+These parts can stay as they are for this iteration:
+
+- box compaction in `tools/preprocess_runtime.py:472-522`
+- runtime box loading in `src/world/runtime_world.m:266-285`
+- `CollisionBox` shape representation
+- `CollisionScene` box arrays
+- vertical movement integration in `player_update(...)`
+- floor selection logic for now
+
+What should be redesigned
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The first redesign target is the horizontal player solver itself.
+
+Today the core logic lives in:
+
+- `src/player/player_controller.c:230-372`
+
+That function currently bundles:
+
+- candidate generation for one axis
+- obstacle filtering
+- block detection
+- hard clamp response
+
+That is the exact place where the current behavior is born.
+
+
+7. Minimum change plan
+----------------------
+
+If we want the smallest reasonable change that can actually fix the problem, the first pieces to redesign are:
+
+1. `player_update(...)`
+   - `src/player/player_controller.c:397-466`
+   - stop resolving horizontal motion as separate `x` then `z` passes
+
+2. `resolve_horizontal_axis(...)`
+   - `src/player/player_controller.c:230-372`
+   - replace this role with one horizontal vector solver
+
+3. the box-contact response model inside that solver
+   - today it is hard clamp against box planes
+   - it should become contact normal + slide of the remaining horizontal motion
+
+What does *not* need to change first:
+
+- `build_collision_boxes(...)`
+- runtime artifact structure
+- runtime loading of `CollisionBox`
+- wedge collision logic
+- vertical grounding logic
+
+
+Short conclusion
+----------------
+
+The current problem is not:
+
+- "boxes are too big"
+- "preprocess compacted too much"
+- "the artifact is wrong"
+
+The current problem is:
+
+- the player horizontal solver is axis-separated
+- the response is a hard clamp to box boundaries
+- diagonal contact therefore collapses into harsh corner snaps
+
+So the right next step is not to rework boxes.
+It is to replace the current horizontal clamp solver with a vector-based wall-slide solver over the same compacted AABBs.

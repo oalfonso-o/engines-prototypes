@@ -1,0 +1,238 @@
+{
+  "contract": {
+    "version": 2,
+    "front_face": "ccw",
+    "backface_culling": true,
+    "quad_rule": "cross_uv_outward",
+    "triangle_rule": "cross_edges_outward",
+    "supports_quads": true,
+    "supports_triangles": true,
+    "runtime_reinterprets_geometry": false,
+    "cube_structural_culling": "cube_vs_cube_only",
+    "wedge_structural_culling": "none",
+    "wedge_collision": "explicit_player_only",
+    "debug_artifact": "runtime_world.debug.json"
+  },
+  "preprocessing": {
+    "debug": false
+  },
+  "paths": {
+    "source_map": "data/source_world.txt",
+    "runtime_artifact": "data/runtime_world.json",
+    "debug_artifact": "data/runtime_world.debug.json"
+  },
+  "spawn": {
+    "override_enabled": true,
+    "override_position": [-3.0, 0.12, -7.0],
+    "ground_search_distance": 0.20
+  },
+  "app": {
+    "window_title": "sokol v13 wedge collision no autostep runtime",
+    "window_width": 1280,
+    "window_height": 720,
+    "sample_count": 4,
+    "high_dpi": true
+  },
+  "camera": {
+    "initial_pitch": -0.08,
+    "fov_y_degrees": 60.0,
+    "near": 0.01,
+    "far": 200.0
+  },
+  "player": {
+    "mouse_sensitivity": 0.0035,
+    "move_speed": 5,
+    "radius": 0.22,
+    "height": 1.70,
+    "eye_height": 1.56,
+    "jump_speed": 5.2,
+    "gravity": 14.0,
+    "pitch_limit": 1.45
+  },
+  "materials": {
+    "blue": { "color": [0.05, 0.45, 1.0, 1.0] },
+    "gray": { "color": [0.525, 0.545, 0.573, 1.0] },
+    "green": { "color": [0.435, 0.584, 0.443, 1.0] },
+    "purple": { "color": [0.525, 0.427, 0.584, 1.0] },
+    "metal": { "color": [0.659, 0.639, 0.604, 1.0] }
+  },
+  "render": {
+    "clear_color": [0.604, 0.655, 0.702, 1.0],
+    "face_shading": {
+      "pos_y": 1.00,
+      "neg_y": 0.62,
+      "pos_z": 0.94,
+      "neg_z": 0.74,
+      "pos_x": 0.86,
+      "neg_x": 0.80
+    }
+  },
+  "canonical": {
+    "source_of_truth": "settings_yaml",
+    "empty_char": "0",
+    "piece_types": {
+      "cube_gray": {
+        "map_chars": ["1"],
+        "piece_type": "cube",
+        "material_key": "gray",
+        "cube_solid": true
+      },
+      "cube_blue": {
+        "map_chars": ["2"],
+        "piece_type": "cube",
+        "material_key": "blue",
+        "cube_solid": true
+      },
+      "cube_green": {
+        "map_chars": ["G"],
+        "piece_type": "cube",
+        "material_key": "green",
+        "cube_solid": true
+      },
+      "cube_purple": {
+        "map_chars": ["P"],
+        "piece_type": "cube",
+        "material_key": "purple",
+        "cube_solid": true
+      },
+      "cube_metal": {
+        "map_chars": ["="],
+        "piece_type": "cube",
+        "material_key": "metal",
+        "cube_solid": true
+      },
+      "wedge_pz": {
+        "map_chars": ["A"],
+        "piece_type": "wedge_pz",
+        "material_key": "gray",
+        "cube_solid": false
+      },
+      "wedge_px": {
+        "map_chars": ["B"],
+        "piece_type": "wedge_px",
+        "material_key": "gray",
+        "cube_solid": false
+      },
+      "wedge_nz": {
+        "map_chars": ["C"],
+        "piece_type": "wedge_nz",
+        "material_key": "gray",
+        "cube_solid": false
+      },
+      "wedge_nx": {
+        "map_chars": ["D"],
+        "piece_type": "wedge_nx",
+        "material_key": "gray",
+        "cube_solid": false
+      }
+    },
+    "geometry": {
+      "wedges": {
+        "wedge_pz": {
+          "quads": [
+            { "face": "base", "origin": [0, 0, 0], "u_axis": [1, 0, 0], "v_axis": [0, 0, 1], "normal": [0, -1, 0] },
+            { "face": "back", "origin": [0, 0, 1], "u_axis": [1, 0, 0], "v_axis": [0, 1, 0], "normal": [0, 0, 1] },
+            { "face": "slope", "origin": [0, 0, 0], "u_axis": [0, 1, 1], "v_axis": [1, 0, 0], "normal": [0, 1, -1] }
+          ],
+          "triangles": [
+            { "face": "left_triangle", "p0": [0, 0, 0], "p1": [0, 0, 1], "p2": [0, 1, 1], "normal": [-1, 0, 0] },
+            { "face": "right_triangle", "p0": [1, 0, 0], "p1": [1, 1, 1], "p2": [1, 0, 1], "normal": [1, 0, 0] }
+          ]
+        },
+        "wedge_px": {
+          "quads": [
+            { "face": "base", "origin": [0, 0, 0], "u_axis": [1, 0, 0], "v_axis": [0, 0, 1], "normal": [0, -1, 0] },
+            { "face": "right", "origin": [1, 0, 0], "u_axis": [0, 1, 0], "v_axis": [0, 0, 1], "normal": [1, 0, 0] },
+            { "face": "slope", "origin": [0, 0, 0], "u_axis": [0, 0, 1], "v_axis": [1, 1, 0], "normal": [-1, 1, 0] }
+          ],
+          "triangles": [
+            { "face": "front_triangle", "p0": [0, 0, 0], "p1": [1, 1, 0], "p2": [1, 0, 0], "normal": [0, 0, -1] },
+            { "face": "back_triangle", "p0": [0, 0, 1], "p1": [1, 0, 1], "p2": [1, 1, 1], "normal": [0, 0, 1] }
+          ]
+        },
+        "wedge_nz": {
+          "quads": [
+            { "face": "base", "origin": [0, 0, 0], "u_axis": [1, 0, 0], "v_axis": [0, 0, 1], "normal": [0, -1, 0] },
+            { "face": "front", "origin": [1, 0, 0], "u_axis": [-1, 0, 0], "v_axis": [-1, 1, 0], "normal": [0, 0, -1] },
+            { "face": "slope", "origin": [0, 1, 0], "u_axis": [0, -1, 1], "v_axis": [1, 0, 0], "normal": [0, 1, 1] }
+          ],
+          "triangles": [
+            { "face": "left_triangle", "p0": [0, 0, 0], "p1": [0, 0, 1], "p2": [0, 1, 0], "normal": [-1, 0, 0] },
+            { "face": "right_triangle", "p0": [1, 0, 0], "p1": [1, 1, 0], "p2": [1, 0, 1], "normal": [1, 0, 0] }
+          ]
+        },
+        "wedge_nx": {
+          "quads": [
+            { "face": "base", "origin": [0, 0, 0], "u_axis": [1, 0, 0], "v_axis": [0, 0, 1], "normal": [0, -1, 0] },
+            { "face": "left", "origin": [0, 0, 0], "u_axis": [0, 0, 1], "v_axis": [0, 1, 0], "normal": [-1, 0, 0] },
+            { "face": "slope", "origin": [0, 1, 0], "u_axis": [0, 0, 1], "v_axis": [1, -1, 0], "normal": [1, 1, 0] }
+          ],
+          "triangles": [
+            { "face": "front_triangle", "p0": [0, 0, 0], "p1": [0, 1, 0], "p2": [1, 0, 0], "normal": [0, 0, -1] },
+            { "face": "back_triangle", "p0": [0, 0, 1], "p1": [1, 0, 1], "p2": [0, 1, 1], "normal": [0, 0, 1] }
+          ]
+        }
+      }
+    }
+  },
+  "collision": {
+    "runtime_shape_container_key": "collision_shapes",
+    "runtime_boxes_key": "boxes",
+    "runtime_wedges_key": "wedges",
+    "runtime_wedge_encoding": ["cell_x", "cell_y", "cell_z", "wedge_type_id"],
+    "player": {
+      "shape": "vertical_cylinder",
+      "position_reference": "feet_center",
+      "ground_sample_point": "player_feet_center",
+      "ground_snap_distance": 0.05,
+      "floor_epsilon": 0.001,
+      "horizontal_epsilon": 0.001,
+      "vertical_epsilon": 0.001,
+      "ground_candidate_priority": "highest_walkable_surface_below_or_near_feet"
+    },
+    "surfaces": {
+      "cube_top_walkable": true,
+      "cube_side_blocking": true,
+      "wedge_slope_walkable": true,
+      "wedge_high_face_blocking": true,
+      "wedge_side_faces_blocking": true,
+      "wedge_bottom_face_gameplay_relevant": false
+    },
+    "wedge_type_ids": {
+      "wedge_pz": 0,
+      "wedge_px": 1,
+      "wedge_nz": 2,
+      "wedge_nx": 3
+    },
+    "wedge_types": {
+      "wedge_pz": {
+        "height_function": "local_z",
+        "height_formula": "y = z",
+        "high_face_normal": [0, 0, 1],
+        "left_face_normal": [-1, 0, 0],
+        "right_face_normal": [1, 0, 0]
+      },
+      "wedge_px": {
+        "height_function": "local_x",
+        "height_formula": "y = x",
+        "high_face_normal": [1, 0, 0],
+        "left_face_normal": [0, 0, -1],
+        "right_face_normal": [0, 0, 1]
+      },
+      "wedge_nz": {
+        "height_function": "one_minus_local_z",
+        "height_formula": "y = 1 - z",
+        "high_face_normal": [0, 0, -1],
+        "left_face_normal": [-1, 0, 0],
+        "right_face_normal": [1, 0, 0]
+      },
+      "wedge_nx": {
+        "height_function": "one_minus_local_x",
+        "height_formula": "y = 1 - x",
+        "high_face_normal": [-1, 0, 0],
+        "left_face_normal": [0, 0, -1],
+        "right_face_normal": [0, 0, 1]
+      }
+    }
+  }
+}

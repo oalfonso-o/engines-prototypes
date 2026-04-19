@@ -1,0 +1,174 @@
+Quiero crear una nueva versión V14 a partir de la V10 del proyecto.
+
+IMPORTANTE
+- V14 debe ser una copia exacta de V10 en lógica y comportamiento.
+- NO quiero cambios funcionales.
+- NO quiero introducir features nuevas.
+- Todo sigue como en V10: solo cubos.
+- El objetivo único es:
+  - externalizar la configuración hardcodeada de V10
+  - y dejar la API de structs pública, igual que ya hicimos en V13
+
+Versión exacta
+- Carpeta destino exacta:
+  - `sokol-prototypes/v14-v10-settings-runtime`
+
+Objetivo de V14
+- Convertir V10 en una versión equivalente, pero con settings externos.
+- El comportamiento final debe ser idéntico a V10 si `settings.json` reproduce los valores originales.
+
+Scope exacto
+
+1. Base de trabajo
+- V14 se crea copiando V10.
+- Se trabaja solo sobre `sokol-prototypes/v14-v10-settings-runtime`.
+- No se modifica V10.
+
+2. Formato de settings
+- El formato queda cerrado a JSON.
+- No se usa YAML.
+- No se añaden dependencias externas.
+- Fichero por defecto exacto:
+  - `./settings.json`
+
+3. Carga de settings
+- El runtime y el preprocess deben leer el path desde la variable de entorno:
+  - `SETTINGS_PATH`
+- Si `SETTINGS_PATH` no existe o está vacía:
+  - fallback exacto a `./settings.json`
+
+4. Struct exacto
+- El struct público se llama:
+  - `Settings`
+- Vive en:
+  - `include/config/settings.h`
+
+- Campos exactos de `Settings`:
+  - `paths.source_map`
+  - `paths.runtime_artifact`
+  - `app.window_title`
+  - `app.window_width`
+  - `app.window_height`
+  - `app.sample_count`
+  - `app.high_dpi`
+  - `camera.initial_pitch`
+  - `camera.fov_y_degrees`
+  - `camera.near_plane`
+  - `camera.far_plane`
+  - `player.mouse_sensitivity`
+  - `player.move_speed`
+  - `player.radius`
+  - `player.height`
+  - `player.eye_height`
+  - `player.jump_speed`
+  - `player.gravity`
+  - `player.pitch_limit`
+  - `world.ground_half_size`
+  - `world.world_y_offset`
+  - `world.spawn`
+  - `materials[*].key`
+  - `materials[*].color`
+  - `render.clear_color`
+  - `render.ground_plane_color`
+  - `render.face_shading.pos_y`
+  - `render.face_shading.neg_y`
+  - `render.face_shading.pos_z`
+  - `render.face_shading.neg_z`
+  - `render.face_shading.pos_x`
+  - `render.face_shading.neg_x`
+
+5. Qué hardcodes de V10 se mueven exactamente
+- De `src/app/game_app.c`:
+  - runtime artifact path
+  - ground half size
+  - initial pitch
+  - window width
+  - window height
+  - window title
+  - sample count
+  - high dpi
+  - FOV, near, far
+  - todos los parámetros de `PlayerControllerConfig`
+
+- De `src/render/world_renderer.c`:
+  - clear color
+
+- De `src/world/runtime_world.m`:
+  - colores de materiales
+  - face shading
+  - color del ground plane
+
+- De `tools/preprocess_runtime.py`:
+  - `source_map`
+  - `runtime_artifact`
+  - `world_y_offset`
+  - `spawn`
+
+6. Qué no se mueve
+- No se mete en settings nada puramente temporal o debug.
+- No se introducen overrides o fallbacks nuevos que no existían en V10.
+- No se cambia la lógica de movimiento, colisión, render ni preprocess más allá de sustituir hardcodes por valores de `Settings`.
+
+7. Integración exacta
+- `game_app.c` debe cargar `Settings` al arrancar.
+- `runtime_world_load(...)` debe recibir `Settings` para resolver colores y shading.
+- `runtime_world_append_ground_plane(...)` debe recibir el color desde `Settings`.
+- `world_renderer_init(...)` debe recibir el clear color desde `Settings`.
+- `tools/preprocess_runtime.py` debe usar el mismo `settings.json` que el runtime.
+
+8. API pública de structs
+- Todos los structs de estado o datos que formen parte de la API entre módulos deben ser públicos.
+- Sus definiciones completas deben vivir en los headers `.h`.
+- Las funciones públicas de cada módulo también deben estar declaradas en su `.h`.
+- Las funciones auxiliares o internas que solo se usen dentro de un `.c` deben quedarse privadas con `static`.
+- No usar opaque pointers ni forward declarations para ocultar structs, salvo dependencia circular estrictamente necesaria.
+- No añadir getters/setters innecesarios para exponer estado.
+- Si un campo necesita leerse desde tests o desde otro módulo, ese campo debe estar directamente en el struct público.
+
+9. Módulos y structs públicos esperados en V14
+- `config/settings.h`
+  - `Settings`
+  - substructs de settings
+  - `Color4`
+- `app/game_app.h`
+  - `GameAppState`
+  - `extern GameAppState game_app`
+- `player/player_controller.h`
+  - `PlayerControllerConfig`
+  - `PlayerInputState`
+  - `PlayerState`
+  - `CollisionScene`
+- `world/runtime_world.h`
+  - `Vertex`
+  - `CollisionBox`
+  - `RuntimeWorld`
+- `render/world_renderer.h`
+  - `FrameUniforms`
+  - `WorldRenderer`
+- `shared/math3d.h`
+  - `Vec3`
+  - `Mat4`
+
+10. Restricciones MUY IMPORTANTES
+- NO cambiar la lógica del juego.
+- NO cambiar fórmulas.
+- NO cambiar estructuras de datos existentes salvo:
+  - para introducir `Settings`
+  - y para hacer públicos los structs que formen parte de la API entre módulos
+- NO reorganizar el proyecto innecesariamente.
+- El comportamiento final debe ser idéntico a V10 si `settings.json` reproduce los mismos valores.
+
+11. Makefile
+- `make preprocess`
+  - usa `tools/preprocess_runtime.py`
+  - el script lee `SETTINGS_PATH` o `./settings.json`
+- `make build`
+  - compila el runtime usando el loader de settings
+- `make run`
+  - usa el runtime normal
+  - el binario lee `SETTINGS_PATH` o `./settings.json`
+
+Ejemplo exacto de override:
+```bash
+SETTINGS_PATH=./settings.json make run
+```

@@ -1,0 +1,542 @@
+v13 - wedge collision without auto-step
+======================================
+
+Purpose
+-------
+
+`v13` is a deliberate rollback in scope relative to `v12`.
+
+Its goal is:
+
+- keep explicit wedge collision support
+- keep compacted cube boxes
+- remove auto-step completely
+- recover a simpler and more predictable horizontal collision model closer to `v11`
+
+`v13` does **not** try to solve:
+
+- wall slide redesign
+- base-disk grounding
+- artifact optimization
+- wedge batching or merge
+- new piece types
+
+
+Frozen intent of v13
+--------------------
+
+The intent of `v13` is:
+
+- wedges remain part of the collision world
+- the player can stand on wedge slopes
+- the player can move down wedges
+- the player can move along wedges when already supported by them
+- but the runtime performs **no automatic step-up** onto higher support
+
+In other words:
+
+- `v13` keeps wedge support
+- `v13` removes all "promote higher ground candidate and waive blocking face" behavior
+
+
+Scope
+-----
+
+Included in `v13`:
+
+- player collision against compacted cube boxes
+- player collision against wedge support surfaces
+- player collision against wedge blocking faces
+- jump and gravity
+- map-driven collision only
+
+Excluded from `v13`:
+
+- auto-step onto cube ledges
+- auto-step onto elevated wedges
+- auto-step exceptions inside horizontal blocking
+- wall slide redesign
+- base-disk support model
+- wedges for dynamic objects
+- new collision shapes
+
+
+Inherited contracts
+-------------------
+
+`v13` inherits unchanged from `v12`:
+
+- axis system
+- map chars
+- artifact `quads`
+- artifact `triangles`
+- artifact `collision_shapes`
+- compacted `collision_shapes.boxes`
+- explicit `collision_shapes.wedges`
+- runtime `wedge_type_id` mapping
+- wedge local height functions
+- player shape:
+
+```txt
+player_shape = vertical_cylinder
+player_radius = 0.22
+player_height = 1.70
+player_position_reference = feet_center
+ground_sample_point = player_feet_center
+```
+
+`v13` also inherits the global world rule:
+
+- no implicit ground exists
+- only map geometry can support the player
+
+
+1. Formal delta versus v12
+--------------------------
+
+`v13` differs from `v12` in exactly these contract points:
+
+1. `MAX_AUTO_STEP_HEIGHT` is removed from the runtime behavior contract.
+2. The horizontal solver must not query future ground candidates in order to waive a blocking face.
+3. No blocking face may become non-blocking because a higher candidate floor exists.
+4. Wedge faces previously treated as `AUTO_STEP_ELIGIBLE` are treated as blocking in `v13`.
+5. The runtime performs no automatic upward step onto cube tops or elevated wedge entries.
+
+This definition is exhaustive.
+Nothing else in the collision artifact format changes in `v13`.
+
+
+2. Removed concepts
+-------------------
+
+The following concepts do not exist in `v13` runtime behavior:
+
+- `auto_step_ground`
+- `auto_step_to_higher_ground`
+- `AUTO_STEP_ELIGIBLE` blocking faces
+- any "higher ground candidate overrides a wall block" rule
+- any "step window" that allows upward support solely because the target is within a step height
+
+If any of those names still exist in code during migration, they must be dead code and must not affect behavior.
+
+
+3. Settings contract changes
+----------------------------
+
+In `v13`, the collision player settings block removes `max_auto_step_height`.
+
+Expected `settings.yaml` collision player block:
+
+```yaml
+collision:
+  player:
+    shape: vertical_cylinder
+    position_reference: feet_center
+    ground_sample_point: player_feet_center
+    ground_snap_distance: 0.05
+    floor_epsilon: 0.001
+    horizontal_epsilon: 0.001
+    vertical_epsilon: 0.001
+    ground_candidate_priority: highest_walkable_surface_below_or_near_feet
+```
+
+Rules:
+
+- `max_auto_step_height` must not appear in `v13` settings
+- Python settings loader must not expose it
+- runtime settings loader must not expose it
+- `CollisionScene` must not contain it
+
+
+4. Collision shapes contract
+----------------------------
+
+`collision_shapes` stays unchanged:
+
+```json
+"collision_shapes": {
+  "boxes": [...],
+  "wedges": [...]
+}
+```
+
+Rules remain:
+
+- `boxes` represent compacted cube solids only
+- wedges do not generate boxes
+- wedges stay explicit as `[cell_x, cell_y, cell_z, wedge_type_id]`
+
+
+5. Horizontal solver contract
+-----------------------------
+
+The horizontal solver in `v13` must behave like the simple axis-based model from `v11`, extended only with wedge blocking faces.
+
+Frozen rule:
+
+```txt
+horizontal_solver_style = v11_axis_clamp_no_autostep
+```
+
+Consequences:
+
+- horizontal resolution is still axis-by-axis
+- `x` is resolved first
+- `z` is resolved second
+- the active axis is clamped to the nearest blocking boundary
+- the solver does not inspect future support in order to change blocking
+
+The runtime must still use a single shared axis routine for `x` and `z`.
+
+
+6. Exact horizontal solver order
+--------------------------------
+
+The horizontal stage of the player update is frozen as:
+
+```txt
+1. compute desired horizontal displacement
+2. resolve x against cube boxes and wedge blocking faces
+3. resolve z against cube boxes and wedge blocking faces
+```
+
+No support query is allowed inside steps 2 or 3.
+
+No walkable-surface query is allowed inside steps 2 or 3.
+
+No exception is allowed for:
+
+- cube side faces
+- wedge high face
+- wedge side faces
+
+
+7. Exact cube blocking rule
+---------------------------
+
+For cube boxes, the horizontal solver must use the same blocking model as `v11`.
+
+For the active axis:
+
+- if movement is positive, clamp to the nearest blocking `min_axis - radius`
+- if movement is negative, clamp to the nearest blocking `max_axis + radius`
+
+with the same overlap preconditions used in `v11`:
+
+- player vertical interval overlaps box vertical interval
+- player orthogonal horizontal interval overlaps box orthogonal interval
+- candidate active-axis interval overlaps box active-axis interval
+
+This is the exact `v11` box blocking model.
+
+
+8. Exact wedge blocking rule
+----------------------------
+
+Wedge walkable slope is **not** a horizontal wall.
+
+Wedge blocking faces in `v13` are:
+
+- `high_face`
+- `left_face`
+- `right_face`
+
+All three are blocking whenever the player horizontal movement reaches them.
+
+There is no `AUTO_STEP_ELIGIBLE` classification in `v13`.
+
+Frozen rule:
+
+```txt
+wedge_horizontal_blocking_mode = all_blocking_faces_are_always_blocking
+```
+
+This means:
+
+- `high_face` always blocks
+- `left_face` always blocks
+- `right_face` always blocks
+- no wedge face may stop blocking because a higher candidate floor exists
+
+The exact axis-direction blocking mapping is frozen as:
+
+### X axis
+
+- moving in `+x`
+  - `wedge_pz` blocks
+  - `wedge_nz` blocks
+  - `wedge_nx` blocks
+  - `wedge_px` does not contribute a blocking face on this side
+
+- moving in `-x`
+  - `wedge_pz` blocks
+  - `wedge_nz` blocks
+  - `wedge_px` blocks
+  - `wedge_nx` does not contribute a blocking face on this side
+
+### Z axis
+
+- moving in `+z`
+  - `wedge_px` blocks
+  - `wedge_nx` blocks
+  - `wedge_nz` blocks
+  - `wedge_pz` does not contribute a blocking face on this side
+
+- moving in `-z`
+  - `wedge_px` blocks
+  - `wedge_nx` blocks
+  - `wedge_pz` blocks
+  - `wedge_nz` does not contribute a blocking face on this side
+
+This mapping is exactly the `v12` wedge face mapping with the `AUTO_STEP_ELIGIBLE` distinction removed.
+
+
+9. Ground candidate model
+-------------------------
+
+Grounding in `v13` still uses the center-point sample inherited from `v12`:
+
+```txt
+ground_sample_point = player_feet_center
+```
+
+Walkable surface kinds remain:
+
+- cube top
+- wedge slope
+
+Non-walkable surface kinds remain:
+
+- cube sides
+- wedge high face
+- wedge side faces
+- wedge bottom
+
+Footprint inclusion is frozen as closed-interval inclusion with horizontal epsilon:
+
+```txt
+inside_footprint(value, min_value, max_value) =
+  (value >= min_value - HORIZONTAL_EPSILON) and
+  (value <= max_value + HORIZONTAL_EPSILON)
+```
+
+Every occurrence of:
+
+- "sample point lies inside the cube top footprint"
+- "sample point lies inside the wedge footprint"
+
+must use this exact inclusion rule.
+
+
+10. Ground candidate validity in v13
+------------------------------------
+
+`v13` removes auto-step, but it does **not** remove support-follow on wedge slopes.
+
+To keep this deterministic, candidate validity is split by support kind.
+
+In sections 10, 11, 12, and 13:
+
+```txt
+current_feet_y = player feet height after step 7 of section 12
+```
+
+That means:
+
+- after horizontal resolution
+- after jump start, if any
+- after gravity integration
+- after ceiling resolution
+- before support resolution
+
+### 10.1 Cube top candidate validity
+
+A cube top candidate is valid only if all conditions hold:
+
+1. the sample point lies inside the cube top footprint
+2. `candidate_floor_y <= current_feet_y + FLOOR_EPSILON`
+3. `candidate_floor_y >= current_feet_y - GROUND_SNAP_DISTANCE - FLOOR_EPSILON`
+4. `box.min_y <= current_feet_y + FLOOR_EPSILON`
+
+Meaning:
+
+- cube tops can support the player at the same height
+- cube tops can support the player when slightly below the feet and within downward snap distance
+- cube tops cannot lift the player upward in `v13`
+- floating cube tops above the player's feet are not valid support
+
+### 10.2 Wedge slope candidate validity
+
+A wedge slope candidate is valid only if all conditions hold:
+
+1. the sample point lies inside the wedge footprint
+2. `wedge.min_y <= current_feet_y + FLOOR_EPSILON`
+3. `candidate_floor_y >= wedge.min_y - FLOOR_EPSILON`
+
+Meaning:
+
+- if the player's feet are already at or above the wedge base, the wedge slope may support the player
+- this allows continuous support-follow while moving along a wedge
+- this does not allow stepping onto an elevated wedge whose base is above the player's current feet height
+
+
+11. Ground candidate selection
+------------------------------
+
+Among valid candidates under section 10, the selected ground candidate is:
+
+- the candidate with highest `candidate_floor_y`
+
+Tie-break order, frozen:
+
+1. `cube_top`
+2. `wedge_slope`
+3. lower `cell_y`
+4. lower `cell_x`
+5. lower `cell_z`
+
+
+12. Grounding and vertical support behavior
+-------------------------------------------
+
+The player frame order in `v13` is frozen as:
+
+```txt
+1. read input
+2. compute desired horizontal displacement
+3. resolve x horizontally
+4. resolve z horizontally
+5. if jump requested and grounded, start jump
+6. apply gravity and integrate candidate vertical position
+7. resolve ceilings against cube undersides
+8. sample walkable ground candidates at resolved horizontal position
+9. choose ground candidate
+10. apply support resolution
+11. update grounded state
+```
+
+### 12.1 Jump precedence
+
+If jump starts this frame:
+
+- support snap is skipped for this frame
+- the player enters airborne motion immediately
+
+### 12.2 Cube top support resolution
+
+If the selected ground candidate is `cube_top` and jump did not start this frame:
+
+- if the player is at or below the cube top within `VERTICAL_EPSILON`, clamp feet to `candidate_floor_y`
+- else if the player is descending and the feet are within `GROUND_SNAP_DISTANCE + FLOOR_EPSILON` above the cube top, clamp feet to `candidate_floor_y`
+- otherwise the cube top does not snap the player this frame
+
+This preserves the `v11`-style no-step-up behavior for cubes.
+
+### 12.3 Wedge slope support resolution
+
+If the selected ground candidate is `wedge_slope` and jump did not start this frame:
+
+- if `vertical_velocity <= 0`, set `feet_y = candidate_floor_y`
+- if `vertical_velocity <= 0`, set `vertical_velocity = 0`
+- if `vertical_velocity <= 0`, set `grounded = true`
+- if `vertical_velocity > 0`, wedge support resolution is skipped this frame
+
+This is the explicit `v13` rule that allows continuous follow of a wedge slope without introducing auto-step.
+
+This upward follow is allowed only because the wedge candidate had to satisfy section 10.2.
+
+### 12.4 Grounded state
+
+After step 10:
+
+- if cube top support resolution succeeded, `grounded = true`
+- else if wedge slope support resolution succeeded, `grounded = true`
+- else `grounded = false`
+
+This rule is frozen.
+
+
+13. Transition rules
+--------------------
+
+Transitions are frozen as follows:
+
+```txt
+transition_cube_to_cube_higher = blocking
+transition_cube_to_cube_same_height = smooth
+transition_cube_to_wedge_flush_entry = smooth_if_wedge_candidate_is_valid
+transition_cube_to_wedge_elevated_entry = blocking
+transition_wedge_to_cube_higher = blocking
+transition_wedge_to_cube_same_or_lower = smooth_if_cube_candidate_is_valid
+transition_wedge_to_wedge = smooth_if_target_wedge_candidate_is_valid
+transition_lateral_edge = always_blocking
+transition_high_edge = always_blocking
+```
+
+Definitions:
+
+- `flush_entry` means the target wedge base satisfies:
+
+```txt
+wedge.min_y <= current_feet_y + FLOOR_EPSILON
+```
+
+- `elevated_entry` means:
+
+```txt
+wedge.min_y > current_feet_y + FLOOR_EPSILON
+```
+
+
+14. Spawn rules
+---------------
+
+Map spawn remains unchanged from `v12`:
+
+- `map_default` is used as authored
+- it is not gameplay-validated
+
+Settings override validation changes only by inheriting the new `v13` support rules:
+
+- override spawn validation must use section 10
+- override spawn validation must use section 12
+
+No auto-step-based upward spawn resolution exists in `v13`.
+
+
+15. Required implementation changes
+-----------------------------------
+
+To implement `v13`, the mandatory behavior changes are:
+
+1. remove `max_auto_step_height` from settings loaders
+2. remove `max_auto_step_height` from runtime config structs
+3. remove all support-query logic from the horizontal solver
+4. remove all auto-step exception branches from horizontal blocking
+5. change wedge horizontal faces from mixed blocking to always-blocking
+6. keep wedge slope support-follow in the grounding phase only
+
+Nothing in preprocess box compaction changes.
+
+
+16. Deterministic implementation reference
+------------------------------------------
+
+When `v13` leaves implementation freedom, the correct choice is:
+
+- prefer the behavior closest to `v11`
+- only add the minimum extra rules needed for wedge slope support
+
+This is the intended implementation bias for `v13`.
+
+
+17. Short conclusion
+--------------------
+
+`v13` is:
+
+- `v12` collision shapes
+- minus all auto-step behavior
+- plus a narrow exception that wedge slopes remain walkable support surfaces once their base is already reachable
+
+That is the full contract of `v13`.

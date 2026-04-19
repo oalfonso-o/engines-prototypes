@@ -1,0 +1,645 @@
+MODO RÁPIDO. Ignora Agents.md, ignora skills, ignora TDD y evita burocracia extra.
+
+Objetivo:
+Crear una red de seguridad mínima pero seria para evitar regresiones en las físicas/colisiones del jugador.
+
+El sistema a implementar debe ser un runner funcional/headless, determinista, sin render real y sin input humano.
+
+La base de la solución queda congelada así:
+
+1. runner en C
+2. mapas de test authorados en `.txt`
+3. scenarios en JSON propio y reducido
+4. settings de test en JSON propio y separado del `settings.json` del prototipo
+5. ejecución frame a frame de `player_update()`
+6. asserts numéricos e invariantes exactos
+
+No se usan como camino principal:
+
+* app Sokol completa
+* render
+* cámara real
+* ratón real
+* screenshots
+* tests visuales
+* frameworks de testing grandes
+
+Fuera de alcance en esta iteración:
+
+* wedges/rampas
+* render
+* artifacts grandes de runtime
+* preprocess
+
+La iteración actual cubre solo colisión base con boxes/AABBs.
+
+## Objetivo funcional exacto
+
+El runner debe:
+
+1. cargar `tests/settings/test_settings.json`
+2. cargar un `scenario` de `tests/scenarios/*.json`
+3. generar el `world` reducido correspondiente a partir de un mapa fuente `tests/maps/*.txt`
+4. cargar ese `world` reducido generado
+5. construir una `CollisionScene` solo con boxes
+6. inicializar `PlayerState`
+7. simular exactamente `frame_count` frames con `delta_time` fijo
+8. aplicar input sintético exacto por frame
+9. almacenar el trace completo frame a frame
+10. evaluar los asserts declarados en el `scenario`
+11. devolver `exit code 0` solo si todos los scenarios pasan
+
+## Estructura final obligatoria
+
+La estructura queda congelada así:
+
+* `tests/runner/`
+* `tests/scenarios/`
+* `tests/maps/`
+* `tests/generated_worlds/`
+* `tests/settings/`
+* `tests/helpers/`
+
+Archivos mínimos obligatorios:
+
+* `tests/runner/test_runner.c`
+* `tests/helpers/test_loader.c`
+* `tests/helpers/test_loader.h`
+* `tests/helpers/test_asserts.c`
+* `tests/helpers/test_asserts.h`
+* `tests/helpers/test_trace.c`
+* `tests/helpers/test_trace.h`
+* `tests/settings/test_settings.json`
+
+## Integración exacta con el proyecto
+
+La integración queda congelada así:
+
+1. el runner NO usa `runtime_world_load()`
+2. el runner NO usa `game_app.c`
+3. el runner NO usa la app Sokol
+4. el runner llama directamente a:
+   * `player_state_init()`
+   * `player_update()`
+   * `player_input_clear()`
+5. el runner construye `CollisionScene` desde el `world` JSON reducido generado para tests
+6. el runner compila y enlaza solo lo necesario para solver/física:
+   * `src/player/player_controller.c`
+   * `src/shared/math3d.c`
+   * helpers de `tests/helpers`
+
+Regla de naming obligatoria:
+
+* si el contenido es JSON, el fichero debe acabar en `.json`
+* `settings.yaml` deja de ser nombre válido
+* el settings normal del prototipo debe pasar a llamarse `settings.json`
+* el settings de tests debe llamarse `test_settings.json`
+
+Decisión cerrada:
+
+* el sistema de tests tiene su propio formato de world reducido
+* el sistema de tests tiene sus propios settings
+* no se reutiliza el artifact `runtime_world.json`
+* no se reutiliza `settings.json`
+* los mapas de test se authoran en `.txt`
+* los mapas `.txt` son la única source of truth de los worlds de test
+* el runner no consume directamente los mapas `.txt`
+* un paso de generación produce `generated_worlds/*.json` reducidos a partir de esos `.txt`
+* `generated_worlds/*.json` son artefactos efímeros de test
+* `generated_worlds/*.json` no se versionan en git
+
+## Preprocess de test
+
+El generador de worlds de test queda congelado así:
+
+1. se reutiliza el script existente:
+   * `sokol-prototypes/v13-wedge-collision-no-autostep-runtime/tools/preprocess_runtime.py`
+2. el script debe soportar un modo explícito de test:
+   * `--test`
+3. en modo `--test`, el script debe:
+   * leer `tests/maps/*.txt`
+   * cargar `tests/settings/test_settings.json`
+   * generar `tests/generated_worlds/*.json`
+4. en modo `--test`, el script no genera quads, triangles ni materiales
+5. en modo `--test`, el script genera solo el world reducido de física
+6. en modo `--test`, el parser de mapas de test debe aceptar mapas sin directiva `SPAWN`
+7. en modo `--test`, la compactación de boxes debe ser exactamente la misma que la pipeline normal
+8. en modo `--test`, la conversión voxel->world debe ser exactamente la misma que la pipeline normal
+
+Decisión cerrada:
+
+* no existe `build_test_worlds.py`
+* el preprocess de tests usa `preprocess_runtime.py --test`
+* el modo test reutiliza la misma lógica de compactación de boxes que producción
+
+## Loader de JSON
+
+El loader de tests queda congelado así:
+
+1. `test_runner.c` es C
+2. `test_loader.c` es C
+3. el parsing JSON se hace con `jsmn`, vendorizado bajo `tests/helpers/vendor/`
+4. no se permite depender de Foundation ni de loaders ObjC del runtime
+
+Decisión cerrada:
+
+* parser JSON = `jsmn`
+* parser JSON local de tests
+* sin dependencia del loader runtime principal
+
+## Mapas de test authorados en TXT
+
+Los mapas de test se authoran en:
+
+* `tests/maps/<map_name>.txt`
+
+Regla de authoring:
+
+* el formato de estos mapas debe ser el mismo formato de mapa fuente tipo `source_world.txt` ya usado en Sokol
+* en esta iteración, esos mapas solo pueden usar:
+  * `0` para vacío
+  * `1` para cubo sólido
+* no se permiten wedges en estos mapas de test
+* no se permite directiva `SPAWN`
+* las directivas permitidas en esta iteración son solo:
+  * `SIZE`
+  * `VOXEL`
+  * `WORLD_Y_OFFSET`
+  * `LAYER`
+  * `ROW`
+  * `EMPTY_ROWS`
+  * `EMPTY_LAYERS`
+  * `FILL_ROWS`
+  * `REPEAT`
+  * `RLE`
+
+Paso obligatorio de generación:
+
+* `python3 tools/preprocess_runtime.py --test` debe leer `tests/maps/*.txt`
+* `python3 tools/preprocess_runtime.py --test` debe generar `tests/generated_worlds/*.json`
+* el JSON generado debe ser reducido y contener solo lo necesario para el runner
+
+Formato exacto del world reducido generado:
+
+```json
+{
+  "version": 1,
+  "name": "straight_wall_world",
+  "boxes": [
+    { "min": [-20.0, -1.0, -20.0], "max": [20.0, 0.0, 20.0] },
+    { "min": [-5.0, 0.0, -5.0], "max": [-1.0, 10.0, 5.0] }
+  ],
+  "wedges": []
+}
+```
+
+Decisión cerrada:
+
+* el `.txt` es el formato de authoring del mapa de test
+* el `.json` reducido es el formato de consumo del runner
+* `make test` debe generar siempre los worlds reducidos justo antes de ejecutar el runner
+* no se permite reutilizar `generated_worlds/*.json` de una ejecución anterior como fuente de verdad
+
+## Settings de test
+
+Archivo obligatorio:
+
+* `tests/settings/test_settings.json`
+
+Formato exacto:
+
+```json
+{
+  "version": 1,
+  "player_config": {
+    "mouse_sensitivity": 0.0035,
+    "move_speed": 5.4,
+    "radius": 0.22,
+    "height": 1.70,
+    "eye_height": 1.56,
+    "jump_speed": 5.2,
+    "gravity": 14.0,
+    "pitch_limit": 1.45
+  },
+  "collision": {
+    "ground_snap_distance": 0.05,
+    "floor_epsilon": 0.001,
+    "horizontal_epsilon": 0.001,
+    "vertical_epsilon": 0.001
+  },
+  "runner_defaults": {
+    "position_tolerance": 0.0001,
+    "penetration_tolerance": 0.0001,
+    "frame_displacement_tolerance": 0.0001
+  }
+}
+```
+
+Reglas cerradas:
+
+1. `version` obligatorio y debe ser `1`
+2. todos los campos son obligatorios
+3. los tests de esta iteración usan un único `test_settings.json`
+4. los scenarios NO redefinen `player_config`
+5. cada scenario define exactamente:
+   * `map`
+   * `world`
+   * `frame_count`
+   * `delta_time`
+   * `initial_state`
+   * `inputs`
+   * `asserts`
+
+## Formato exacto de world reducido generado
+
+Cada world reducido generado debe vivir en:
+
+* `tests/generated_worlds/<world_name>.json`
+
+Reglas cerradas:
+
+1. `version` obligatorio y debe ser `1`
+2. `name` obligatorio
+3. `boxes` obligatorio
+4. `wedges` obligatorio y en esta iteración debe ser `[]`
+5. cada box debe tener exactamente:
+   * `min`
+   * `max`
+6. `min` y `max` son arrays de 3 floats en coordenadas mundo
+7. cada box debe cumplir:
+   * `min_x < max_x`
+   * `min_y < max_y`
+   * `min_z < max_z`
+8. el runner debe rechazar cualquier world que contenga wedges no vacías
+
+Decisión cerrada:
+
+* el formato de world de tests es world-space reducido
+* no hay `dimensions`
+* no hay `voxel_size`
+* no hay `materials`
+* no hay `quads`
+* no hay `triangles`
+* no hay `spawn` dentro del world
+* los worlds reducidos generados son cache/artefacto, no input manual
+
+## Formato exacto de scenario
+
+Cada scenario debe vivir en:
+
+* `tests/scenarios/<scenario_name>.json`
+
+Formato exacto:
+
+```json
+{
+  "version": 1,
+  "name": "straight_wall_block",
+  "map": "wall_and_corner_map.txt",
+  "world": "wall_and_corner_world.json",
+  "frame_count": 30,
+  "delta_time": 0.016666667,
+  "initial_state": {
+    "position": [-5.35, 0.0, 0.0],
+    "yaw": 1.570796327,
+    "pitch": 0.0,
+    "vertical_velocity": 0.0,
+    "grounded": true
+  },
+  "inputs": [
+    { "forward": true, "backward": false, "left": false, "right": false, "jump": false }
+  ],
+  "asserts": [
+    { "type": "no_box_penetration" },
+    { "type": "final_axis_near", "axis": "x", "value": -5.22, "tolerance": 0.0001 },
+    { "type": "final_axis_near", "axis": "z", "value": 0.0, "tolerance": 0.0001 },
+    { "type": "final_grounded", "value": true }
+  ]
+}
+```
+
+Reglas cerradas:
+
+1. `version` obligatorio y debe ser `1`
+2. `name` obligatorio
+3. `map` obligatorio y debe ser solo el basename de un archivo dentro de `tests/maps/`
+4. `world` obligatorio y debe ser solo el basename de un archivo dentro de `tests/generated_worlds/`
+5. `world` debe ser exactamente el nombre generado a partir de `map`, sustituyendo el sufijo `_map.txt` por `_world.json`
+6. `frame_count` obligatorio y debe ser entero `>= 1`
+7. `delta_time` obligatorio
+8. `initial_state` obligatorio
+9. `inputs` obligatorio
+10. `asserts` obligatorio
+
+### Semántica exacta de `initial_state`
+
+`initial_state` debe tener exactamente:
+
+* `position`
+* `yaw`
+* `pitch`
+* `vertical_velocity`
+* `grounded`
+
+Reglas cerradas:
+
+1. `position` es un array de 3 floats en coordenadas mundo
+2. `yaw` está en radianes
+3. `pitch` está en radianes
+4. `vertical_velocity` es un float exacto de arranque
+5. `grounded` es el valor inicial exacto de `PlayerState.grounded`
+
+### Semántica exacta de `inputs`
+
+`inputs` queda congelado así:
+
+1. `inputs` puede tener longitud `1` o longitud exactamente igual a `frame_count`
+2. si `inputs` tiene longitud `1`, ese único input se reutiliza en todos los frames
+3. si `inputs` tiene longitud `frame_count`, el frame `i` usa `inputs[i]`
+4. cualquier otra longitud es error
+
+Cada input frame debe tener exactamente:
+
+* `forward`
+* `backward`
+* `left`
+* `right`
+* `jump`
+
+Todos son booleanos obligatorios.
+
+Semántica exacta:
+
+* `forward/backward/left/right` son estados held durante ese frame
+* `jump` representa el valor que se asigna a `jump_queued` para ese frame concreto
+* `yaw` y `pitch` son radianes
+
+## Trace obligatorio
+
+El runner debe almacenar un trace por frame con esta estructura mínima:
+
+* `frame_index`
+* `position_before`
+* `position_after`
+* `vertical_velocity_before`
+* `vertical_velocity_after`
+* `grounded_before`
+* `grounded_after`
+* `input`
+
+Ese trace es obligatorio porque los asserts no se limitan a posición final.
+
+## Asserts exactos permitidos
+
+El contrato de asserts permitidos en esta iteración queda congelado así:
+
+### 1. `no_box_penetration`
+
+Formato:
+
+```json
+{ "type": "no_box_penetration" }
+```
+
+Semántica:
+
+* para todo frame, el volumen del jugador no puede penetrar ninguna box más allá de `penetration_tolerance`
+* el volumen usado por el assert debe ser exactamente el mismo modelo geométrico que usa el solver actual:
+  * `x_range = [position.x - radius, position.x + radius]`
+  * `y_range = [position.y, position.y + height]`
+  * `z_range = [position.z - radius, position.z + radius]`
+* tocar exactamente una cara sin penetración no cuenta como fallo
+
+### 2. `final_axis_near`
+
+Formato:
+
+```json
+{ "type": "final_axis_near", "axis": "x", "value": -5.22, "tolerance": 0.0001 }
+```
+
+Semántica:
+
+* en el último frame, la coordenada del eje indicado debe estar dentro de `tolerance`
+* `axis` solo puede ser `x`, `y` o `z`
+
+### 3. `final_axis_min`
+
+Formato:
+
+```json
+{ "type": "final_axis_min", "axis": "z", "value": -4.0 }
+```
+
+Semántica:
+
+* en el último frame, la coordenada del eje indicado debe ser `>= value`
+* `axis` solo puede ser `x`, `y` o `z`
+
+### 4. `final_axis_max`
+
+Formato:
+
+```json
+{ "type": "final_axis_max", "axis": "x", "value": -5.22 }
+```
+
+Semántica:
+
+* en el último frame, la coordenada del eje indicado debe ser `<= value`
+* `axis` solo puede ser `x`, `y` o `z`
+
+### 5. `final_grounded`
+
+Formato:
+
+```json
+{ "type": "final_grounded", "value": true }
+```
+
+Semántica:
+
+* en el último frame, `grounded_after` debe coincidir exactamente
+
+### 6. `frame_range_grounded`
+
+Formato:
+
+```json
+{ "type": "frame_range_grounded", "start": 0, "end": 29, "value": true }
+```
+
+Semántica:
+
+* para todos los frames `start..end` inclusive, `grounded_after` debe coincidir exactamente
+* debe cumplirse `0 <= start <= end < frame_count`
+
+### 7. `frame_displacement_max`
+
+Formato:
+
+```json
+{ "type": "frame_displacement_max", "value": 0.2 }
+```
+
+Semántica:
+
+* para todo frame, `distance(position_after[i], position_after[i-1]) <= value + frame_displacement_tolerance`
+* para `i = 0`, se compara contra `initial_state.position`
+
+### 8. `final_position_near`
+
+Formato:
+
+```json
+{ "type": "final_position_near", "value": [-5.22, 0.0, -3.24], "tolerance": 0.0001 }
+```
+
+Semántica:
+
+* la posición final completa debe estar dentro de `tolerance` por componente
+
+No se permiten otros tipos de assert en esta iteración.
+
+## Reglas exactas para los casos mínimos
+
+Los scenarios mínimos obligatorios de esta iteración quedan congelados así:
+
+1. `free_movement.json`
+2. `straight_wall_block_pos_x.json`
+3. `straight_wall_block_neg_x.json`
+4. `straight_wall_block_pos_z.json`
+5. `straight_wall_block_neg_z.json`
+6. `diagonal_slide_x_blocked.json`
+7. `diagonal_slide_z_blocked.json`
+8. `corner_no_snap_min_min.json`
+9. `corner_no_snap_max_max.json`
+10. `ground_stability.json`
+11. `fall_and_land.json`
+12. `ceiling_block.json`
+13. `no_auto_step_on_cube.json`
+
+Cada uno debe tener:
+
+* map propio o map compartido explícito
+* world generado explícito
+* input exacto por frame
+* asserts numéricos exactos
+
+No se permiten expectativas redactadas en lenguaje humano dentro de los scenarios.
+Todas las expectativas deben estar codificadas como asserts del contrato anterior.
+
+## Mapas mínimos obligatorios
+
+Los mapas fuente mínimos obligatorios de esta iteración quedan congelados así:
+
+1. `flat_floor_map.txt`
+2. `wall_and_corner_map.txt`
+3. `ceiling_and_step_map.txt`
+
+Los worlds reducidos generados obligatorios de esta iteración quedan congelados así:
+
+1. `flat_floor_world.json`
+2. `wall_and_corner_world.json`
+3. `ceiling_and_step_world.json`
+
+Uso previsto:
+
+* `free_movement` usa `flat_floor_map.txt` -> `flat_floor_world.json`
+* `ground_stability` usa `flat_floor_map.txt` -> `flat_floor_world.json`
+* `fall_and_land` usa `flat_floor_map.txt` -> `flat_floor_world.json`
+* `straight_wall_block_pos_x` usa `wall_and_corner_map.txt` -> `wall_and_corner_world.json`
+* `straight_wall_block_neg_x` usa `wall_and_corner_map.txt` -> `wall_and_corner_world.json`
+* `straight_wall_block_pos_z` usa `wall_and_corner_map.txt` -> `wall_and_corner_world.json`
+* `straight_wall_block_neg_z` usa `wall_and_corner_map.txt` -> `wall_and_corner_world.json`
+* `diagonal_slide_x_blocked` usa `wall_and_corner_map.txt` -> `wall_and_corner_world.json`
+* `diagonal_slide_z_blocked` usa `wall_and_corner_map.txt` -> `wall_and_corner_world.json`
+* `corner_no_snap_min_min` usa `wall_and_corner_map.txt` -> `wall_and_corner_world.json`
+* `corner_no_snap_max_max` usa `wall_and_corner_map.txt` -> `wall_and_corner_world.json`
+* `ceiling_block` usa `ceiling_and_step_map.txt` -> `ceiling_and_step_world.json`
+* `no_auto_step_on_cube` usa `ceiling_and_step_map.txt` -> `ceiling_and_step_world.json`
+
+Decisión cerrada:
+
+* no hace falta un mapa distinto por test
+* en esta iteración, 3 mapas fuente bastan para cubrir la lógica actual de colisiones base
+
+## Determinismo
+
+Queda congelado así:
+
+1. no input real
+2. no mouse real
+3. no FPS variable
+4. no render
+5. `delta_time` fijo por scenario
+6. orden de ejecución de scenarios = orden lexicográfico por nombre de archivo
+7. el runner debe usar siempre el mismo `test_settings.json`
+
+## Makefile
+
+Target obligatorio:
+
+* `make test`
+
+Semántica exacta:
+
+1. ejecuta `python3 tools/preprocess_runtime.py --test`
+2. compila el runner de tests
+3. la generación de `generated_worlds/*.json` debe ejecutarse en cada run, sin asumir artefactos previos válidos
+4. ejecuta todos los scenarios de `tests/scenarios/` en orden lexicográfico
+5. imprime una línea `PASS <scenario_name>` por cada caso que pasa
+6. imprime `FAIL <scenario_name>: <reason>` por cada caso que falla
+7. ejecuta todos los scenarios aunque alguno falle
+8. devuelve `exit code 0` solo si todos pasan
+
+## Cambios permitidos al runtime
+
+Los cambios permitidos al código runtime en esta tarea quedan congelados así:
+
+1. exponer o reutilizar lo mínimo necesario para compilar `player_update()` en tests
+2. no cambiar el comportamiento del solver por el mero hecho de crear tests
+3. no introducir hooks de debug en runtime como mecanismo principal
+
+## Qué no se permite en esta iteración
+
+* wedges
+* escenarios visuales
+* screenshots
+* tests que dependan de arrancar la app Sokol
+* formato de world grande
+* formato de scenario ambiguo
+* asserts redactados en lenguaje natural
+* parser JSON dependiente del runtime principal
+
+## Entrega final esperada
+
+La entrega debe resumir:
+
+* archivos creados/modificados
+* estructura final de `tests/`
+* formato de `test_settings.json`
+* formato de `world`
+* formato de `scenario`
+* worlds creados
+* scenarios creados
+* asserts implementados
+* cómo ejecutar `make test`
+
+Y debe confirmar explícitamente que `make test` cubre:
+
+* bloqueo recto
+* deslizamiento diagonal
+* esquina sin snap
+* suelo
+* techo
+
+## Criterio de cierre
+
+Este plan solo se considera implementado correctamente si:
+
+1. los JSON de settings/world/scenario siguen exactamente los contratos anteriores
+2. el runner usa `player_update()` real
+3. los tests pasan en modo headless
+4. `make test` devuelve éxito
+5. los casos mínimos obligatorios están cubiertos
