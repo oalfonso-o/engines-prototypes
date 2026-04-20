@@ -7,3 +7,19 @@ __pycache__
 *.pyc
 **/bin
 **/obj
+
+# Unreal generated
+**/Binaries/
+**/DerivedDataCache/
+**/Intermediate/
+**/Saved/
+**/.vs/
+
+# IDE/generated project files
+*.sln
+*.xcodeproj
+*.xcworkspace
+
+# Optional Unreal local/user content
+**/Content/Developers/
+**/Content/Collections/
