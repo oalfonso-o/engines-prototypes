@@ -1,31 +1,34 @@
 # AGENTS
 
-## Main points
+## Fast Mode Default
 
-- `modo rapido` means speed first, no tests, no unnecessary process.
-- Runtime is C or Objective-C; tooling can be Python.
-- Use Sokol as the runtime/render/input layer.
-- Prefer `src/`, `include/`, `data/`, `tools/`, `build/`.
-- Keep `main` thin and delegate real work to modules.
-- Split by domain: app, render, world, player, collision, shared.
-- Prefer `.h` + `.c`/`.m` modules over giant source files.
-- Prefer named structs over opaque arrays or long parameter lists.
-- Heavy preprocessing belongs offline in Python, not in runtime.
-- Before implementing a feature, first check that the spec is fully deterministic and boolean-clear, with nothing left open to interpretation; if something is ambiguous, ask before coding.
-- Prefer a root-level `settings.yaml` in each project for stable project configuration and contracts; put contract rules under a `contract:` block with explicit child keys instead of hiding them in one opaque string.
-- Default verification is: build passes and the prototype starts without crashing.
-- In voxel source maps, `ROW` directives inside each `LAYER` must always appear in strictly ascending row index order.
+- Superpowers are disabled for this repo in practice: do not reach for skills, TDD rituals, elaborate debugging playbooks, or process-heavy loops unless the user explicitly asks for them.
+- Default mode is `modo rapido`: make the smallest change that can move the prototype forward, run it, render it, inspect it, correct it.
+- Prefer real game results over abstract confidence. If the problem is visible in the running prototype, validate it there.
+- Ask only when the spec is still behaviorally ambiguous. If the intent is clear enough to build, build.
+- If one direction fails twice or starts collecting hacks, offsets, physics patches, or workaround layers, stop and reset to a cleaner source or baseline.
 
-## Geometry and winding convention
+## Global Working Style
 
-- Exterior faces must be defined so that `cross(u, v)` points outward.
-- Equivalently, exterior faces must appear CCW when viewed from outside.
-- The preprocess owns that convention and must emit geometry that respects it.
-- The runtime artifact is assumed to already follow that convention.
-- When a project needs formal geometry/runtime rules, store them in the project root `settings.yaml` under `contract:`.
-- In `v9`, quads expand as `p0=origin`, `p1=origin+u`, `p2=origin+u+v`, `p3=origin+v`.
-- In `v9`, indices are `0,1,2` and `0,2,3`.
-- In `v9`, the renderer still uses `SG_CULLMODE_NONE`, so the convention is implicit, not strongly enforced.
-- Before wedges/ramps, formalize the contract and align preprocess, artifact, and renderer around it.
-- When wedges start, use front-face CCW plus backface culling to validate the convention strongly.
-- If a face is not fully specified triangle by triangle, it is not specified enough.
+- This root `AGENTS.md` is global only. Do not put engine-specific rules here.
+- Engine-specific rules belong in each engine root:
+  1. `godot-prototypes/AGENTS.md`
+  2. `sokol-prototypes/AGENTS.md`
+  3. `pygame-prototypes/AGENTS.md`
+  4. `unity-prototypes/AGENTS.md`
+  5. `phaser-prototypes/AGENTS.md`
+- Keep the root `Makefile` thin and use it as an entrypoint that forwards into engine-specific `Makefile`s.
+- Prefer stable project contracts in root-level config files such as `settings.yaml` when a prototype needs explicit runtime or data rules.
+- Heavy preprocessing belongs offline in scripts or tools, not inside the hot runtime path.
+- Before implementing a feature, first check that the spec is fully deterministic and boolean-clear, with nothing left open to interpretation.
+
+## Validation Of Work
+
+- Default minimum validation is: the relevant prototype starts without crashing.
+- When a bug is visible in the running prototype, validate the fix in the running prototype.
+- Do not claim a visually sensitive task is correct unless the validation artifact actually shows the claim clearly enough to judge.
+
+## Directory Intent
+
+- `godot-prototypes/`, `sokol-prototypes/`, `pygame-prototypes/`, `unity-prototypes/`, and `phaser-prototypes/` each own their engine-specific conventions.
+- Project-specific rules may live deeper than the engine root when a single prototype needs extra constraints, but they must not replace the engine-root `AGENTS.md`.

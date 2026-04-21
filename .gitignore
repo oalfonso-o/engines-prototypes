@@ -1,3 +1,5 @@
+.DS_Store
+
 # Godot 4+ specific ignores
 .godot/
 /android/
@@ -23,3 +25,24 @@ __pycache__
 # Optional Unreal local/user content
 **/Content/Developers/
 **/Content/Collections/
+
+# Unreal content moved out of this repo
+unreal-prototypes/
+
+# Unity generated
+unity-prototypes/**/Library/
+unity-prototypes/**/Logs/
+unity-prototypes/**/Temp/
+unity-prototypes/**/Obj/
+unity-prototypes/**/UserSettings/
+unity-prototypes/**/MemoryCaptures/
+unity-prototypes/**/Builds/
+unity-prototypes/**/Assets/Generated/
+unity-prototypes/**/*.csproj
+unity-prototypes/**/*.sln
+unity-prototypes/**/.vs/
+
+# Phaser generated
+phaser-prototypes/**/node_modules/
+phaser-prototypes/**/dist/
+phaser-prototypes/**/.vite/
