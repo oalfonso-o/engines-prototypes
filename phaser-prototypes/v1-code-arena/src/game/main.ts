@@ -16,6 +16,8 @@ import type { GameBridge } from "../bridge/GameBridge";
 import { GameTranslator } from "./i18n/GameTranslator";
 import type { RuntimeContentCatalog } from "./content/runtimeContent";
 import { resetRuntimeDebugState, setRuntimeDebugState } from "./runtimeDebug";
+import { ActionExecutor } from "./runtime/ActionExecutor";
+import { SceneRuntimeController } from "./runtime/SceneRuntimeController";
 
 export interface CreatedGameRuntime {
   game: Phaser.Game;
@@ -32,9 +34,8 @@ class GameRuntime implements GameRuntimeHandle {
   private bootReady = false;
   private readonly queuedCommands: GameCommand[] = [];
   private currentLocale: SupportedLocale;
-  private readonly currentCampaignSceneId: string;
-  private readonly currentGameId: string;
-  private readonly currentEntryPointId: string | null;
+  private readonly sceneRuntimeController: SceneRuntimeController;
+  private readonly actionExecutor: ActionExecutor;
 
   constructor(
     parent: HTMLElement,
@@ -45,19 +46,24 @@ class GameRuntime implements GameRuntimeHandle {
     initialLocale: SupportedLocale,
   ) {
     const translator = new GameTranslator(i18n);
+    this.sceneRuntimeController = new SceneRuntimeController(runtimeContent);
+    this.actionExecutor = new ActionExecutor(this.sceneRuntimeController);
     const bootScene = new BootScene(runtimeContent.textures, runtimeContent.animations, () => this.handleBootReady());
     this.introScene = new IntroScene(bridge, settings.intro);
     this.menuScene = new MenuBackgroundScene(settings);
-    this.campaignScene = new CampaignScene(settings, runtimeContent.scene, bridge, translator);
+    this.campaignScene = new CampaignScene(
+      settings,
+      this.sceneRuntimeController.getCurrentScene(),
+      bridge,
+      translator,
+      (actionId) => this.handleRuntimeAction(actionId),
+    );
     this.editorScene = new EditorPreviewSceneClass(translator);
     this.currentLocale = initialLocale;
-    this.currentCampaignSceneId = runtimeContent.scene.sceneId;
-    this.currentGameId = runtimeContent.gameId;
-    this.currentEntryPointId = runtimeContent.scene.entryPointId;
 
     resetRuntimeDebugState();
     setRuntimeDebugState({
-      gameId: this.currentGameId,
+      gameId: this.sceneRuntimeController.getGameId(),
       sceneId: null,
       entryPointId: null,
       phase: "booting",
@@ -128,13 +134,15 @@ class GameRuntime implements GameRuntimeHandle {
         this.stopScene(SCENE_KEYS.editorPreview);
         this.audio.restoreMusic();
         this.audio.playMusic("music.campaign");
+        this.campaignScene.applyRuntimeScene(this.sceneRuntimeController.resetToEntryScene());
         this.game.scene.start(SCENE_KEYS.campaign);
+        const runtimeScene = this.sceneRuntimeController.getCurrentScene();
         setRuntimeDebugState({
           phase: "running",
           surface: "campaign",
           phaserSceneKey: SCENE_KEYS.campaign,
-          sceneId: this.currentCampaignSceneId,
-          entryPointId: this.currentEntryPointId,
+          sceneId: runtimeScene.sceneId,
+          entryPointId: runtimeScene.entryPointId,
         });
         return;
       case "resumeCampaign":
@@ -207,7 +215,7 @@ class GameRuntime implements GameRuntimeHandle {
   private handleBootReady(): void {
     this.bootReady = true;
     setRuntimeDebugState({
-      gameId: this.currentGameId,
+      gameId: this.sceneRuntimeController.getGameId(),
       phase: "running",
       phaserSceneKey: SCENE_KEYS.boot,
     });
@@ -241,6 +249,34 @@ class GameRuntime implements GameRuntimeHandle {
   private getEditorPreviewScene(): EditorPreviewScene | null {
     const scene = this.game.scene.getScene(SCENE_KEYS.editorPreview);
     return scene instanceof EditorPreviewSceneClass ? scene : null;
+  }
+
+  private handleRuntimeAction(actionId: string): void {
+    const transition = this.actionExecutor.execute(actionId);
+    if (!transition) {
+      return;
+    }
+
+    setRuntimeDebugState({
+      phase: "transitioning",
+      surface: "campaign",
+      phaserSceneKey: SCENE_KEYS.campaign,
+      sceneId: transition.scene.sceneId,
+      entryPointId: transition.entryPointId,
+    });
+    this.campaignScene.applyRuntimeScene(
+      transition.scene,
+      transition.transitionStyle,
+      () => {
+        setRuntimeDebugState({
+          phase: "running",
+          surface: "campaign",
+          phaserSceneKey: SCENE_KEYS.campaign,
+          sceneId: transition.scene.sceneId,
+          entryPointId: transition.entryPointId,
+        });
+      },
+    );
   }
 }
 

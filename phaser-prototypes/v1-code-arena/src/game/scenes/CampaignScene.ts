@@ -14,6 +14,7 @@ import {
   type BackgroundLayer,
 } from "../level/parallaxBackground";
 import { PlayerController, type PlayerControllerState } from "../player/PlayerController";
+import { SceneTriggerField } from "../runtime/SceneTriggerField";
 import { HudController } from "../ui/HudController";
 import type { PrototypeSettings } from "../../settings/prototypeSettings";
 import type { GameTranslator } from "../i18n/GameTranslator";
@@ -34,12 +35,14 @@ export class CampaignScene extends Phaser.Scene {
   private colliderSystem?: ColliderSystem;
   private builtScene?: BuiltSceneRuntime;
   private oneWayPlatforms?: OneWayPlatformSystem;
+  private triggerField?: SceneTriggerField;
 
   constructor(
     private prototypeSettings: PrototypeSettings,
-    private readonly runtimeScene: RuntimeSceneContent,
+    private runtimeScene: RuntimeSceneContent,
     private readonly bridge: GameBridge,
     private readonly translator: GameTranslator,
+    private readonly onActionRequested: (actionId: string) => void,
   ) {
     super(SCENE_KEYS.campaign);
   }
@@ -66,6 +69,7 @@ export class CampaignScene extends Phaser.Scene {
       return;
     }
 
+    this.triggerField?.update();
     this.hud?.update(
       this.coinField?.getCollectedCount() ?? 0,
       this.coinField?.getTotalCount() ?? 0,
@@ -86,6 +90,36 @@ export class CampaignScene extends Phaser.Scene {
     if (snapshot) {
       this.restoreState(snapshot);
     }
+  }
+
+  applyRuntimeScene(
+    nextRuntimeScene: RuntimeSceneContent,
+    transitionStyle: "none" | "fade" = "none",
+    onComplete?: () => void,
+  ): void {
+    if (!this.scene.isActive(SCENE_KEYS.campaign) && !this.scene.isPaused(SCENE_KEYS.campaign)) {
+      this.runtimeScene = nextRuntimeScene;
+      onComplete?.();
+      return;
+    }
+
+    const rebuild = () => {
+      this.teardownRuntime();
+      this.runtimeScene = nextRuntimeScene;
+      this.buildRuntime();
+      onComplete?.();
+    };
+
+    if (transitionStyle === "fade" && this.scene.isActive(SCENE_KEYS.campaign)) {
+      this.cameras.main.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => {
+        rebuild();
+        this.cameras.main.fadeIn(150, 0, 0, 0);
+      });
+      this.cameras.main.fadeOut(150, 0, 0, 0);
+      return;
+    }
+
+    rebuild();
   }
 
   private buildRuntime(): void {
@@ -110,6 +144,8 @@ export class CampaignScene extends Phaser.Scene {
       this.oneWayPlatforms,
     );
     this.coinField.attachPlayer(this.player.getBody());
+    this.triggerField = new SceneTriggerField(this, this.runtimeScene.triggerZones, this.onActionRequested);
+    this.triggerField.attachPlayer(this.player.getBody());
     this.hud = new HudController(this, this.prototypeSettings, this.translator);
     this.player.configureCamera(this.cameras.main);
     this.hud.update(this.coinField.getCollectedCount(), this.coinField.getTotalCount(), this.coinField.isComplete());
@@ -126,6 +162,8 @@ export class CampaignScene extends Phaser.Scene {
     this.player = undefined;
     this.oneWayPlatforms?.destroy();
     this.oneWayPlatforms = undefined;
+    this.triggerField?.destroy();
+    this.triggerField = undefined;
     this.builtScene?.destroy();
     this.builtScene = undefined;
     this.colliderSystem?.destroy();

@@ -2,13 +2,17 @@ import type { PrototypeSettings } from "../../settings/prototypeSettings";
 import { bootstrapEditorData } from "../../editor/bootstrap/bootstrapEditorData";
 import { CORE_DERIVED_IDS } from "../../editor/content/coreDerivedManifest";
 import type {
+  ActionDefinition,
   AnimationDefinition,
   EditorSnapshot,
   SceneBackgroundLayerRecord,
   SceneCollisionCellRecord,
   SceneDefinition,
+  SceneEntryPointObjectRecord,
   SceneObjectLayerRecord,
   SceneTileLayerRecord,
+  SceneTriggerMode,
+  SceneTriggerZoneObjectRecord,
 } from "../../editor/domain/editorTypes";
 import { resolveAssetUrl } from "../../editor/storage/assetPathResolver";
 import { EditorDb } from "../../editor/storage/editorDb";
@@ -68,6 +72,23 @@ export interface RuntimePickupSpawn {
   scale: number;
 }
 
+export interface RuntimeSceneEntryPoint {
+  id: string;
+  name: string;
+  x: number;
+  y: number;
+}
+
+export interface RuntimeTriggerZone {
+  id: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  triggerMode: SceneTriggerMode;
+  actionId: string | null;
+}
+
 export interface RuntimePlayerContent {
   characterId: string | null;
   spawnX: number;
@@ -94,6 +115,8 @@ export interface RuntimeSceneContent {
   solidBlocks: RuntimeSolidBlock[];
   oneWayPlatforms: RuntimeOneWayPlatform[];
   pickups: RuntimePickupSpawn[];
+  entryPoints: RuntimeSceneEntryPoint[];
+  triggerZones: RuntimeTriggerZone[];
   player: RuntimePlayerContent;
 }
 
@@ -101,7 +124,11 @@ export interface RuntimeContentCatalog {
   textures: RuntimeTextureSource[];
   animations: RuntimeAnimationSource[];
   gameId: string;
+  entrySceneId: string;
+  entryPointId: string | null;
   scene: RuntimeSceneContent;
+  scenes: RuntimeSceneContent[];
+  actions: ActionDefinition[];
 }
 
 export async function loadRuntimeContent(settings: PrototypeSettings): Promise<RuntimeContentCatalog> {
@@ -147,49 +174,57 @@ export function createFallbackAnimations(): RuntimeAnimationSource[] {
 }
 
 function createFallbackRuntimeContent(settings: PrototypeSettings): RuntimeContentCatalog {
+  const scene: RuntimeSceneContent = {
+    gameId: CORE_DERIVED_IDS.gameCanuterMain,
+    sceneId: CORE_DERIVED_IDS.sceneSwampCampaignV1,
+    entryPointId: null,
+    widthInCells: settings.world.width_tiles,
+    heightInCells: settings.world.height_tiles,
+    tileWidth: settings.world.tile_size,
+    tileHeight: settings.world.tile_size,
+    backgroundLayers: [
+      createRuntimeBackgroundLayer("background:core:raw:swamp:bg-1", 0.04),
+      createRuntimeBackgroundLayer("background:core:raw:swamp:bg-2", 0.08),
+      createRuntimeBackgroundLayer("background:core:raw:swamp:bg-3", 0.12),
+      createRuntimeBackgroundLayer("background:core:raw:swamp:bg-4", 0.18),
+      createRuntimeBackgroundLayer("background:core:raw:swamp:bg-5", 0.26),
+    ],
+    tiles: createFallbackSceneTiles(settings),
+    solidBlocks: settings.level.ground_segments.map((segment) => ({ ...segment })),
+    oneWayPlatforms: settings.level.floating_platforms.map((segment) => ({ ...segment })),
+    pickups: settings.level.coin_positions.map((position, index) => ({
+      id: `coin-${index}`,
+      x: position.x * settings.world.tile_size,
+      y: position.y * settings.world.tile_size,
+      textureKey: "pickup-texture:core:animation:coin-spin",
+      animationKey: "pickup-animation:core:animation:coin-spin",
+      scale: 2.4,
+    })),
+    entryPoints: [],
+    triggerZones: [],
+    player: {
+      characterId: CORE_DERIVED_IDS.characterPlayerShinobi,
+      spawnX: settings.player.spawn_x,
+      spawnY: settings.player.spawn_y,
+      idleTextureKey: "player-idle-texture",
+      animationKeys: {
+        idle: "player-idle",
+        run: "player-run",
+        jump: "player-jump",
+        attack: null,
+      },
+    },
+  };
+
   return {
     textures: createFallbackTextures(),
     animations: createFallbackAnimations(),
     gameId: CORE_DERIVED_IDS.gameCanuterMain,
-    scene: {
-      gameId: CORE_DERIVED_IDS.gameCanuterMain,
-      sceneId: CORE_DERIVED_IDS.sceneSwampCampaignV1,
-      entryPointId: null,
-      widthInCells: settings.world.width_tiles,
-      heightInCells: settings.world.height_tiles,
-      tileWidth: settings.world.tile_size,
-      tileHeight: settings.world.tile_size,
-      backgroundLayers: [
-        createRuntimeBackgroundLayer("background:core:raw:swamp:bg-1", 0.04),
-        createRuntimeBackgroundLayer("background:core:raw:swamp:bg-2", 0.08),
-        createRuntimeBackgroundLayer("background:core:raw:swamp:bg-3", 0.12),
-        createRuntimeBackgroundLayer("background:core:raw:swamp:bg-4", 0.18),
-        createRuntimeBackgroundLayer("background:core:raw:swamp:bg-5", 0.26),
-      ],
-      tiles: createFallbackSceneTiles(settings),
-      solidBlocks: settings.level.ground_segments.map((segment) => ({ ...segment })),
-      oneWayPlatforms: settings.level.floating_platforms.map((segment) => ({ ...segment })),
-      pickups: settings.level.coin_positions.map((position, index) => ({
-        id: `coin-${index}`,
-        x: position.x * settings.world.tile_size,
-        y: position.y * settings.world.tile_size,
-        textureKey: "pickup-texture:core:animation:coin-spin",
-        animationKey: "pickup-animation:core:animation:coin-spin",
-        scale: 2.4,
-      })),
-      player: {
-        characterId: CORE_DERIVED_IDS.characterPlayerShinobi,
-        spawnX: settings.player.spawn_x,
-        spawnY: settings.player.spawn_y,
-        idleTextureKey: "player-idle-texture",
-        animationKeys: {
-          idle: "player-idle",
-          run: "player-run",
-          jump: "player-jump",
-          attack: null,
-        },
-      },
-    },
+    entrySceneId: scene.sceneId,
+    entryPointId: null,
+    scene,
+    scenes: [scene],
+    actions: [],
   };
 }
 
@@ -207,7 +242,11 @@ function buildCatalogFromGame(snapshot: EditorSnapshot): RuntimeContentCatalog |
   const textures: RuntimeTextureSource[] = [];
   const animations: RuntimeAnimationSource[] = [];
 
-  const runtimeScene = buildRuntimeScene(snapshot, game.id, scene, game.entryPointId, game.defaultPlayerCharacterId, textures, animations);
+  const runtimeScenes = snapshot.scenes
+    .filter((entry) => !entry.archivedAt)
+    .map((entry) => buildRuntimeScene(snapshot, game.id, entry, game.defaultPlayerCharacterId, textures, animations))
+    .filter((entry): entry is RuntimeSceneContent => entry !== null);
+  const runtimeScene = materializeRuntimeScene(runtimeScenes, game.entrySceneId, game.entryPointId);
   if (!runtimeScene) {
     return null;
   }
@@ -216,7 +255,11 @@ function buildCatalogFromGame(snapshot: EditorSnapshot): RuntimeContentCatalog |
     textures,
     animations,
     gameId: game.id,
+    entrySceneId: game.entrySceneId,
+    entryPointId: runtimeScene.entryPointId,
     scene: runtimeScene,
+    scenes: runtimeScenes,
+    actions: snapshot.actions.filter((entry) => !entry.archivedAt),
   };
 }
 
@@ -224,7 +267,6 @@ function buildRuntimeScene(
   snapshot: EditorSnapshot,
   gameId: string,
   scene: SceneDefinition,
-  entryPointId: string | null,
   fallbackCharacterId: string | null,
   textures: RuntimeTextureSource[],
   animations: RuntimeAnimationSource[],
@@ -238,11 +280,13 @@ function buildRuntimeScene(
     return null;
   }
   const pickups = buildRuntimePickups(snapshot, scene, textures, animations);
+  const entryPoints = buildRuntimeEntryPoints(scene);
+  const triggerZones = buildRuntimeTriggerZones(scene);
 
   return {
     gameId,
     sceneId: scene.id,
-    entryPointId,
+    entryPointId: null,
     widthInCells: scene.widthInCells,
     heightInCells: scene.heightInCells,
     tileWidth: scene.tileWidth,
@@ -252,6 +296,8 @@ function buildRuntimeScene(
     solidBlocks,
     oneWayPlatforms,
     pickups,
+    entryPoints,
+    triggerZones,
     player,
   };
 }
@@ -445,6 +491,62 @@ function buildRuntimePickups(
       };
     })
     .filter((entry): entry is RuntimePickupSpawn => entry !== null);
+}
+
+function buildRuntimeEntryPoints(scene: SceneDefinition): RuntimeSceneEntryPoint[] {
+  return scene.layers
+    .filter((layer): layer is SceneObjectLayerRecord => layer.kind === "objects" && layer.visible)
+    .flatMap((layer) => layer.objects)
+    .filter((entry): entry is SceneEntryPointObjectRecord => entry.type === "entry-point")
+    .map((entry) => ({
+      id: entry.id,
+      name: entry.name,
+      x: entry.x,
+      y: entry.y,
+    }));
+}
+
+function buildRuntimeTriggerZones(scene: SceneDefinition): RuntimeTriggerZone[] {
+  return scene.layers
+    .filter((layer): layer is SceneObjectLayerRecord => layer.kind === "objects" && layer.visible)
+    .flatMap((layer) => layer.objects)
+    .filter((entry): entry is SceneTriggerZoneObjectRecord => entry.type === "trigger-zone")
+    .map((entry) => ({
+      id: entry.id,
+      x: entry.x,
+      y: entry.y,
+      width: entry.width,
+      height: entry.height,
+      triggerMode: entry.triggerMode,
+      actionId: entry.actionId,
+    }));
+}
+
+export function materializeRuntimeScene(
+  scenes: RuntimeSceneContent[],
+  sceneId: string,
+  entryPointId: string | null,
+): RuntimeSceneContent | null {
+  const baseScene = scenes.find((entry) => entry.sceneId === sceneId) ?? null;
+  if (!baseScene) {
+    return null;
+  }
+
+  const entryPoint = entryPointId
+    ? baseScene.entryPoints.find((entry) => entry.id === entryPointId) ?? null
+    : null;
+
+  return {
+    ...baseScene,
+    entryPointId: entryPoint?.id ?? null,
+    player: entryPoint
+      ? {
+        ...baseScene.player,
+        spawnX: entryPoint.x,
+        spawnY: entryPoint.y,
+      }
+      : { ...baseScene.player },
+  };
 }
 
 function resolveAnimationRuntime(
