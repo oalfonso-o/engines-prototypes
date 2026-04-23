@@ -30,5 +30,5 @@ export function PhaserHost({ bridge, settings, runtimeContent, locale }: PhaserH
     };
   }, [bridge]);
 
-  return <div className="game-root" ref={rootRef} />;
+  return <div className="game-root" data-testid="game-root" ref={rootRef} />;
 }

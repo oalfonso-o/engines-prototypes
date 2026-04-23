@@ -17,13 +17,18 @@ export function MainMenuScreen({ onCampaign, onEditor, onOptions }: MainMenuScre
         <p>{t("menu.subtitle")}</p>
       </div>
       <div className="menu-actions">
-        <button type="button" className="menu-button" onClick={onCampaign}>
+        <button type="button" className="menu-button" data-testid="menu-campaign-button" onClick={onCampaign}>
           {t("menu.campaign")}
         </button>
-        <button type="button" className="menu-button" onClick={onEditor}>
+        <button type="button" className="menu-button" data-testid="menu-editor-button" onClick={onEditor}>
           {t("menu.editor")}
         </button>
-        <button type="button" className="menu-button is-disabled" disabled title={t("menu.onlineDisabled")}>
+        <button
+          type="button"
+          className="menu-button is-disabled"
+          disabled
+          title={t("menu.onlineDisabled")}
+        >
           {t("menu.online")}
         </button>
         <button type="button" className="menu-button secondary" onClick={onOptions}>

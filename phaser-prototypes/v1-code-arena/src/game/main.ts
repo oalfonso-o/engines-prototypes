@@ -15,6 +15,9 @@ import type { PrototypeSettings } from "../settings/prototypeSettings";
 import type { GameBridge } from "../bridge/GameBridge";
 import { GameTranslator } from "./i18n/GameTranslator";
 import type { RuntimeContentCatalog } from "./content/runtimeContent";
+import { resetRuntimeDebugState, setRuntimeDebugState } from "./runtimeDebug";
+
+const LEGACY_RUNTIME_GAME_ID = "legacy:game:campaign-v1";
 
 export interface CreatedGameRuntime {
   game: Phaser.Game;
@@ -31,6 +34,7 @@ class GameRuntime implements GameRuntimeHandle {
   private bootReady = false;
   private readonly queuedCommands: GameCommand[] = [];
   private currentLocale: SupportedLocale;
+  private readonly currentCampaignSceneId: string;
 
   constructor(
     parent: HTMLElement,
@@ -47,6 +51,17 @@ class GameRuntime implements GameRuntimeHandle {
     this.campaignScene = new CampaignScene(settings, runtimeContent.campaign, bridge, translator);
     this.editorScene = new EditorPreviewSceneClass(translator);
     this.currentLocale = initialLocale;
+    this.currentCampaignSceneId = runtimeContent.campaign.mapId;
+
+    resetRuntimeDebugState();
+    setRuntimeDebugState({
+      gameId: LEGACY_RUNTIME_GAME_ID,
+      sceneId: null,
+      entryPointId: null,
+      phase: "booting",
+      surface: null,
+      phaserSceneKey: SCENE_KEYS.boot,
+    });
 
     this.game = new Phaser.Game({
       type: Phaser.AUTO,
@@ -82,6 +97,13 @@ class GameRuntime implements GameRuntimeHandle {
       case "showIntro":
         this.stopNonPersistentScenes();
         this.game.scene.start(SCENE_KEYS.intro);
+        setRuntimeDebugState({
+          phase: "running",
+          surface: "intro",
+          phaserSceneKey: SCENE_KEYS.intro,
+          sceneId: null,
+          entryPointId: null,
+        });
         return;
       case "showMainMenu":
         this.stopScene(SCENE_KEYS.intro);
@@ -90,6 +112,13 @@ class GameRuntime implements GameRuntimeHandle {
         this.audio.restoreMusic();
         this.audio.playMusic("music.menu");
         this.game.scene.start(SCENE_KEYS.menuBackground);
+        setRuntimeDebugState({
+          phase: "running",
+          surface: "main_menu",
+          phaserSceneKey: SCENE_KEYS.menuBackground,
+          sceneId: null,
+          entryPointId: null,
+        });
         return;
       case "startCampaign":
         this.stopScene(SCENE_KEYS.intro);
@@ -98,6 +127,13 @@ class GameRuntime implements GameRuntimeHandle {
         this.audio.restoreMusic();
         this.audio.playMusic("music.campaign");
         this.game.scene.start(SCENE_KEYS.campaign);
+        setRuntimeDebugState({
+          phase: "running",
+          surface: "campaign",
+          phaserSceneKey: SCENE_KEYS.campaign,
+          sceneId: this.currentCampaignSceneId,
+          entryPointId: null,
+        });
         return;
       case "resumeCampaign":
         if (this.game.scene.isPaused(SCENE_KEYS.campaign)) {
@@ -117,6 +153,13 @@ class GameRuntime implements GameRuntimeHandle {
         this.audio.restoreMusic();
         this.audio.playMusic("music.menu");
         this.game.scene.start(SCENE_KEYS.editorPreview);
+        setRuntimeDebugState({
+          phase: "running",
+          surface: "editor",
+          phaserSceneKey: SCENE_KEYS.editorPreview,
+          sceneId: null,
+          entryPointId: null,
+        });
         return;
       case "setLocale":
         this.currentLocale = command.locale;
@@ -155,11 +198,17 @@ class GameRuntime implements GameRuntimeHandle {
   }
 
   destroy(): void {
+    resetRuntimeDebugState();
     this.game.destroy(true);
   }
 
   private handleBootReady(): void {
     this.bootReady = true;
+    setRuntimeDebugState({
+      gameId: LEGACY_RUNTIME_GAME_ID,
+      phase: "running",
+      phaserSceneKey: SCENE_KEYS.boot,
+    });
     this.queuedCommands.splice(0).forEach((command) => this.handleCommand(command));
     this.handleCommand({ type: "setLocale", locale: this.currentLocale });
   }
