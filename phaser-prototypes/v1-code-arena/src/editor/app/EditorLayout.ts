@@ -12,6 +12,7 @@ import { CharacterEditorView } from "../workspaces/character/CharacterEditorView
 import { MapEditorWorkspace } from "../workspaces/map/MapEditorWorkspace";
 import { RawAssetWorkspace } from "../workspaces/raw/RawAssetWorkspace";
 import { LevelWorkspace } from "../workspaces/level/LevelWorkspace";
+import { ActionWorkspace } from "../workspaces/action/ActionWorkspace";
 import { SceneWorkspace } from "../workspaces/scene/SceneWorkspace";
 import type { EditorTranslator } from "../i18n/EditorTranslator";
 import { createIcon } from "../shared/icons";
@@ -70,6 +71,7 @@ export class EditorLayout {
   private readonly backButton = createButton("", "icon-button");
   private readonly createCharacterButton = createButton("", "icon-button");
   private readonly createMapButton = createButton("", "icon-button");
+  private readonly createActionButton = createButton("", "icon-button");
   private readonly createSceneButton = createButton("", "icon-button");
   private readonly explorerPane: ExplorerPane;
   private readonly propertiesPanel: PropertiesPanel;
@@ -98,6 +100,7 @@ export class EditorLayout {
     this.backButton.dataset.testid = "editor-back-button";
     this.createCharacterButton.dataset.testid = "editor-create-character-button";
     this.createMapButton.dataset.testid = "editor-create-map-button";
+    this.createActionButton.dataset.testid = "editor-create-action-button";
     this.createSceneButton.dataset.testid = "editor-create-scene-button";
     this.root.append(this.shell);
     this.shell.append(this.topBar, this.main);
@@ -150,6 +153,8 @@ export class EditorLayout {
     this.createCharacterButton.setAttribute("aria-label", this.options.translator.t("editor.shell.createCharacter"));
     this.createMapButton.title = this.options.translator.t("editor.shell.createMap");
     this.createMapButton.setAttribute("aria-label", this.options.translator.t("editor.shell.createMap"));
+    this.createActionButton.title = this.options.translator.t("editor.shell.createAction");
+    this.createActionButton.setAttribute("aria-label", this.options.translator.t("editor.shell.createAction"));
     this.createSceneButton.title = this.options.translator.t("editor.shell.createScene");
     this.createSceneButton.setAttribute("aria-label", this.options.translator.t("editor.shell.createScene"));
   }
@@ -158,15 +163,17 @@ export class EditorLayout {
     this.backButton.append(createIcon("back"));
     this.createCharacterButton.append(createIcon("character"), createIcon("plus", "editor-icon editor-icon-plus-mark"));
     this.createMapButton.append(createIcon("map"), createIcon("plus", "editor-icon editor-icon-plus-mark"));
+    this.createActionButton.append(createIcon("action"), createIcon("plus", "editor-icon editor-icon-plus-mark"));
     this.createSceneButton.append(createIcon("map"), createIcon("plus", "editor-icon editor-icon-plus-mark"));
 
     this.backButton.addEventListener("click", () => this.options.onReturnToMainMenu?.());
     this.createCharacterButton.addEventListener("click", () => this.store.navigate({ kind: "character", id: "new" }));
     this.createMapButton.addEventListener("click", () => this.store.navigate({ kind: "map", id: "new" }));
+    this.createActionButton.addEventListener("click", () => this.store.navigate({ kind: "action", id: "new" }));
     this.createSceneButton.addEventListener("click", () => this.store.navigate({ kind: "scene", id: "new" }));
 
     this.topBarLeft.append(this.backButton);
-    this.topBarCenter.append(this.createCharacterButton, this.createMapButton, this.createSceneButton);
+    this.topBarCenter.append(this.createCharacterButton, this.createMapButton, this.createActionButton, this.createSceneButton);
     this.topBar.append(this.topBarLeft, this.topBarCenter, this.topBarRight);
   }
 
@@ -360,6 +367,8 @@ export class EditorLayout {
         return new MapEditorWorkspace(this.workspaceContent, this.store, this.options.translator, route.id);
       case "level":
         return new LevelWorkspace(this.workspaceContent, this.store, this.options.translator, route.id);
+      case "action":
+        return new ActionWorkspace(this.workspaceContent, this.store, this.options.translator, route.id);
       case "scene":
         return new SceneWorkspace(this.workspaceContent, this.store, this.options.translator, route.id);
     }
@@ -410,6 +419,9 @@ export class EditorLayout {
       }
       if (route.kind === "level") {
         return this.options.translator.t("editor.workspaceTabs.newLevel");
+      }
+      if (route.kind === "action") {
+        return this.options.translator.t("editor.workspaceTabs.newAction");
       }
       if (route.kind === "scene") {
         return this.options.translator.t("editor.workspaceTabs.newScene");

@@ -1,6 +1,7 @@
 import { getAllAssets, isRawAsset, resolveAssetById } from "../domain/assetReferences";
 import { getAssetStatus } from "../domain/assetStatuses";
 import type {
+  ActionDefinition,
   AnimationDefinition,
   AssetSummary,
   CharacterDefinition,
@@ -468,6 +469,12 @@ export class EditorStore {
   async saveScene(record: SceneDefinition): Promise<void> {
     await this.persistJsonDefinition(record);
     await this.repository.saveScene(record);
+    await this.reload();
+  }
+
+  async saveAction(record: ActionDefinition): Promise<void> {
+    await this.persistJsonDefinition(record);
+    await this.repository.saveAction(record);
     await this.reload();
   }
 

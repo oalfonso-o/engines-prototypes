@@ -1,4 +1,5 @@
 import {
+  isAction,
   isAnimation,
   isCharacter,
   isLevelComposition,
@@ -67,5 +68,10 @@ export function openAssetSelection(store: EditorStore, assetId: string): void {
 
   if (isScene(asset)) {
     store.navigate({ kind: "scene", id: assetId });
+    return;
+  }
+
+  if (isAction(asset)) {
+    store.navigate({ kind: "action", id: assetId });
   }
 }

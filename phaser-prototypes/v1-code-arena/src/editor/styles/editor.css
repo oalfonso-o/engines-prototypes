@@ -1075,6 +1075,11 @@ a {
   min-width: 0;
 }
 
+.action-workspace-screen {
+  width: 100%;
+  min-width: 0;
+}
+
 .workspace-body {
   display: grid;
   grid-template-columns: 320px minmax(0, 1fr);
@@ -1106,6 +1111,12 @@ a {
   min-height: calc(100vh - 150px);
 }
 
+.action-workspace {
+  width: 100%;
+  min-width: 0;
+  min-height: calc(100vh - 150px);
+}
+
 .scene-preview {
   flex: 1;
   min-width: 0;
@@ -1114,6 +1125,22 @@ a {
   align-items: stretch;
   justify-content: stretch;
   overflow: hidden;
+}
+
+.action-preview {
+  width: 100%;
+  min-height: 420px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.action-preview-copy {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  text-align: center;
 }
 
 .scene-preview-canvas {
@@ -1132,7 +1159,17 @@ a {
   gap: 8px 10px;
 }
 
+.action-properties-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 10px;
+}
+
 .scene-properties-grid .form-field {
+  gap: 5px;
+}
+
+.action-properties-grid .form-field {
   gap: 5px;
 }
 
@@ -1140,7 +1177,19 @@ a {
   font-size: 0.72rem;
 }
 
+.action-properties-grid .form-label {
+  font-size: 0.72rem;
+}
+
 .scene-properties-grid .text-input {
+  min-height: 28px;
+  padding: 4px 8px;
+  font-size: 0.8rem;
+  border-radius: 8px;
+}
+
+.action-properties-grid .text-input,
+.action-properties-grid select {
   min-height: 28px;
   padding: 4px 8px;
   font-size: 0.8rem;
@@ -1191,6 +1240,10 @@ a {
 }
 
 .scene-workspace-actions {
+  margin-top: 2px;
+}
+
+.action-workspace-actions {
   margin-top: 2px;
 }
 

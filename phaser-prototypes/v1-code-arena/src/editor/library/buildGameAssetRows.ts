@@ -88,7 +88,18 @@ export function buildGameAssetRows(snapshot: EditorSnapshot, translator: EditorT
     sourceKind: null,
   }));
 
-  return [...tilesets, ...spritesheets, ...animations, ...characters, ...maps, ...levels, ...scenes];
+  const actions = snapshot.actions.map((asset) => ({
+    id: asset.id,
+    entityType: "action" as const,
+    name: asset.name,
+    archivedAt: asset.archivedAt,
+    status: getAssetStatus(asset, snapshot),
+    typeLabel: formatAssetTypeLabel("action", translator),
+    sizeLabel: asset.kind,
+    sourceKind: null,
+  }));
+
+  return [...tilesets, ...spritesheets, ...animations, ...characters, ...maps, ...levels, ...scenes, ...actions];
 }
 
 function countCharacterSlots(asset: EditorSnapshot["characters"][number]): number {

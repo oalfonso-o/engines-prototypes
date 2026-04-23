@@ -878,6 +878,8 @@ function resolveAssetIcon(row: LibraryRow): EditorIconName {
       return "animation";
     case "character":
       return "character";
+    case "action":
+      return "action";
     case "scene":
       return "map";
     case "map":

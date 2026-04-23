@@ -202,8 +202,16 @@ export class EditorRepository {
       await this.db.put("scenes", record);
       return;
     }
+    if ("kind" in record && !("layers" in record) && !("cells" in record)) {
+      await this.db.put("actions", record);
+      return;
+    }
+    if ("cells" in record && "tileFitMode" in record) {
+      await this.db.put("maps", record);
+      return;
+    }
 
-    await this.db.put("maps", record);
+    throw new Error(`Unsupported entity record: ${record.id}`);
   }
 }
 

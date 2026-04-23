@@ -1,4 +1,5 @@
 import type {
+  ActionDefinition,
   AnimationDefinition,
   AssetDependencyEntry,
   AssetEntityType,
@@ -29,6 +30,7 @@ export function getAllAssets(snapshot: EditorSnapshot): EditorEntityRecord[] {
     ...snapshot.maps,
     ...snapshot.levelCompositions,
     ...snapshot.scenes,
+    ...snapshot.actions,
   ];
 }
 
@@ -63,6 +65,9 @@ export function getEntityType(asset: EditorEntityRecord): AssetEntityType {
   }
   if (isLevelComposition(asset)) {
     return "level";
+  }
+  if (isAction(asset)) {
+    return "action";
   }
   if (isScene(asset)) {
     return "scene";
@@ -166,6 +171,14 @@ export function getSourceRawAssetId(asset: EditorEntityRecord, snapshot: EditorS
     return tileset?.sourceAssetId ?? null;
   }
 
+  if (isAction(asset) && asset.kind === "scene-transition") {
+    const targetScene = snapshot.scenes.find((entry) => entry.id === asset.targetSceneId);
+    if (!targetScene) {
+      return null;
+    }
+    return getSourceRawAssetId(targetScene, snapshot);
+  }
+
   return null;
 }
 
@@ -237,6 +250,22 @@ function getDirectReferences(asset: EditorEntityRecord): DirectReference[] {
       buildOptionalReference(asset.defaultPlayerCharacterId, "missing"),
       ...layerReferences,
     ]));
+  }
+
+  if (isAction(asset)) {
+    if (asset.kind === "scene-transition") {
+      return compactReferences([buildOptionalReference(asset.targetSceneId, "missing")]);
+    }
+    if (asset.kind === "sequence") {
+      return uniqueReferences(compactReferences(asset.actionIds.map((id) => buildOptionalReference(id, "missing"))));
+    }
+    if (asset.kind === "conditional") {
+      return compactReferences([
+        buildOptionalReference(asset.thenActionId, "missing"),
+        buildOptionalReference(asset.elseActionId, "missing"),
+      ]);
+    }
+    return [];
   }
 
   return uniqueReferences(
@@ -325,4 +354,8 @@ export function isLevelComposition(asset: EditorEntityRecord): asset is LevelCom
 
 export function isScene(asset: EditorEntityRecord): asset is SceneDefinition {
   return "layers" in asset && "defaultPlayerCharacterId" in asset;
+}
+
+export function isAction(asset: EditorEntityRecord): asset is ActionDefinition {
+  return "kind" in asset && !("layers" in asset) && !("cells" in asset);
 }

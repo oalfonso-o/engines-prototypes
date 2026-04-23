@@ -20,6 +20,42 @@ async function expandExplorerPath(page: Page, folderNames: string[]): Promise<vo
   }
 }
 
+async function createSceneFromEditor(page: Page, name: string): Promise<{ id: string; url: string }> {
+  await page.getByTestId("editor-create-scene-button").click();
+  await expect(page).toHaveURL(/#scene\/new$/);
+  await expect(page.getByTestId("scene-workspace")).toBeVisible();
+
+  const propertiesPanel = page.getByTestId("editor-properties-panel");
+  await propertiesPanel.getByLabel("Name").fill(name);
+  await propertiesPanel.getByTestId("scene-save-button").click();
+
+  await expect(page).toHaveURL(/#scene\/[0-9a-f-]+$/);
+  const url = page.url();
+  const scene = await page.evaluate(async (sceneName) => {
+    const database = await new Promise<IDBDatabase>((resolve, reject) => {
+      const request = indexedDB.open("canuter-phaser-v1-editor");
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error ?? new Error("Could not open editor database"));
+    });
+
+    const entry = await new Promise<{ id: string; name: string; storageRoot: string } | null>((resolve, reject) => {
+      const transaction = database.transaction("scenes", "readonly");
+      const store = transaction.objectStore("scenes");
+      const request = store.getAll();
+      request.onsuccess = () => resolve(
+        (request.result as Array<{ id: string; name: string; storageRoot: string }>).find((item) => item.name === sceneName) ?? null,
+      );
+      request.onerror = () => reject(request.error ?? new Error("Could not read scenes store"));
+    });
+
+    database.close();
+    return entry;
+  }, name);
+
+  expect(scene?.storageRoot).toBe("user");
+  return { id: scene?.id ?? "", url };
+}
+
 test("folder rows expand when clicked", async ({ page }) => {
   await openEditor(page);
 
@@ -105,46 +141,63 @@ test("new scenes can be created and survive reload", async ({ page }) => {
   const sceneName = `playwright-scene-${Date.now()}`;
   await openEditor(page);
 
-  await page.getByTestId("editor-create-scene-button").click();
-  await expect(page).toHaveURL(/#scene\/new$/);
+  const { url: urlAfterSave } = await createSceneFromEditor(page, sceneName);
+
+  await page.reload();
+
+  await expect(page).toHaveURL(urlAfterSave);
   await expect(page.getByTestId("scene-workspace")).toBeVisible();
-  await expect(page.getByTestId("scene-preview")).toBeVisible();
+});
+
+test("new actions can target scenes and survive reload", async ({ page }) => {
+  const sceneName = `playwright-target-scene-${Date.now()}`;
+  const actionName = `playwright-action-${Date.now()}`;
+  await openEditor(page);
+
+  const { id: targetSceneId } = await createSceneFromEditor(page, sceneName);
+  expect(targetSceneId).not.toBe("");
+
+  await page.getByTestId("editor-create-action-button").click();
+  await expect(page).toHaveURL(/#action\/new$/);
+  await expect(page.getByTestId("action-workspace")).toBeVisible();
 
   const propertiesPanel = page.getByTestId("editor-properties-panel");
-  await propertiesPanel.getByLabel("Name").fill(sceneName);
-  await propertiesPanel.getByTestId("scene-save-button").click();
+  await propertiesPanel.getByLabel("Name").fill(actionName);
+  await propertiesPanel.getByLabel("Target scene").selectOption({ value: targetSceneId });
+  await propertiesPanel.getByTestId("action-save-button").click();
 
-  await expect(page).toHaveURL(/#scene\/[0-9a-f-]+$/);
-  await expect(page.getByTestId("scene-workspace")).toBeVisible();
+  await expect(page).toHaveURL(/#action\/[0-9a-f-]+$/);
+  await expect(page.getByTestId("action-workspace")).toBeVisible();
 
   const urlAfterSave = page.url();
-  const savedScene = await page.evaluate(async (name) => {
+  const action = await page.evaluate(async (name) => {
     const database = await new Promise<IDBDatabase>((resolve, reject) => {
       const request = indexedDB.open("canuter-phaser-v1-editor");
       request.onsuccess = () => resolve(request.result);
       request.onerror = () => reject(request.error ?? new Error("Could not open editor database"));
     });
 
-    const scene = await new Promise<{ id: string; name: string; storageRoot: string } | null>((resolve, reject) => {
-      const transaction = database.transaction("scenes", "readonly");
-      const store = transaction.objectStore("scenes");
+    const entry = await new Promise<{ id: string; name: string; targetSceneId: string; storageRoot: string } | null>((resolve, reject) => {
+      const transaction = database.transaction("actions", "readonly");
+      const store = transaction.objectStore("actions");
       const request = store.getAll();
       request.onsuccess = () => resolve(
-        (request.result as Array<{ id: string; name: string; storageRoot: string }>).find((entry) => entry.name === name) ?? null,
+        (request.result as Array<{ id: string; name: string; targetSceneId: string; storageRoot: string }>).find((item) => item.name === name) ?? null,
       );
-      request.onerror = () => reject(request.error ?? new Error("Could not read scenes store"));
+      request.onerror = () => reject(request.error ?? new Error("Could not read actions store"));
     });
 
     database.close();
-    return scene;
-  }, sceneName);
+    return entry;
+  }, actionName);
 
-  expect(savedScene?.storageRoot).toBe("user");
+  expect(action?.storageRoot).toBe("user");
+  expect(action?.targetSceneId).toBe(targetSceneId);
 
   await page.reload();
 
   await expect(page).toHaveURL(urlAfterSave);
-  await expect(page.getByTestId("scene-workspace")).toBeVisible();
+  await expect(page.getByTestId("action-workspace")).toBeVisible();
 });
 
 test("folder properties keep archive in the header and no footer action buttons", async ({ page }) => {

@@ -33,31 +33,31 @@ export class SceneWorkspace implements WorkspacePropertiesContributor {
   private readonly layersList = createElement("div", "scene-layer-list");
   private readonly actions = createElement("div", "workspace-button-row scene-workspace-actions");
   private readonly nameField = createTextFieldController("", {
-    onChange: (value) => {
+    onInput: (value) => {
       this.name = value;
       this.render();
     },
   });
   private readonly widthField = createTextFieldController("", {
-    onChange: (value) => {
+    onInput: (value) => {
       this.widthInCells = value;
       this.render();
     },
   });
   private readonly heightField = createTextFieldController("", {
-    onChange: (value) => {
+    onInput: (value) => {
       this.heightInCells = value;
       this.render();
     },
   });
   private readonly tileWidthField = createTextFieldController("", {
-    onChange: (value) => {
+    onInput: (value) => {
       this.tileWidth = value;
       this.render();
     },
   });
   private readonly tileHeightField = createTextFieldController("", {
-    onChange: (value) => {
+    onInput: (value) => {
       this.tileHeight = value;
       this.render();
     },
