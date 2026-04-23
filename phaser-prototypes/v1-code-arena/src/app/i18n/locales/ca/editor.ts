@@ -440,7 +440,32 @@ export const editor = {
       },
       save: "Desa escena",
       sections: {
+        objects: "Objectes",
         layers: "Capes",
+      },
+      tools: {
+        pan: "Mou",
+        entryPoint: "Punt d'entrada",
+        triggerZone: "Zona trigger",
+      },
+      objectFields: {
+        entryPointName: "Nom del punt d'entrada",
+        triggerMode: "Mode del trigger",
+        action: "Acció",
+      },
+      objects: {
+        empty: "Encara no hi ha punts d'entrada ni zones trigger.",
+        noSelection: "Selecciona un objecte per editar-lo.",
+        position: "Posició: {{x}}, {{y}}",
+        size: "Mida: {{width}} x {{height}}",
+      },
+      objectTypes: {
+        entryPoint: "Punt d'entrada",
+        triggerZone: "Zona trigger",
+      },
+      triggerModes: {
+        overlap: "Overlap",
+        interact: "Interactua",
       },
       layerMeta: {
         background: "Fons",

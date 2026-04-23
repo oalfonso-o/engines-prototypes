@@ -440,7 +440,32 @@ export const editor = {
       },
       save: "Save scene",
       sections: {
+        objects: "Objects",
         layers: "Layers",
+      },
+      tools: {
+        pan: "Pan",
+        entryPoint: "Entry point",
+        triggerZone: "Trigger zone",
+      },
+      objectFields: {
+        entryPointName: "Entry point name",
+        triggerMode: "Trigger mode",
+        action: "Action",
+      },
+      objects: {
+        empty: "No entry points or trigger zones yet.",
+        noSelection: "Select an object to edit it.",
+        position: "Position: {{x}}, {{y}}",
+        size: "Size: {{width}} x {{height}}",
+      },
+      objectTypes: {
+        entryPoint: "Entry point",
+        triggerZone: "Trigger zone",
+      },
+      triggerModes: {
+        overlap: "Overlap",
+        interact: "Interact",
       },
       layerMeta: {
         background: "Background",

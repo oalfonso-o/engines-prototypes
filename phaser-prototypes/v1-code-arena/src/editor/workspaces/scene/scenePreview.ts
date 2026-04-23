@@ -25,6 +25,8 @@ export interface ScenePreviewZone {
   label?: string;
 }
 
+export type ScenePreviewInteractionMode = "pan" | "entry-point" | "trigger-zone";
+
 export interface ScenePreviewOptions {
   container: HTMLElement;
   widthInCells: number;
@@ -36,6 +38,14 @@ export interface ScenePreviewOptions {
   collisionCells: CollisionCellRecord[];
   markers?: ScenePreviewMarker[];
   zones?: ScenePreviewZone[];
+  interactionMode?: ScenePreviewInteractionMode;
+  onPlaceEntryPoint?: (cellX: number, cellY: number) => void;
+  onCreateTriggerZone?: (bounds: { startCellX: number; startCellY: number; endCellX: number; endCellY: number }) => void;
+}
+
+interface CellCoordinate {
+  cellX: number;
+  cellY: number;
 }
 
 export function mountScenePreview(options: ScenePreviewOptions): () => void {
@@ -46,6 +56,7 @@ export function mountScenePreview(options: ScenePreviewOptions): () => void {
   const baseScale = Math.min((width - 80) / scenePixelWidth, (height - 80) / scenePixelHeight, 3);
   const minScale = Math.max(baseScale * 0.6, 0.15);
   const maxScale = Math.max(baseScale, 1) * 6;
+  const interactionMode = options.interactionMode ?? "pan";
 
   const textureSources = new Map<string, string>();
   options.tiles.forEach((tile) => {
@@ -59,6 +70,7 @@ export function mountScenePreview(options: ScenePreviewOptions): () => void {
   canvas.style.width = `${width}px`;
   canvas.style.height = `${height}px`;
   canvas.className = "scene-preview-canvas";
+  canvas.dataset.mode = interactionMode;
   options.container.replaceChildren(canvas);
 
   const context = canvas.getContext("2d");
@@ -77,11 +89,31 @@ export function mountScenePreview(options: ScenePreviewOptions): () => void {
   let panX = 0;
   let panY = 0;
   let dragState: { x: number; y: number } | null = null;
+  let triggerDragStart: CellCoordinate | null = null;
+  let triggerDragCurrent: CellCoordinate | null = null;
 
   const getOffsets = (nextScale = scale) => ({
     x: Math.round(((width - (scenePixelWidth * nextScale)) * 0.5) + panX),
     y: Math.round(((height - (scenePixelHeight * nextScale)) * 0.5) + panY),
   });
+
+  const getDraftZone = (): ScenePreviewZone | null => {
+    if (!triggerDragStart || !triggerDragCurrent) {
+      return null;
+    }
+
+    const minCellX = Math.min(triggerDragStart.cellX, triggerDragCurrent.cellX);
+    const minCellY = Math.min(triggerDragStart.cellY, triggerDragCurrent.cellY);
+    const maxCellX = Math.max(triggerDragStart.cellX, triggerDragCurrent.cellX);
+    const maxCellY = Math.max(triggerDragStart.cellY, triggerDragCurrent.cellY);
+    return {
+      x: minCellX * options.tileWidth,
+      y: minCellY * options.tileHeight,
+      width: (maxCellX - minCellX + 1) * options.tileWidth,
+      height: (maxCellY - minCellY + 1) * options.tileHeight,
+      color: "#72d4ff",
+    };
+  };
 
   const render = (): void => {
     if (disposed) {
@@ -91,6 +123,7 @@ export function mountScenePreview(options: ScenePreviewOptions): () => void {
     const offset = getOffsets();
     const drawWidth = scenePixelWidth * scale;
     const drawHeight = scenePixelHeight * scale;
+    const draftZone = getDraftZone();
 
     context.clearRect(0, 0, width, height);
     context.fillStyle = "#060b14";
@@ -168,7 +201,7 @@ export function mountScenePreview(options: ScenePreviewOptions): () => void {
       context.strokeRect(x, y, options.tileWidth * scale, options.tileHeight * scale);
     });
 
-    options.zones?.forEach((zone) => {
+    [...(options.zones ?? []), ...(draftZone ? [draftZone] : [])].forEach((zone) => {
       const x = offset.x + (zone.x * scale);
       const y = offset.y + (zone.y * scale);
       const zoneWidth = zone.width * scale;
@@ -211,13 +244,64 @@ export function mountScenePreview(options: ScenePreviewOptions): () => void {
     image.src = url;
   });
 
+  const resolveCellFromPointer = (event: PointerEvent): CellCoordinate | null => {
+    const rect = canvas.getBoundingClientRect();
+    const localX = event.clientX - rect.left;
+    const localY = event.clientY - rect.top;
+    const offset = getOffsets();
+    const worldX = (localX - offset.x) / scale;
+    const worldY = (localY - offset.y) / scale;
+    if (worldX < 0 || worldY < 0 || worldX >= scenePixelWidth || worldY >= scenePixelHeight) {
+      return null;
+    }
+
+    return {
+      cellX: clamp(Math.floor(worldX / options.tileWidth), 0, options.widthInCells - 1),
+      cellY: clamp(Math.floor(worldY / options.tileHeight), 0, options.heightInCells - 1),
+    };
+  };
+
   const handlePointerDown = (event: PointerEvent): void => {
+    if (interactionMode === "entry-point") {
+      const cell = resolveCellFromPointer(event);
+      if (!cell) {
+        return;
+      }
+      options.onPlaceEntryPoint?.(cell.cellX, cell.cellY);
+      return;
+    }
+
+    if (interactionMode === "trigger-zone") {
+      const cell = resolveCellFromPointer(event);
+      if (!cell) {
+        return;
+      }
+      triggerDragStart = cell;
+      triggerDragCurrent = cell;
+      canvas.setPointerCapture(event.pointerId);
+      render();
+      return;
+    }
+
     dragState = { x: event.clientX, y: event.clientY };
     canvas.setPointerCapture(event.pointerId);
     canvas.classList.add("is-dragging");
   };
 
   const handlePointerMove = (event: PointerEvent): void => {
+    if (interactionMode === "trigger-zone") {
+      if (!triggerDragStart) {
+        return;
+      }
+      const cell = resolveCellFromPointer(event);
+      if (!cell) {
+        return;
+      }
+      triggerDragCurrent = cell;
+      render();
+      return;
+    }
+
     if (!dragState) {
       return;
     }
@@ -229,6 +313,24 @@ export function mountScenePreview(options: ScenePreviewOptions): () => void {
   };
 
   const handlePointerUp = (event: PointerEvent): void => {
+    if (interactionMode === "trigger-zone") {
+      if (triggerDragStart && triggerDragCurrent) {
+        options.onCreateTriggerZone?.({
+          startCellX: triggerDragStart.cellX,
+          startCellY: triggerDragStart.cellY,
+          endCellX: triggerDragCurrent.cellX,
+          endCellY: triggerDragCurrent.cellY,
+        });
+      }
+      triggerDragStart = null;
+      triggerDragCurrent = null;
+      if (canvas.hasPointerCapture(event.pointerId)) {
+        canvas.releasePointerCapture(event.pointerId);
+      }
+      render();
+      return;
+    }
+
     dragState = null;
     canvas.classList.remove("is-dragging");
     if (canvas.hasPointerCapture(event.pointerId)) {

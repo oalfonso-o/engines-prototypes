@@ -1149,6 +1149,14 @@ a {
   cursor: grab;
 }
 
+.scene-preview-canvas[data-mode="entry-point"] {
+  cursor: crosshair;
+}
+
+.scene-preview-canvas[data-mode="trigger-zone"] {
+  cursor: crosshair;
+}
+
 .scene-preview-canvas.is-dragging {
   cursor: grabbing;
 }
@@ -1202,12 +1210,85 @@ a {
   gap: 8px;
 }
 
+.scene-objects-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
 .scene-section-title {
   margin: 0;
   font-size: 0.68rem;
   text-transform: uppercase;
   letter-spacing: 0.12em;
   color: #c4d1eb;
+}
+
+.scene-tool-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.scene-tool-bar .tab-button {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.scene-object-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.scene-object-row {
+  width: 100%;
+  border: 1px solid rgba(223, 235, 255, 0.08);
+  background: rgba(15, 22, 36, 0.8);
+  color: inherit;
+  text-align: left;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.scene-object-row.is-selected {
+  border-color: rgba(93, 139, 255, 0.45);
+  background: rgba(24, 39, 68, 0.92);
+}
+
+.scene-object-row:disabled {
+  opacity: 0.6;
+}
+
+.scene-object-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.scene-object-empty {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--editor-muted);
+}
+
+.scene-object-name {
+  font-size: 0.8rem;
+  line-height: 1.1;
+}
+
+.scene-object-meta {
+  margin: 0;
+  color: var(--editor-muted);
+  font-size: 0.74rem;
+}
+
+.scene-object-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
 .scene-layer-list {
