@@ -2,7 +2,14 @@ import * as Phaser from "phaser";
 import type { ColliderSystem } from "../colliders/createColliderSystem";
 import { TILE_FRAME } from "./levelData";
 import type { FloatingPlatform, GroundSegment, PrototypeSettings, WaterStrip } from "../../settings/prototypeSettings";
-import type { RuntimeCampaignContent } from "../content/runtimeContent";
+
+const LEGACY_SWAMP_TILESET_KEY = "tileset:core:tileset:swamp-main";
+
+interface LegacyLevelSource {
+  groundSegments: GroundSegment[];
+  floatingPlatforms: FloatingPlatform[];
+  waterStrips: WaterStrip[];
+}
 
 export interface BuiltLevel {
   solidBodies: Phaser.Physics.Arcade.StaticGroup;
@@ -14,7 +21,7 @@ export function buildLevel(
   scene: Phaser.Scene,
   colliders: ColliderSystem,
   settings: PrototypeSettings,
-  levelSource?: Pick<RuntimeCampaignContent, "groundSegments" | "floatingPlatforms" | "waterStrips">,
+  levelSource?: LegacyLevelSource,
 ): BuiltLevel {
   const solidBodies = scene.physics.add.staticGroup();
   const oneWayPlatforms = scene.physics.add.staticGroup();
@@ -116,7 +123,7 @@ function addTile(
   const image = scene.add.image(
     (tileX * tileSize) + (tileSize * 0.5),
     (tileY * tileSize) + (tileSize * 0.5),
-    "swamp-tiles",
+    LEGACY_SWAMP_TILESET_KEY,
     frame,
   );
   image.setOrigin(0.5, 0.5);

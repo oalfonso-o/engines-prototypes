@@ -17,8 +17,6 @@ import { GameTranslator } from "./i18n/GameTranslator";
 import type { RuntimeContentCatalog } from "./content/runtimeContent";
 import { resetRuntimeDebugState, setRuntimeDebugState } from "./runtimeDebug";
 
-const LEGACY_RUNTIME_GAME_ID = "legacy:game:campaign-v1";
-
 export interface CreatedGameRuntime {
   game: Phaser.Game;
   destroy(): void;
@@ -35,6 +33,8 @@ class GameRuntime implements GameRuntimeHandle {
   private readonly queuedCommands: GameCommand[] = [];
   private currentLocale: SupportedLocale;
   private readonly currentCampaignSceneId: string;
+  private readonly currentGameId: string;
+  private readonly currentEntryPointId: string | null;
 
   constructor(
     parent: HTMLElement,
@@ -48,14 +48,16 @@ class GameRuntime implements GameRuntimeHandle {
     const bootScene = new BootScene(runtimeContent.textures, runtimeContent.animations, () => this.handleBootReady());
     this.introScene = new IntroScene(bridge, settings.intro);
     this.menuScene = new MenuBackgroundScene(settings);
-    this.campaignScene = new CampaignScene(settings, runtimeContent.campaign, bridge, translator);
+    this.campaignScene = new CampaignScene(settings, runtimeContent.scene, bridge, translator);
     this.editorScene = new EditorPreviewSceneClass(translator);
     this.currentLocale = initialLocale;
-    this.currentCampaignSceneId = runtimeContent.campaign.mapId;
+    this.currentCampaignSceneId = runtimeContent.scene.sceneId;
+    this.currentGameId = runtimeContent.gameId;
+    this.currentEntryPointId = runtimeContent.scene.entryPointId;
 
     resetRuntimeDebugState();
     setRuntimeDebugState({
-      gameId: LEGACY_RUNTIME_GAME_ID,
+      gameId: this.currentGameId,
       sceneId: null,
       entryPointId: null,
       phase: "booting",
@@ -132,7 +134,7 @@ class GameRuntime implements GameRuntimeHandle {
           surface: "campaign",
           phaserSceneKey: SCENE_KEYS.campaign,
           sceneId: this.currentCampaignSceneId,
-          entryPointId: null,
+          entryPointId: this.currentEntryPointId,
         });
         return;
       case "resumeCampaign":
@@ -205,7 +207,7 @@ class GameRuntime implements GameRuntimeHandle {
   private handleBootReady(): void {
     this.bootReady = true;
     setRuntimeDebugState({
-      gameId: LEGACY_RUNTIME_GAME_ID,
+      gameId: this.currentGameId,
       phase: "running",
       phaserSceneKey: SCENE_KEYS.boot,
     });

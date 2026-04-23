@@ -5,8 +5,8 @@ import type { ColliderSystem } from "../colliders/createColliderSystem";
 import { createColliderSystem } from "../colliders/createColliderSystem";
 import type { OneWayPlatformSystem } from "../colliders/createOneWayPlatformSystem";
 import { createOneWayPlatformSystem } from "../colliders/createOneWayPlatformSystem";
-import type { BuiltLevel } from "../level/buildLevel";
-import { buildLevel } from "../level/buildLevel";
+import type { BuiltSceneRuntime } from "../level/buildSceneRuntime";
+import { buildSceneRuntime } from "../level/buildSceneRuntime";
 import {
   createParallaxBackground,
   destroyParallaxBackground,
@@ -18,7 +18,7 @@ import { HudController } from "../ui/HudController";
 import type { PrototypeSettings } from "../../settings/prototypeSettings";
 import type { GameTranslator } from "../i18n/GameTranslator";
 import { SCENE_KEYS } from "./sceneKeys";
-import type { RuntimeCampaignContent } from "../content/runtimeContent";
+import type { RuntimeSceneContent } from "../content/runtimeContent";
 
 type CampaignSceneState = {
   player: PlayerControllerState;
@@ -32,12 +32,12 @@ export class CampaignScene extends Phaser.Scene {
   private hud?: HudController;
   private escapeKey?: Phaser.Input.Keyboard.Key;
   private colliderSystem?: ColliderSystem;
-  private builtLevel?: BuiltLevel;
+  private builtScene?: BuiltSceneRuntime;
   private oneWayPlatforms?: OneWayPlatformSystem;
 
   constructor(
     private prototypeSettings: PrototypeSettings,
-    private readonly campaignContent: RuntimeCampaignContent,
+    private readonly runtimeScene: RuntimeSceneContent,
     private readonly bridge: GameBridge,
     private readonly translator: GameTranslator,
   ) {
@@ -90,29 +90,22 @@ export class CampaignScene extends Phaser.Scene {
 
   private buildRuntime(): void {
     this.physics.world.gravity.y = this.prototypeSettings.player.movement.gravity_y;
-    this.backgroundLayers = createParallaxBackground(this, this.prototypeSettings);
+    this.backgroundLayers = createParallaxBackground(this, this.prototypeSettings, this.runtimeScene.backgroundLayers);
 
     this.colliderSystem = createColliderSystem(this, this.prototypeSettings.debug);
-    this.builtLevel = buildLevel(this, this.colliderSystem, this.prototypeSettings, {
-      groundSegments: this.campaignContent.groundSegments,
-      floatingPlatforms: this.campaignContent.floatingPlatforms,
-      waterStrips: this.campaignContent.waterStrips,
-    });
+    this.builtScene = buildSceneRuntime(this, this.colliderSystem, this.prototypeSettings, this.runtimeScene);
     this.oneWayPlatforms = createOneWayPlatformSystem(
       this,
-      this.builtLevel.oneWayPlatforms,
+      this.builtScene.oneWayPlatforms,
       this.prototypeSettings.one_way_platforms,
     );
-    this.coinField = new CoinField(this, this.colliderSystem, this.prototypeSettings, this.campaignContent.coinPositions);
+    this.coinField = new CoinField(this, this.colliderSystem, this.prototypeSettings, this.runtimeScene.pickups);
     this.player = new PlayerController(
       this,
       this.prototypeSettings.world,
-      {
-        ...this.prototypeSettings.player,
-        spawn_x: this.campaignContent.spawnX,
-        spawn_y: this.campaignContent.spawnY,
-      },
-      this.builtLevel.solidBodies,
+      this.prototypeSettings.player,
+      this.runtimeScene.player,
+      this.builtScene.solidBodies,
       this.colliderSystem,
       this.oneWayPlatforms,
     );
@@ -133,8 +126,8 @@ export class CampaignScene extends Phaser.Scene {
     this.player = undefined;
     this.oneWayPlatforms?.destroy();
     this.oneWayPlatforms = undefined;
-    this.builtLevel?.destroy();
-    this.builtLevel = undefined;
+    this.builtScene?.destroy();
+    this.builtScene = undefined;
     this.colliderSystem?.destroy();
     this.colliderSystem = undefined;
   }

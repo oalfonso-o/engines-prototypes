@@ -1,6 +1,7 @@
 import * as Phaser from "phaser";
 import type { ColliderSystem } from "../colliders/createColliderSystem";
 import type { CoinPosition, PrototypeSettings } from "../../settings/prototypeSettings";
+import type { RuntimePickupSpawn } from "../content/runtimeContent";
 
 type CoinSprite = Phaser.Types.Physics.Arcade.SpriteWithDynamicBody;
 type CoinFieldState = {
@@ -9,28 +10,28 @@ type CoinFieldState = {
 
 export class CoinField {
   private readonly scene: Phaser.Scene;
-  private readonly coinPositions: CoinPosition[];
+  private readonly pickupSpawns: RuntimePickupSpawn[];
   private readonly coins: Phaser.Physics.Arcade.Group;
   private overlap?: Phaser.Physics.Arcade.Collider;
   private coinsCollected = 0;
 
-  constructor(scene: Phaser.Scene, colliders: ColliderSystem, settings: PrototypeSettings, coinPositions?: CoinPosition[]) {
+  constructor(scene: Phaser.Scene, colliders: ColliderSystem, settings: PrototypeSettings, pickupSpawns?: RuntimePickupSpawn[]) {
     this.scene = scene;
-    this.coinPositions = coinPositions ?? settings.level.coin_positions;
+    this.pickupSpawns = pickupSpawns ?? buildFallbackPickupSpawns(settings.level.coin_positions, settings.world.tile_size);
     this.coins = scene.physics.add.group({
       allowGravity: false,
       immovable: true,
     });
 
-    this.coinPositions.forEach((position) => {
+    this.pickupSpawns.forEach((spawn) => {
       const coin = this.coins.create(
-        position.x * settings.world.tile_size,
-        position.y * settings.world.tile_size,
-        "swamp-coin",
+        spawn.x,
+        spawn.y,
+        spawn.textureKey,
         0,
       ) as CoinSprite;
-      coin.play("coin-spin");
-      coin.setScale(2.4);
+      coin.play(spawn.animationKey);
+      coin.setScale(spawn.scale);
       colliders.attachDynamicCircle(coin, {
         type: "coin",
         radius: 10,
@@ -57,11 +58,11 @@ export class CoinField {
   }
 
   getTotalCount(): number {
-    return this.coinPositions.length;
+    return this.pickupSpawns.length;
   }
 
   isComplete(): boolean {
-    return this.coinsCollected === this.coinPositions.length;
+    return this.coinsCollected === this.pickupSpawns.length;
   }
 
   captureState(): CoinFieldState {
@@ -85,7 +86,7 @@ export class CoinField {
       }
 
       coin.enableBody(false, coin.x, coin.y, true, true);
-      coin.play("coin-spin");
+      coin.play(this.pickupSpawns[index]?.animationKey ?? "pickup-animation:core:animation:coin-spin");
     });
   }
 
@@ -93,4 +94,15 @@ export class CoinField {
     this.overlap?.destroy();
     this.coins.destroy(true);
   }
+}
+
+function buildFallbackPickupSpawns(coinPositions: CoinPosition[], tileSize: number): RuntimePickupSpawn[] {
+  return coinPositions.map((position, index) => ({
+    id: `coin-${index}`,
+    x: position.x * tileSize,
+    y: position.y * tileSize,
+    textureKey: "pickup-texture:core:animation:coin-spin",
+    animationKey: "pickup-animation:core:animation:coin-spin",
+    scale: 2.4,
+  }));
 }

@@ -31,7 +31,7 @@ test("game exposes runtime debug state and reaches the main menu", async ({ page
   await expect(page.getByTestId("menu-campaign-button")).toBeVisible();
 
   const state = await readRuntimeDebugState(page);
-  expect(state.gameId).toBe("legacy:game:campaign-v1");
+  expect(state.gameId).toBe("core:game:canuter-main");
   expect(state.phase).toBe("running");
   expect(state.surface).toBe("main_menu");
   expect(state.sceneId).toBeNull();
@@ -46,10 +46,10 @@ test("starting the campaign updates runtime debug state", async ({ page }) => {
   await page.waitForFunction(() => window.__CANUTER_RUNTIME__?.surface === "campaign");
 
   const state = await readRuntimeDebugState(page);
-  expect(state.gameId).toBe("legacy:game:campaign-v1");
+  expect(state.gameId).toBe("core:game:canuter-main");
   expect(state.phase).toBe("running");
   expect(state.surface).toBe("campaign");
-  expect(state.sceneId).toBe("core:map:swamp-campaign-v1");
+  expect(state.sceneId).toBe("core:scene:swamp-campaign-v1");
   expect(state.entryPointId).toBeNull();
   expect(state.phaserSceneKey).toBe("CampaignScene");
 });

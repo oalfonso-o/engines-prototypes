@@ -2,11 +2,12 @@ import * as Phaser from "phaser";
 import {
   getWorldHeightPx,
   getWorldWidthPx,
-  type PlayerSettings,
   type WorldSettings,
+  type PlayerSettings,
 } from "../../settings/prototypeSettings";
 import type { ColliderSystem } from "../colliders/createColliderSystem";
 import type { OneWayPlatformSystem } from "../colliders/createOneWayPlatformSystem";
+import type { RuntimePlayerContent } from "../content/runtimeContent";
 import { hexColorToNumber } from "../shared/color";
 import { resolvePlayerBodyColliderConfig } from "./resolvePlayerBodyColliderConfig";
 
@@ -18,8 +19,6 @@ type ControlKeys = {
   down: Phaser.Input.Keyboard.Key;
   reset: Phaser.Input.Keyboard.Key;
 };
-
-type PlayerAnimationKey = "player-idle" | "player-run" | "player-jump";
 
 export interface PlayerControllerState {
   x: number;
@@ -34,16 +33,18 @@ export class PlayerController {
   private readonly worldSettings: WorldSettings;
   private readonly playerSettings: PlayerSettings;
   private readonly oneWayPlatforms: OneWayPlatformSystem;
+  private readonly runtimePlayer: RuntimePlayerContent;
   private readonly playerBody: Phaser.Physics.Arcade.Image;
   private readonly playerSprite: Phaser.GameObjects.Sprite;
   private readonly cursors: Phaser.Types.Input.Keyboard.CursorKeys;
   private readonly keys: ControlKeys;
-  private currentPlayerAnim: PlayerAnimationKey | "" = "";
+  private currentPlayerAnim = "";
 
   constructor(
     scene: Phaser.Scene,
     worldSettings: WorldSettings,
     playerSettings: PlayerSettings,
+    runtimePlayer: RuntimePlayerContent,
     solidBodies: Phaser.Physics.Arcade.StaticGroup,
     colliders: ColliderSystem,
     oneWayPlatforms: OneWayPlatformSystem,
@@ -51,6 +52,7 @@ export class PlayerController {
     this.scene = scene;
     this.worldSettings = worldSettings;
     this.playerSettings = playerSettings;
+    this.runtimePlayer = runtimePlayer;
     this.oneWayPlatforms = oneWayPlatforms;
 
     const keyboard = scene.input.keyboard;
@@ -69,8 +71,8 @@ export class PlayerController {
     }) as ControlKeys;
 
     this.playerBody = scene.physics.add.image(
-      playerSettings.spawn_x,
-      playerSettings.spawn_y,
+      runtimePlayer.spawnX,
+      runtimePlayer.spawnY,
       "player-hitbox",
     );
     this.playerBody.setVisible(false);
@@ -79,12 +81,12 @@ export class PlayerController {
     this.playerSprite = scene.add.sprite(
       this.playerBody.x,
       this.playerBody.y + playerSettings.visual.offset_y,
-      "shinobi-idle",
+      runtimePlayer.idleTextureKey,
       0,
     );
     this.playerSprite.setScale(playerSettings.visual.scale);
     this.playerSprite.setOrigin(playerSettings.visual.origin_x, playerSettings.visual.origin_y);
-    this.playAnimation("player-idle");
+    this.playAnimation(this.runtimePlayer.animationKeys.idle);
 
     colliders.attachDynamicRect(
       this.playerBody,
@@ -208,7 +210,7 @@ export class PlayerController {
   }
 
   private respawn(): void {
-    this.playerBody.setPosition(this.playerSettings.spawn_x, this.playerSettings.spawn_y);
+    this.playerBody.setPosition(this.runtimePlayer.spawnX, this.runtimePlayer.spawnY);
     this.playerBody.setVelocity(0, 0);
     const flashColor = hexColorToNumber(this.playerSettings.respawn.flash_color);
     const flashR = (flashColor >> 16) & 0xff;
@@ -225,19 +227,19 @@ export class PlayerController {
 
   private updateAnimation(): void {
     if (!this.isGrounded()) {
-      this.playAnimation("player-jump");
+      this.playAnimation(this.runtimePlayer.animationKeys.jump);
       return;
     }
 
     if (Math.abs(this.getPhysicsBody().velocity.x) > this.playerSettings.animation.run_min_horizontal_speed) {
-      this.playAnimation("player-run");
+      this.playAnimation(this.runtimePlayer.animationKeys.run);
       return;
     }
 
-    this.playAnimation("player-idle");
+    this.playAnimation(this.runtimePlayer.animationKeys.idle);
   }
 
-  private playAnimation(key: PlayerAnimationKey): void {
+  private playAnimation(key: string): void {
     if (this.currentPlayerAnim === key) {
       return;
     }

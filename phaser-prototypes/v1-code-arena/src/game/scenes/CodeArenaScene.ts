@@ -8,7 +8,7 @@ import { createParallaxBackground, updateParallaxBackground, type BackgroundLaye
 import { PlayerController } from "../player/PlayerController";
 import { HudController } from "../ui/HudController";
 import type { PrototypeSettings } from "../../settings/prototypeSettings";
-import { createFallbackAnimations, createFallbackTextures } from "../content/runtimeContent";
+import { createFallbackAnimations, createFallbackTextures, type RuntimePlayerContent } from "../content/runtimeContent";
 
 export class CodeArenaScene extends Phaser.Scene {
   private prototypeSettings: PrototypeSettings;
@@ -43,6 +43,7 @@ export class CodeArenaScene extends Phaser.Scene {
       this,
       this.prototypeSettings.world,
       this.prototypeSettings.player,
+      createFallbackPlayer(this.prototypeSettings),
       level.solidBodies,
       colliders,
       oneWayPlatforms,
@@ -60,4 +61,19 @@ export class CodeArenaScene extends Phaser.Scene {
     }
     this.hud.update(this.coinField.getCollectedCount(), this.coinField.getTotalCount(), this.coinField.isComplete());
   }
+}
+
+function createFallbackPlayer(settings: PrototypeSettings): RuntimePlayerContent {
+  return {
+    characterId: "fallback:player",
+    spawnX: settings.player.spawn_x,
+    spawnY: settings.player.spawn_y,
+    idleTextureKey: "player-idle-texture",
+    animationKeys: {
+      idle: "player-idle",
+      run: "player-run",
+      jump: "player-jump",
+      attack: null,
+    },
+  };
 }

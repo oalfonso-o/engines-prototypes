@@ -477,8 +477,8 @@ function createSwampObjectLayer(level: LevelCompositionRecord): SceneObjectLayer
     ...level.placements.map((placement) => ({
       id: placement.id,
       type: "pickup" as const,
-      x: placement.x,
-      y: placement.y,
+      x: placement.x * SETTINGS.world.tile_size,
+      y: placement.y * SETTINGS.world.tile_size,
       assetId: placement.assetId ?? null,
     })),
   ];

@@ -73,7 +73,7 @@ export class MenuBackgroundScene extends Phaser.Scene {
     this.hero = this.add.sprite(
       this.prototypeSettings.player.spawn_x,
       this.prototypeSettings.player.spawn_y + this.prototypeSettings.player.visual.offset_y,
-      "shinobi-idle",
+      "player-idle-texture",
       0,
     );
     this.hero.setScale(

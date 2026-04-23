@@ -4,6 +4,7 @@ import {
   getWorldWidthPx,
   type PrototypeSettings,
 } from "../../settings/prototypeSettings";
+import type { RuntimeBackgroundLayerSource } from "../content/runtimeContent";
 import { hexColorToNumber } from "../shared/color";
 
 export interface BackgroundLayer {
@@ -16,20 +17,30 @@ const PARALLAX_DATA_KEY = "parallaxBackground";
 export function createParallaxBackground(
   scene: Phaser.Scene,
   settings: PrototypeSettings,
+  runtimeLayers?: RuntimeBackgroundLayerSource[],
 ): BackgroundLayer[] {
   const backgroundLayers: BackgroundLayer[] = [];
   const worldWidth = getWorldWidthPx(settings.world);
   const worldHeight = getWorldHeightPx(settings.world);
-  const factors = settings.parallax.factors;
-  const keys = ["swamp-bg-1", "swamp-bg-2", "swamp-bg-3", "swamp-bg-4", "swamp-bg-5"];
+  const fallbackFactors = settings.parallax.factors;
+  const layers = runtimeLayers && runtimeLayers.length > 0
+    ? runtimeLayers
+    : ["background:core:raw:swamp:bg-1", "background:core:raw:swamp:bg-2", "background:core:raw:swamp:bg-3", "background:core:raw:swamp:bg-4", "background:core:raw:swamp:bg-5"]
+      .map((textureKey, index) => ({
+        textureKey,
+        factor: fallbackFactors[index] ?? fallbackFactors[fallbackFactors.length - 1] ?? 0,
+        fitMode: "cover" as const,
+        offsetX: 0,
+        offsetY: 0,
+      }));
 
-  keys.forEach((key, index) => {
+  layers.forEach((layerDef, index) => {
     const layer = scene.add.tileSprite(
       worldWidth * 0.5,
       worldHeight * 0.5,
       worldWidth + settings.world.view_width,
       worldHeight,
-      key,
+      layerDef.textureKey,
     );
     layer.setData(PARALLAX_DATA_KEY, true);
     layer.setScrollFactor(0);
@@ -37,9 +48,10 @@ export function createParallaxBackground(
       worldHeight / settings.parallax.height_reference_px,
       worldHeight / settings.parallax.height_reference_px,
     );
-    layer.setAlpha(index === keys.length - 1 ? settings.parallax.farthest_layer_alpha : 1);
+    layer.setTilePosition(layerDef.offsetX, layerDef.offsetY);
+    layer.setAlpha(index === layers.length - 1 ? settings.parallax.farthest_layer_alpha : 1);
     layer.setDepth(-100 + index);
-    backgroundLayers.push({ sprite: layer, factor: factors[index] ?? factors[factors.length - 1] ?? 0 });
+    backgroundLayers.push({ sprite: layer, factor: layerDef.factor });
   });
 
   scene.add.rectangle(

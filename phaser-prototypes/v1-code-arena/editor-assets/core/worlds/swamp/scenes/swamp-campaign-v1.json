@@ -2582,63 +2582,63 @@
         {
           "id": "coin-0",
           "type": "pickup",
-          "x": 6.5,
-          "y": 10.8,
+          "x": 208,
+          "y": 345.6,
           "assetId": "core:animation:coin-spin"
         },
         {
           "id": "coin-1",
           "type": "pickup",
-          "x": 11.5,
-          "y": 8.8,
+          "x": 368,
+          "y": 281.6,
           "assetId": "core:animation:coin-spin"
         },
         {
           "id": "coin-2",
           "type": "pickup",
-          "x": 20.5,
-          "y": 9.8,
+          "x": 656,
+          "y": 313.6,
           "assetId": "core:animation:coin-spin"
         },
         {
           "id": "coin-3",
           "type": "pickup",
-          "x": 28.5,
-          "y": 7,
+          "x": 912,
+          "y": 224,
           "assetId": "core:animation:coin-spin"
         },
         {
           "id": "coin-4",
           "type": "pickup",
-          "x": 25.5,
-          "y": 11.8,
+          "x": 816,
+          "y": 377.6,
           "assetId": "core:animation:coin-spin"
         },
         {
           "id": "coin-5",
           "type": "pickup",
-          "x": 37,
-          "y": 9.8,
+          "x": 1184,
+          "y": 313.6,
           "assetId": "core:animation:coin-spin"
         },
         {
           "id": "coin-6",
           "type": "pickup",
-          "x": 42,
-          "y": 6,
+          "x": 1344,
+          "y": 192,
           "assetId": "core:animation:coin-spin"
         },
         {
           "id": "coin-7",
           "type": "pickup",
-          "x": 54,
-          "y": 7,
+          "x": 1728,
+          "y": 224,
           "assetId": "core:animation:coin-spin"
         }
       ]
     }
   ],
   "archivedAt": null,
-  "createdAt": "2026-04-23T21:15:58.704Z",
-  "updatedAt": "2026-04-23T21:15:58.704Z"
+  "createdAt": "2026-04-23T21:45:33.688Z",
+  "updatedAt": "2026-04-23T21:45:33.688Z"
 }
