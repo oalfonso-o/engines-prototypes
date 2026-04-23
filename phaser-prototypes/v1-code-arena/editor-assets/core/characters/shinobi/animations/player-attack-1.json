@@ -1,0 +1,20 @@
+{
+  "id": "core:animation:player-attack-1",
+  "name": "Player Attack 1",
+  "storageRoot": "core",
+  "folderId": "folder:core:characters:shinobi:animations",
+  "relativePath": "characters/shinobi/animations/player-attack-1.json",
+  "spriteSheetId": "core:spritesheet:shinobi-attack-1",
+  "frameIds": [
+    "frame-0",
+    "frame-1",
+    "frame-2",
+    "frame-3",
+    "frame-4"
+  ],
+  "frameDurationMs": 90,
+  "loop": false,
+  "archivedAt": null,
+  "createdAt": "2026-04-23T07:28:07.871Z",
+  "updatedAt": "2026-04-23T07:28:07.871Z"
+}

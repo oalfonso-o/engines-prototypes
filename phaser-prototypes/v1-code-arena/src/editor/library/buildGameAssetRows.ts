@@ -1,17 +1,18 @@
 import { getAssetStatus } from "../domain/assetStatuses";
 import type { EditorSnapshot } from "../domain/editorTypes";
 import { formatAssetTypeLabel } from "../shared/formatters";
+import type { EditorTranslator } from "../i18n/EditorTranslator";
 import type { LibraryRow } from "./AssetLibraryFilters";
 
-export function buildGameAssetRows(snapshot: EditorSnapshot): LibraryRow[] {
+export function buildGameAssetRows(snapshot: EditorSnapshot, translator: EditorTranslator): LibraryRow[] {
   const tilesets = snapshot.tilesets.map((asset) => ({
     id: asset.id,
     entityType: "tileset" as const,
     name: asset.name,
     archivedAt: asset.archivedAt,
     status: getAssetStatus(asset, snapshot),
-    typeLabel: formatAssetTypeLabel("tileset"),
-    sizeLabel: `${asset.tiles.length} tiles`,
+    typeLabel: formatAssetTypeLabel("tileset", translator),
+    sizeLabel: translator.t("editor.library.size.tiles", { count: asset.tiles.length }),
     sourceKind: null,
   }));
 
@@ -21,8 +22,8 @@ export function buildGameAssetRows(snapshot: EditorSnapshot): LibraryRow[] {
     name: asset.name,
     archivedAt: asset.archivedAt,
     status: getAssetStatus(asset, snapshot),
-    typeLabel: formatAssetTypeLabel("spritesheet"),
-    sizeLabel: `${asset.frames.length} frames`,
+    typeLabel: formatAssetTypeLabel("spritesheet", translator),
+    sizeLabel: translator.t("editor.library.size.frames", { count: asset.frames.length }),
     sourceKind: null,
   }));
 
@@ -32,8 +33,8 @@ export function buildGameAssetRows(snapshot: EditorSnapshot): LibraryRow[] {
     name: asset.name,
     archivedAt: asset.archivedAt,
     status: getAssetStatus(asset, snapshot),
-    typeLabel: formatAssetTypeLabel("animation"),
-    sizeLabel: `${asset.frameIds.length} frames`,
+    typeLabel: formatAssetTypeLabel("animation", translator),
+    sizeLabel: translator.t("editor.library.size.frames", { count: asset.frameIds.length }),
     sourceKind: null,
   }));
 
@@ -43,8 +44,8 @@ export function buildGameAssetRows(snapshot: EditorSnapshot): LibraryRow[] {
     name: asset.name,
     archivedAt: asset.archivedAt,
     status: getAssetStatus(asset, snapshot),
-    typeLabel: formatAssetTypeLabel("character"),
-    sizeLabel: `${countCharacterSlots(asset)} slots`,
+    typeLabel: formatAssetTypeLabel("character", translator),
+    sizeLabel: translator.t("editor.library.size.slots", { count: countCharacterSlots(asset) }),
     sourceKind: null,
   }));
 
@@ -54,12 +55,26 @@ export function buildGameAssetRows(snapshot: EditorSnapshot): LibraryRow[] {
     name: asset.name,
     archivedAt: asset.archivedAt,
     status: getAssetStatus(asset, snapshot),
-    typeLabel: formatAssetTypeLabel("map"),
-    sizeLabel: `${asset.widthInCells}x${asset.heightInCells}`,
+    typeLabel: formatAssetTypeLabel("map", translator),
+    sizeLabel: translator.t("editor.library.size.mapGrid", {
+      width: asset.widthInCells,
+      height: asset.heightInCells,
+    }),
     sourceKind: null,
   }));
 
-  return [...tilesets, ...spritesheets, ...animations, ...characters, ...maps];
+  const levels = snapshot.levelCompositions.map((asset) => ({
+    id: asset.id,
+    entityType: "level" as const,
+    name: asset.name,
+    archivedAt: asset.archivedAt,
+    status: getAssetStatus(asset, snapshot),
+    typeLabel: formatAssetTypeLabel("level", translator),
+    sizeLabel: translator.t("editor.library.size.pickups", { count: asset.placements.length }),
+    sourceKind: null,
+  }));
+
+  return [...tilesets, ...spritesheets, ...animations, ...characters, ...maps, ...levels];
 }
 
 function countCharacterSlots(asset: EditorSnapshot["characters"][number]): number {

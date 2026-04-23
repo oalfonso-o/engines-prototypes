@@ -1,0 +1,23 @@
+{
+  "id": "core:animation:player-run",
+  "name": "Player Run",
+  "storageRoot": "core",
+  "folderId": "folder:core:characters:shinobi:animations",
+  "relativePath": "characters/shinobi/animations/player-run.json",
+  "spriteSheetId": "core:spritesheet:shinobi-run",
+  "frameIds": [
+    "frame-0",
+    "frame-1",
+    "frame-2",
+    "frame-3",
+    "frame-4",
+    "frame-5",
+    "frame-6",
+    "frame-7"
+  ],
+  "frameDurationMs": 83,
+  "loop": true,
+  "archivedAt": null,
+  "createdAt": "2026-04-23T07:28:07.871Z",
+  "updatedAt": "2026-04-23T07:28:07.871Z"
+}

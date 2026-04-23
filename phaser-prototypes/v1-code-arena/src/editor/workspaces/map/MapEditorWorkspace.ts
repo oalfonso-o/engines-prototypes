@@ -1,7 +1,6 @@
-import Phaser from "phaser";
 import { isMap } from "../../domain/assetReferences";
 import { createEditorId } from "../../domain/editorIds";
-import { buildUniqueAssetName, validatePositiveInteger, validateRequiredName } from "../../domain/editorValidators";
+import { buildUniqueAssetName } from "../../domain/editorValidators";
 import type {
   CollisionCellRecord,
   MapCellRecord,
@@ -11,8 +10,11 @@ import type {
 } from "../../domain/editorTypes";
 import type { EditorStore } from "../../state/EditorStore";
 import { clearElement, createButton, createElement } from "../../shared/dom";
+import { createSelectFieldController, createTextFieldController } from "../../shared/formControls";
 import { erasePaintCell, setPaintCell, sortRowMajor, toggleCollisionCell } from "./CollisionPaintController";
 import { MapPalettePanel } from "./MapPalettePanel";
+import type { EditorTranslator } from "../../i18n/EditorTranslator";
+import { buildRelativeFilePath, joinRelativePath } from "../../storage/pathNaming";
 
 interface ResolvedMapTile {
   x: number;
@@ -23,10 +25,70 @@ interface ResolvedMapTile {
 
 export class MapEditorWorkspace {
   private readonly root = createElement("section", "workspace-screen");
+  private readonly emptyStateHost = createElement("div");
+  private readonly header = createElement("div", "workspace-header");
+  private readonly copy = createElement("div", "workspace-copy");
+  private readonly title = createElement("h2", "workspace-title");
+  private readonly subtitle = createElement("p", "workspace-subtitle");
+  private readonly body = createElement("div", "workspace-body map-workspace");
   private readonly paletteHost = createElement("div", "workspace-sidebar");
+  private readonly controls = createElement("div", "workspace-sidebar");
+  private readonly previewCard = createElement("div", "workspace-preview-card");
   private readonly previewHost = createElement("div", "workspace-preview");
-  private readonly palettePanel = new MapPalettePanel(this.paletteHost);
-  private game: Phaser.Game | null = null;
+  private readonly palettePanel: MapPalettePanel;
+  private readonly nameField = createTextFieldController("", {
+    onChange: (value) => {
+      this.name = value;
+      if (!this.readOnly) {
+        this.render();
+      }
+    },
+  });
+  private readonly widthField = createTextFieldController("", {
+    onChange: (value) => {
+      this.widthInCells = value;
+      if (!this.readOnly) {
+        this.render();
+      }
+    },
+  });
+  private readonly heightField = createTextFieldController("", {
+    onChange: (value) => {
+      this.heightInCells = value;
+      if (!this.readOnly) {
+        this.render();
+      }
+    },
+  });
+  private readonly tileWidthField = createTextFieldController("", {
+    onChange: (value) => {
+      this.tileWidth = value;
+      if (!this.readOnly) {
+        this.render();
+      }
+    },
+  });
+  private readonly tileHeightField = createTextFieldController("", {
+    onChange: (value) => {
+      this.tileHeight = value;
+      if (!this.readOnly) {
+        this.render();
+      }
+    },
+  });
+  private readonly fitModeField = createSelectFieldController("", (value) => {
+    this.tileFitMode = value as TileFitMode;
+    this.render();
+  });
+  private readonly toolBar = createElement("div", "workspace-button-row");
+  private readonly toolButtons: Record<"paint" | "erase" | "collision", HTMLButtonElement> = {
+    paint: createButton("", "tab-button"),
+    erase: createButton("", "tab-button"),
+    collision: createButton("", "tab-button"),
+  };
+  private readonly saveButton = createButton("", "primary-button");
+  private readonly backButton = createButton("", "secondary-button");
+  private destroyPreview: (() => void) | null = null;
   private readonly existingMap: MapDefinition | null;
   private readonly readOnly: boolean;
   private name: string;
@@ -44,8 +106,10 @@ export class MapEditorWorkspace {
   constructor(
     private readonly container: HTMLElement,
     private readonly store: EditorStore,
+    private readonly translator: EditorTranslator,
     routeId: string,
   ) {
+    this.palettePanel = new MapPalettePanel(this.paletteHost, this.translator);
     const asset = this.store.getAssetById(routeId);
     const activeTilesets = this.getActiveTilesets();
     const firstTile = activeTilesets[0]?.tiles[0] ?? null;
@@ -92,6 +156,7 @@ export class MapEditorWorkspace {
     }
 
     this.syncSelection();
+    this.buildShell();
     this.container.append(this.root);
     this.render();
   }
@@ -102,145 +167,159 @@ export class MapEditorWorkspace {
     clearElement(this.container);
   }
 
-  private render(): void {
-    this.destroyGame();
-    clearElement(this.root);
-    this.syncSelection();
+  private buildShell(): void {
+    this.copy.append(this.title, this.subtitle);
+    this.header.append(this.copy);
 
-    if (!this.readOnly && this.getActiveTilesets().length === 0) {
-      this.root.append(createEmptyState("No tilesets available", "Necesitas al menos un tileset activo y mapeado para crear un mapa."));
-      return;
-    }
-
-    const header = createElement("div", "workspace-header");
-    const copy = createElement("div", "workspace-copy");
-    copy.append(
-      createElement("h2", "workspace-title", this.readOnly ? this.existingMap?.name ?? "Map" : "Create map"),
-      createElement(
-        "p",
-        "workspace-subtitle",
-        this.readOnly
-          ? "Read only. El preview omite referencias faltantes sin romper el render."
-          : "Paint reemplaza el tile visual de la celda. Erase solo borra la capa visual. Collision alterna la celda de colisión.",
-      ),
-    );
-    header.append(copy);
-
-    const body = createElement("div", "workspace-body map-workspace");
-    const previewCard = createElement("div", "workspace-preview-card");
-    previewCard.append(this.previewHost);
-
-    const form = createElement("div", "workspace-sidebar");
-    form.append(
-      buildTextField("Name", this.name, this.readOnly, (value) => {
-        this.name = value;
-      }, () => this.render()),
-      buildTextField("Width in cells", this.widthInCells, this.readOnly, (value) => {
-        this.widthInCells = value;
-      }, () => this.render()),
-      buildTextField("Height in cells", this.heightInCells, this.readOnly, (value) => {
-        this.heightInCells = value;
-      }, () => this.render()),
-      buildTextField("Tile width", this.tileWidth, this.readOnly, (value) => {
-        this.tileWidth = value;
-      }, () => this.render()),
-      buildTextField("Tile height", this.tileHeight, this.readOnly, (value) => {
-        this.tileHeight = value;
-      }, () => this.render()),
-    );
-
-    const fitModeField = createElement("label", "form-field");
-    fitModeField.append(createElement("span", "form-label", "Tile fit mode"));
-    const fitModeSelect = createElement("select", "text-input") as HTMLSelectElement;
-    fitModeSelect.disabled = this.readOnly;
-    fitModeSelect.append(new Option("crop", "crop"), new Option("scale-to-fit", "scale-to-fit"));
-    fitModeSelect.value = this.tileFitMode;
-    fitModeSelect.addEventListener("change", () => {
-      this.tileFitMode = fitModeSelect.value as TileFitMode;
-      this.render();
-    });
-    fitModeField.append(fitModeSelect);
-    form.append(fitModeField);
-
-    const toolBar = createElement("div", "workspace-button-row");
     (["paint", "erase", "collision"] as const).forEach((tool) => {
-      const button = createButton(
-        tool.charAt(0).toUpperCase() + tool.slice(1),
-        this.activeTool === tool ? "tab-button is-active" : "tab-button",
-      );
-      button.disabled = this.readOnly;
-      button.addEventListener("click", () => {
+      this.toolButtons[tool].addEventListener("click", () => {
         this.activeTool = tool;
         this.render();
       });
-      toolBar.append(button);
+      this.toolBar.append(this.toolButtons[tool]);
     });
-    form.append(toolBar);
 
-    if (!this.readOnly) {
-      const save = createButton("Save map", "primary-button");
-      save.addEventListener("click", async () => {
-        const error = this.validate();
-        if (error) {
-          window.alert(error);
-          return;
-        }
-        const now = new Date().toISOString();
-        const width = Number.parseInt(this.widthInCells, 10);
-        const height = Number.parseInt(this.heightInCells, 10);
-        const definition: MapDefinition = {
-          id: createEditorId(),
-          name: this.name.trim(),
-          widthInCells: width,
-          heightInCells: height,
-          tileWidth: Number.parseInt(this.tileWidth, 10),
-          tileHeight: Number.parseInt(this.tileHeight, 10),
-          tileFitMode: this.tileFitMode,
-          cells: sortRowMajor(this.cells.filter((cell) => cell.x < width && cell.y < height)),
-          collisionCells: sortRowMajor(this.collisionCells.filter((cell) => cell.x < width && cell.y < height)),
-          archivedAt: null,
-          createdAt: now,
-          updatedAt: now,
-        };
-        await this.store.saveMap(definition);
-        this.store.setLibraryTab("game");
-        this.store.selectAsset(definition.id);
-        this.store.navigate({ kind: "map", id: definition.id });
-      });
-      form.append(save);
-    } else {
-      const backButton = createButton("Back to library", "secondary-button");
-      backButton.addEventListener("click", () => this.store.navigate({ kind: "library" }));
-      form.append(backButton);
+    this.saveButton.addEventListener("click", async () => {
+      const error = this.validate();
+      if (error) {
+        window.alert(error);
+        return;
+      }
+      const now = new Date().toISOString();
+      const width = Number.parseInt(this.widthInCells, 10);
+      const height = Number.parseInt(this.heightInCells, 10);
+      const definition: MapDefinition = {
+        id: createEditorId(),
+        name: this.name.trim(),
+        storageRoot: "user",
+        folderId: this.getPrimaryTileset()?.folderId ?? null,
+        relativePath: joinRelativePath(
+          this.store.getFolderById(this.getPrimaryTileset()?.folderId ?? "")?.relativePath ?? "",
+          buildRelativeFilePath(this.name.trim(), ".json"),
+        ),
+        widthInCells: width,
+        heightInCells: height,
+        tileWidth: Number.parseInt(this.tileWidth, 10),
+        tileHeight: Number.parseInt(this.tileHeight, 10),
+        tileFitMode: this.tileFitMode,
+        cells: sortRowMajor(this.cells.filter((cell) => cell.x < width && cell.y < height)),
+        collisionCells: sortRowMajor(this.collisionCells.filter((cell) => cell.x < width && cell.y < height)),
+        archivedAt: null,
+        createdAt: now,
+        updatedAt: now,
+      };
+      await this.store.saveMap(definition);
+      this.store.setLibraryTab("game");
+      this.store.selectAsset(definition.id);
+      this.store.navigate({ kind: "map", id: definition.id });
+    });
+    this.backButton.addEventListener("click", () => this.store.navigate({ kind: "library" }));
+
+    this.previewCard.append(this.previewHost);
+    this.controls.append(
+      this.nameField.field,
+      this.widthField.field,
+      this.heightField.field,
+      this.tileWidthField.field,
+      this.tileHeightField.field,
+      this.fitModeField.field,
+      this.toolBar,
+      this.saveButton,
+      this.backButton,
+    );
+    this.body.append(this.paletteHost, this.controls, this.previewCard);
+    this.root.append(this.emptyStateHost, this.header, this.body);
+  }
+
+  private render(): void {
+    this.destroyGame();
+    this.syncSelection();
+
+    if (!this.readOnly && this.getActiveTilesets().length === 0) {
+      this.header.hidden = true;
+      this.body.hidden = true;
+      clearElement(this.emptyStateHost);
+      this.emptyStateHost.append(
+        createEmptyState(
+          this.translator.t("editor.workspace.map.noTilesetsTitle"),
+          this.translator.t("editor.workspace.map.noTilesetsBody"),
+        ),
+      );
+      return;
     }
+
+    clearElement(this.emptyStateHost);
+    this.header.hidden = false;
+    this.body.hidden = false;
+    this.nameField.label.textContent = this.translator.t("editor.workspace.map.labels.name");
+    this.widthField.label.textContent = this.translator.t("editor.workspace.map.labels.widthInCells");
+    this.heightField.label.textContent = this.translator.t("editor.workspace.map.labels.heightInCells");
+    this.tileWidthField.label.textContent = this.translator.t("editor.workspace.map.labels.tileWidth");
+    this.tileHeightField.label.textContent = this.translator.t("editor.workspace.map.labels.tileHeight");
+    this.fitModeField.label.textContent = this.translator.t("editor.workspace.map.labels.tileFitMode");
+    this.toolButtons.paint.textContent = this.translator.t("editor.workspace.map.tools.paint");
+    this.toolButtons.erase.textContent = this.translator.t("editor.workspace.map.tools.erase");
+    this.toolButtons.collision.textContent = this.translator.t("editor.workspace.map.tools.collision");
+    this.saveButton.textContent = this.translator.t("editor.workspace.map.save");
+    this.backButton.textContent = this.translator.t("editor.common.backToLibrary");
+    this.title.textContent = this.readOnly
+      ? this.existingMap?.name ?? this.translator.t("editor.workspace.map.titleReadOnly")
+      : this.translator.t("editor.workspace.map.titleCreate");
+    this.subtitle.textContent = this.readOnly
+      ? this.translator.t("editor.workspace.map.subtitleReadOnly")
+      : this.translator.t("editor.workspace.map.subtitleCreate");
+    this.nameField.sync(this.name, this.readOnly);
+    this.widthField.sync(this.widthInCells, this.readOnly);
+    this.heightField.sync(this.heightInCells, this.readOnly);
+    this.tileWidthField.sync(this.tileWidth, this.readOnly);
+    this.tileHeightField.sync(this.tileHeight, this.readOnly);
+    this.fitModeField.sync(
+      [
+        { label: this.translator.t("editor.workspace.map.fitModes.crop"), value: "crop" },
+        { label: this.translator.t("editor.workspace.map.fitModes.scaleToFit"), value: "scale-to-fit" },
+      ],
+      this.tileFitMode,
+      this.readOnly,
+    );
+
+    (["paint", "erase", "collision"] as const).forEach((tool) => {
+      this.toolButtons[tool].className = this.activeTool === tool ? "tab-button is-active" : "tab-button";
+      this.toolButtons[tool].disabled = this.readOnly;
+    });
+    this.saveButton.hidden = this.readOnly;
+    this.backButton.hidden = !this.readOnly;
 
     this.palettePanel.update({
       tilesets: this.readOnly ? this.store.getState().snapshot.tilesets : this.getActiveTilesets(),
       selectedTilesetId: this.selectedTilesetId,
       selectedTileId: this.selectedTileId,
       readOnly: this.readOnly,
-      rawUrlResolver: (rawAssetId) => this.store.getRawAssetUrl(rawAssetId),
-      onSelectTileset: (tilesetId) => {
+      rawUrlResolver: (rawAssetId: string) => this.store.getRawAssetUrl(rawAssetId),
+      onSelectTileset: (tilesetId: string) => {
         this.selectedTilesetId = tilesetId;
         this.selectedTileId = this.getSelectedTileset()?.tiles[0]?.id ?? null;
         this.render();
       },
-      onSelectTile: (tileId) => {
+      onSelectTile: (tileId: string) => {
         this.selectedTileId = tileId;
         this.render();
       },
     });
 
-    body.append(this.paletteHost, form, previewCard);
-    this.root.append(header, body);
-
+    clearElement(this.previewCard);
+    this.previewCard.append(this.previewHost);
     const dimensions = this.parseDimensions();
     if (!dimensions) {
-      previewCard.append(createEmptyState("Invalid map dimensions", "Todos los tamaños del mapa deben ser enteros positivos."));
+      this.previewCard.append(
+        createEmptyState(
+          this.translator.t("editor.workspace.map.invalidDimensionsTitle"),
+          this.translator.t("editor.workspace.map.invalidDimensionsBody"),
+        ),
+      );
       return;
     }
 
-    this.game = mountMapPreview({
+    this.destroyPreview = mountMapPreview({
       container: this.previewHost,
       widthInCells: dimensions.widthInCells,
       heightInCells: dimensions.heightInCells,
@@ -347,26 +426,38 @@ export class MapEditorWorkspace {
   }
 
   private validate(): string | null {
-    const nameError = validateRequiredName(this.name);
+    const nameError = this.translator.validateRequiredName(this.name);
     if (nameError) {
       return nameError;
     }
     if (this.store.isAssetNameTaken(this.name.trim())) {
-      return "El nombre del mapa ya existe.";
+      return this.translator.t("editor.validation.duplicateMapName");
     }
-    const widthError = validatePositiveInteger(this.widthInCells, "Width in cells");
+    const widthError = this.translator.validatePositiveInteger(
+      this.widthInCells,
+      this.translator.t("editor.workspace.map.labels.widthInCells"),
+    );
     if (widthError) {
       return widthError;
     }
-    const heightError = validatePositiveInteger(this.heightInCells, "Height in cells");
+    const heightError = this.translator.validatePositiveInteger(
+      this.heightInCells,
+      this.translator.t("editor.workspace.map.labels.heightInCells"),
+    );
     if (heightError) {
       return heightError;
     }
-    const tileWidthError = validatePositiveInteger(this.tileWidth, "Tile width");
+    const tileWidthError = this.translator.validatePositiveInteger(
+      this.tileWidth,
+      this.translator.t("editor.workspace.map.labels.tileWidth"),
+    );
     if (tileWidthError) {
       return tileWidthError;
     }
-    const tileHeightError = validatePositiveInteger(this.tileHeight, "Tile height");
+    const tileHeightError = this.translator.validatePositiveInteger(
+      this.tileHeight,
+      this.translator.t("editor.workspace.map.labels.tileHeight"),
+    );
     if (tileHeightError) {
       return tileHeightError;
     }
@@ -374,11 +465,21 @@ export class MapEditorWorkspace {
   }
 
   private destroyGame(): void {
-    if (this.game) {
-      this.game.destroy(true);
-      this.game = null;
+    if (this.destroyPreview) {
+      this.destroyPreview();
+      this.destroyPreview = null;
     }
     clearElement(this.previewHost);
+  }
+  private getPrimaryTileset(): TilesetDefinition | null {
+    const selected = this.selectedTilesetId
+      ? this.store.getAssetById(this.selectedTilesetId)
+      : null;
+    if (selected && "tiles" in selected) {
+      return selected;
+    }
+
+    return this.getActiveTilesets()[0] ?? null;
   }
 }
 
@@ -395,7 +496,7 @@ interface MapPreviewOptions {
   onCellClick: (x: number, y: number) => void;
 }
 
-function mountMapPreview(options: MapPreviewOptions): Phaser.Game {
+function mountMapPreview(options: MapPreviewOptions): () => void {
   const width = Math.max(620, options.container.clientWidth || 760);
   const height = 520;
   const mapPixelWidth = options.widthInCells * options.tileWidth;
@@ -407,121 +508,154 @@ function mountMapPreview(options: MapPreviewOptions): Phaser.Game {
     textureSources.set(rawAssetId, url);
   });
 
-  class MapScene extends Phaser.Scene {
-    preload(): void {
-      textureSources.forEach((url, key) => {
-        this.load.image(key, url);
-      });
+  const canvas = document.createElement("canvas");
+  const dpr = Math.max(1, Math.floor(window.devicePixelRatio || 1));
+  canvas.width = width * dpr;
+  canvas.height = height * dpr;
+  canvas.style.width = `${width}px`;
+  canvas.style.height = `${height}px`;
+  options.container.replaceChildren(canvas);
+
+  const context = canvas.getContext("2d");
+  if (!context) {
+    return () => {
+      canvas.remove();
+    };
+  }
+
+  context.scale(dpr, dpr);
+  context.imageSmoothingEnabled = false;
+  const images = new Map<string, HTMLImageElement>();
+  let disposed = false;
+
+  const render = (): void => {
+    if (disposed) {
+      return;
     }
 
-    create(): void {
-      const scale = Math.min((width - 32) / mapPixelWidth, (height - 32) / mapPixelHeight, 2.2);
-      const drawWidth = mapPixelWidth * scale;
-      const drawHeight = mapPixelHeight * scale;
-      const offsetX = Math.round((width - drawWidth) / 2);
-      const offsetY = Math.round((height - drawHeight) / 2);
+    const scale = Math.min((width - 32) / mapPixelWidth, (height - 32) / mapPixelHeight, 2.2);
+    const drawWidth = mapPixelWidth * scale;
+    const drawHeight = mapPixelHeight * scale;
+    const offsetX = Math.round((width - drawWidth) / 2);
+    const offsetY = Math.round((height - drawHeight) / 2);
 
-      this.add.rectangle(width / 2, height / 2, width - 12, height - 12, 0x0f1528, 1)
-        .setStrokeStyle(1, 0x2a3556, 1);
-      this.add.rectangle(offsetX + drawWidth / 2, offsetY + drawHeight / 2, drawWidth, drawHeight, 0x19253f, 1)
-        .setStrokeStyle(1, 0x334a71, 1);
+    context.clearRect(0, 0, width, height);
+    context.fillStyle = "#08101b";
+    context.fillRect(0, 0, width, height);
+    context.strokeStyle = "#2a3556";
+    context.strokeRect(6, 6, width - 12, height - 12);
+    context.fillStyle = "#19253f";
+    context.fillRect(offsetX, offsetY, drawWidth, drawHeight);
+    context.strokeStyle = "#334a71";
+    context.strokeRect(offsetX, offsetY, drawWidth, drawHeight);
 
-      options.tiles.forEach((tile) => {
-        const rawAssetId = tile.textureKey.split(":")[0];
-        if (!this.textures.exists(rawAssetId)) {
-          return;
-        }
-        const image = this.add.image(
-          offsetX + tile.x * options.tileWidth * scale,
-          offsetY + tile.y * options.tileHeight * scale,
-          rawAssetId,
-        ).setOrigin(0, 0);
-
-        image.setCrop(tile.rect.x, tile.rect.y, tile.rect.width, tile.rect.height);
-
-        if (options.tileFitMode === "scale-to-fit") {
-          image.setDisplaySize(options.tileWidth * scale, options.tileHeight * scale);
-        } else {
-          const drawCellWidth = Math.min(tile.rect.width, options.tileWidth);
-          const drawCellHeight = Math.min(tile.rect.height, options.tileHeight);
-          image.setCrop(tile.rect.x, tile.rect.y, drawCellWidth, drawCellHeight);
-          image.setDisplaySize(drawCellWidth * scale, drawCellHeight * scale);
-        }
-      });
-
-      const graphics = this.add.graphics();
-      graphics.lineStyle(1, 0x6f88ad, 0.35);
-      for (let x = 0; x <= options.widthInCells; x += 1) {
-        const px = offsetX + x * options.tileWidth * scale;
-        graphics.lineBetween(px, offsetY, px, offsetY + drawHeight);
-      }
-      for (let y = 0; y <= options.heightInCells; y += 1) {
-        const py = offsetY + y * options.tileHeight * scale;
-        graphics.lineBetween(offsetX, py, offsetX + drawWidth, py);
-      }
-
-      const collisionGraphics = this.add.graphics();
-      collisionGraphics.lineStyle(2, 0xff6fa8, 0.9);
-      collisionGraphics.fillStyle(0xff6fa8, 0.14);
-      options.collisionCells.forEach((cell) => {
-        const x = offsetX + cell.x * options.tileWidth * scale;
-        const y = offsetY + cell.y * options.tileHeight * scale;
-        collisionGraphics.fillRect(x, y, options.tileWidth * scale, options.tileHeight * scale);
-        collisionGraphics.strokeRect(x, y, options.tileWidth * scale, options.tileHeight * scale);
-      });
-
-      if (options.readOnly) {
+    options.tiles.forEach((tile) => {
+      const rawAssetId = tile.textureKey.split(":")[0];
+      const image = images.get(rawAssetId);
+      if (!image) {
         return;
       }
 
-      this.input.on("pointerdown", (pointer: Phaser.Input.Pointer) => {
-        const localX = pointer.x - offsetX;
-        const localY = pointer.y - offsetY;
-        if (localX < 0 || localY < 0 || localX >= drawWidth || localY >= drawHeight) {
-          return;
-        }
-        const cellX = Math.floor(localX / (options.tileWidth * scale));
-        const cellY = Math.floor(localY / (options.tileHeight * scale));
-        options.onCellClick(cellX, cellY);
-      });
+      const destinationX = offsetX + tile.x * options.tileWidth * scale;
+      const destinationY = offsetY + tile.y * options.tileHeight * scale;
+
+      if (options.tileFitMode === "scale-to-fit") {
+        context.drawImage(
+          image,
+          tile.rect.x,
+          tile.rect.y,
+          tile.rect.width,
+          tile.rect.height,
+          destinationX,
+          destinationY,
+          options.tileWidth * scale,
+          options.tileHeight * scale,
+        );
+        return;
+      }
+
+      const drawCellWidth = Math.min(tile.rect.width, options.tileWidth);
+      const drawCellHeight = Math.min(tile.rect.height, options.tileHeight);
+      context.drawImage(
+        image,
+        tile.rect.x,
+        tile.rect.y,
+        drawCellWidth,
+        drawCellHeight,
+        destinationX,
+        destinationY,
+        drawCellWidth * scale,
+        drawCellHeight * scale,
+      );
+    });
+
+    context.strokeStyle = "rgba(111, 136, 173, 0.35)";
+    context.lineWidth = 1;
+    for (let x = 0; x <= options.widthInCells; x += 1) {
+      const px = offsetX + x * options.tileWidth * scale;
+      context.beginPath();
+      context.moveTo(px, offsetY);
+      context.lineTo(px, offsetY + drawHeight);
+      context.stroke();
     }
+    for (let y = 0; y <= options.heightInCells; y += 1) {
+      const py = offsetY + y * options.tileHeight * scale;
+      context.beginPath();
+      context.moveTo(offsetX, py);
+      context.lineTo(offsetX + drawWidth, py);
+      context.stroke();
+    }
+
+    context.fillStyle = "rgba(255, 111, 168, 0.14)";
+    context.strokeStyle = "rgba(255, 111, 168, 0.9)";
+    context.lineWidth = 2;
+    options.collisionCells.forEach((cell) => {
+      const x = offsetX + cell.x * options.tileWidth * scale;
+      const y = offsetY + cell.y * options.tileHeight * scale;
+      context.fillRect(x, y, options.tileWidth * scale, options.tileHeight * scale);
+      context.strokeRect(x, y, options.tileWidth * scale, options.tileHeight * scale);
+    });
+  };
+
+  textureSources.forEach((url, key) => {
+    const image = new Image();
+    images.set(key, image);
+    image.onload = render;
+    image.src = url;
+  });
+
+  const handleClick = (event: MouseEvent): void => {
+    if (options.readOnly) {
+      return;
+    }
+
+    const scale = Math.min((width - 32) / mapPixelWidth, (height - 32) / mapPixelHeight, 2.2);
+    const drawWidth = mapPixelWidth * scale;
+    const drawHeight = mapPixelHeight * scale;
+    const offsetX = Math.round((width - drawWidth) / 2);
+    const offsetY = Math.round((height - drawHeight) / 2);
+    const rect = canvas.getBoundingClientRect();
+    const localX = event.clientX - rect.left - offsetX;
+    const localY = event.clientY - rect.top - offsetY;
+    if (localX < 0 || localY < 0 || localX >= drawWidth || localY >= drawHeight) {
+      return;
+    }
+    const cellX = Math.floor(localX / (options.tileWidth * scale));
+    const cellY = Math.floor(localY / (options.tileHeight * scale));
+    options.onCellClick(cellX, cellY);
+  };
+
+  if (!options.readOnly) {
+    canvas.addEventListener("click", handleClick);
   }
 
-  return new Phaser.Game({
-    type: Phaser.AUTO,
-    width,
-    height,
-    parent: options.container,
-    backgroundColor: "#08101b",
-    render: {
-      pixelArt: true,
-      antialias: false,
-    },
-    scene: MapScene,
-  });
-}
+  render();
 
-function buildTextField(
-  label: string,
-  value: string,
-  disabled: boolean,
-  onChange: (value: string) => void,
-  onRender: () => void,
-): HTMLElement {
-  const field = createElement("label", "form-field");
-  field.append(createElement("span", "form-label", label));
-  const input = createElement("input", "text-input") as HTMLInputElement;
-  input.type = "text";
-  input.value = value;
-  input.disabled = disabled;
-  input.addEventListener("change", () => {
-    onChange(input.value);
-    if (!disabled) {
-      onRender();
-    }
-  });
-  field.append(input);
-  return field;
+  return () => {
+    disposed = true;
+    canvas.removeEventListener("click", handleClick);
+    canvas.remove();
+  };
 }
 
 function createEmptyState(title: string, body: string): HTMLElement {

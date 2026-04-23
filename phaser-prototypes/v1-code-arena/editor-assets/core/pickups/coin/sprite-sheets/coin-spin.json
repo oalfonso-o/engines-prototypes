@@ -1,0 +1,57 @@
+{
+  "id": "core:spritesheet:coin-spin",
+  "name": "Coin Spin Sheet",
+  "storageRoot": "core",
+  "folderId": "folder:core:pickups:coin:sprite-sheets",
+  "relativePath": "pickups/coin/sprite-sheets/coin-spin.json",
+  "sourceAssetId": "core:raw:coin:spin",
+  "cellWidth": 10,
+  "cellHeight": 10,
+  "offsetX": 0,
+  "offsetY": 0,
+  "frames": [
+    {
+      "id": "frame-0",
+      "rect": {
+        "x": 0,
+        "y": 0,
+        "width": 10,
+        "height": 10
+      },
+      "label": null
+    },
+    {
+      "id": "frame-1",
+      "rect": {
+        "x": 10,
+        "y": 0,
+        "width": 10,
+        "height": 10
+      },
+      "label": null
+    },
+    {
+      "id": "frame-2",
+      "rect": {
+        "x": 20,
+        "y": 0,
+        "width": 10,
+        "height": 10
+      },
+      "label": null
+    },
+    {
+      "id": "frame-3",
+      "rect": {
+        "x": 30,
+        "y": 0,
+        "width": 10,
+        "height": 10
+      },
+      "label": null
+    }
+  ],
+  "archivedAt": null,
+  "createdAt": "2026-04-23T07:28:07.871Z",
+  "updatedAt": "2026-04-23T07:28:07.871Z"
+}

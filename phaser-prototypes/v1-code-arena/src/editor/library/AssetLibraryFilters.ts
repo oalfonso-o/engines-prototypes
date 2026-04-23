@@ -7,6 +7,7 @@ import type {
   RawAssetKind,
 } from "../domain/editorTypes";
 import { formatAssetTypeLabel, formatBytes } from "../shared/formatters";
+import type { EditorTranslator } from "../i18n/EditorTranslator";
 
 export interface LibraryRow {
   id: string;
@@ -19,15 +20,19 @@ export interface LibraryRow {
   sourceKind: RawAssetKind | null;
 }
 
-export function buildRawAssetRows(snapshot: EditorSnapshot): LibraryRow[] {
+export function buildRawAssetRows(snapshot: EditorSnapshot, translator: EditorTranslator): LibraryRow[] {
   return snapshot.rawAssets.map((asset) => ({
     id: asset.id,
     entityType: "raw-asset",
     name: asset.name,
     archivedAt: asset.archivedAt,
     status: getAssetStatus(asset, snapshot),
-    typeLabel: formatAssetTypeLabel("raw-asset", asset.sourceKind),
-    sizeLabel: `${asset.width}x${asset.height} · ${formatBytes(asset.sizeBytes)}`,
+    typeLabel: formatAssetTypeLabel("raw-asset", translator, asset.sourceKind),
+    sizeLabel: translator.t("editor.library.size.rawAsset", {
+      width: asset.width,
+      height: asset.height,
+      size: formatBytes(asset.sizeBytes, translator),
+    }),
     sourceKind: asset.sourceKind,
   }));
 }

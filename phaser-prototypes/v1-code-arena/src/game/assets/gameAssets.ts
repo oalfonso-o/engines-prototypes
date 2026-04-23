@@ -1,31 +1,17 @@
 import Phaser from "phaser";
+import type { RuntimeAnimationSource, RuntimeTextureSource } from "../content/runtimeContent";
 
-export function preloadGameAssets(scene: Phaser.Scene): void {
-  scene.load.spritesheet("shinobi-idle", "assets/shinobi/Idle.png", {
-    frameWidth: 128,
-    frameHeight: 128,
-  });
-  scene.load.spritesheet("shinobi-run", "assets/shinobi/Run.png", {
-    frameWidth: 128,
-    frameHeight: 128,
-  });
-  scene.load.spritesheet("shinobi-jump", "assets/shinobi/Jump.png", {
-    frameWidth: 128,
-    frameHeight: 128,
-  });
+export function preloadGameAssets(scene: Phaser.Scene, textures: RuntimeTextureSource[]): void {
+  textures.forEach((texture) => {
+    if (texture.type === "image") {
+      scene.load.image(texture.key, texture.url);
+      return;
+    }
 
-  scene.load.spritesheet("swamp-tiles", "assets/swamp/Tileset.png", {
-    frameWidth: 32,
-    frameHeight: 32,
-  });
-  scene.load.image("swamp-bg-1", "assets/swamp/background/1.png");
-  scene.load.image("swamp-bg-2", "assets/swamp/background/2.png");
-  scene.load.image("swamp-bg-3", "assets/swamp/background/3.png");
-  scene.load.image("swamp-bg-4", "assets/swamp/background/4.png");
-  scene.load.image("swamp-bg-5", "assets/swamp/background/5.png");
-  scene.load.spritesheet("swamp-coin", "assets/swamp/animated/Coin.png", {
-    frameWidth: 10,
-    frameHeight: 10,
+    scene.load.spritesheet(texture.key, texture.url, {
+      frameWidth: texture.frameWidth ?? 32,
+      frameHeight: texture.frameHeight ?? 32,
+    });
   });
 }
 
@@ -42,11 +28,10 @@ export function createGameTextures(scene: Phaser.Scene): void {
   graphics.destroy();
 }
 
-export function createGameAnimations(scene: Phaser.Scene): void {
-  ensureAnimation(scene, "player-idle", "shinobi-idle", 6, 8, -1);
-  ensureAnimation(scene, "player-run", "shinobi-run", 8, 12, -1);
-  ensureAnimation(scene, "player-jump", "shinobi-jump", 12, 14, -1);
-  ensureAnimation(scene, "coin-spin", "swamp-coin", 4, 10, -1);
+export function createGameAnimations(scene: Phaser.Scene, animations: RuntimeAnimationSource[]): void {
+  animations.forEach((animation) => {
+    ensureAnimation(scene, animation.key, animation.textureKey, animation.frameCount, animation.frameRate, animation.repeat);
+  });
 }
 
 function ensureAnimation(

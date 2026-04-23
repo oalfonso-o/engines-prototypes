@@ -1,4 +1,3 @@
-import Phaser from "phaser";
 import type { Rect } from "../../domain/editorTypes";
 import { rectContainsPoint } from "../../shared/geometry";
 
@@ -23,73 +22,105 @@ export interface GridPreviewOptions {
 
 const PREVIEW_HEIGHT = 520;
 
-export function mountTilesetGridPreview(options: GridPreviewOptions): Phaser.Game {
+export function mountTilesetGridPreview(options: GridPreviewOptions): () => void {
   const width = Math.max(640, options.container.clientWidth || 780);
+  const canvas = document.createElement("canvas");
+  const dpr = Math.max(1, Math.floor(window.devicePixelRatio || 1));
+  canvas.width = width * dpr;
+  canvas.height = PREVIEW_HEIGHT * dpr;
+  canvas.style.width = `${width}px`;
+  canvas.style.height = `${PREVIEW_HEIGHT}px`;
+  options.container.replaceChildren(canvas);
 
-  class GridScene extends Phaser.Scene {
-    preload(): void {
-      this.load.image("source", options.imageUrl);
-    }
-
-    create(): void {
-      const scale = Math.min((width - 48) / options.imageWidth, (PREVIEW_HEIGHT - 48) / options.imageHeight, 1);
-      const drawWidth = options.imageWidth * scale;
-      const drawHeight = options.imageHeight * scale;
-      const offsetX = Math.round((width - drawWidth) / 2);
-      const offsetY = Math.round((PREVIEW_HEIGHT - drawHeight) / 2);
-
-      this.add.rectangle(width / 2, PREVIEW_HEIGHT / 2, width - 18, PREVIEW_HEIGHT - 18, 0x11182e, 1)
-        .setStrokeStyle(1, 0x2a355e, 1);
-
-      this.add.image(offsetX, offsetY, "source")
-        .setOrigin(0, 0)
-        .setDisplaySize(drawWidth, drawHeight);
-
-      const graphics = this.add.graphics();
-      options.cells.forEach((cell) => {
-        const color = cell.active ? options.activeStrokeColor : options.inactiveStrokeColor;
-        const alpha = cell.active ? 0.2 : 0.05;
-        graphics.fillStyle(options.fillColor, alpha);
-        graphics.fillRect(
-          offsetX + cell.rect.x * scale,
-          offsetY + cell.rect.y * scale,
-          cell.rect.width * scale,
-          cell.rect.height * scale,
-        );
-        graphics.lineStyle(2, color, cell.active ? 0.95 : 0.55);
-        graphics.strokeRect(
-          offsetX + cell.rect.x * scale,
-          offsetY + cell.rect.y * scale,
-          cell.rect.width * scale,
-          cell.rect.height * scale,
-        );
-      });
-
-      if (options.readOnly) {
-        return;
-      }
-
-      this.input.on("pointerdown", (pointer: Phaser.Input.Pointer) => {
-        const localX = (pointer.x - offsetX) / scale;
-        const localY = (pointer.y - offsetY) / scale;
-        const hit = options.cells.find((cell) => rectContainsPoint(cell.rect, localX, localY));
-        if (hit) {
-          options.onToggle(hit.id);
-        }
-      });
-    }
+  const context = canvas.getContext("2d");
+  if (!context) {
+    return () => {
+      canvas.remove();
+    };
   }
 
-  return new Phaser.Game({
-    type: Phaser.AUTO,
-    width,
-    height: PREVIEW_HEIGHT,
-    parent: options.container,
-    backgroundColor: "#0a1020",
-    render: {
-      pixelArt: true,
-      antialias: false,
-    },
-    scene: GridScene,
-  });
+  context.scale(dpr, dpr);
+  context.imageSmoothingEnabled = false;
+  const image = new Image();
+  let disposed = false;
+
+  const render = (): void => {
+    if (disposed) {
+      return;
+    }
+
+    const scale = Math.min((width - 48) / options.imageWidth, (PREVIEW_HEIGHT - 48) / options.imageHeight, 1);
+    const drawWidth = options.imageWidth * scale;
+    const drawHeight = options.imageHeight * scale;
+    const offsetX = Math.round((width - drawWidth) / 2);
+    const offsetY = Math.round((PREVIEW_HEIGHT - drawHeight) / 2);
+
+    context.clearRect(0, 0, width, PREVIEW_HEIGHT);
+    context.fillStyle = "#0a1020";
+    context.fillRect(0, 0, width, PREVIEW_HEIGHT);
+    context.strokeStyle = "#2a355e";
+    context.lineWidth = 1;
+    context.strokeRect(9, 9, width - 18, PREVIEW_HEIGHT - 18);
+
+    if (image.complete) {
+      context.drawImage(image, offsetX, offsetY, drawWidth, drawHeight);
+    }
+
+    options.cells.forEach((cell) => {
+      const color = cell.active ? options.activeStrokeColor : options.inactiveStrokeColor;
+      const alpha = cell.active ? 0.2 : 0.05;
+      context.fillStyle = intToCss(options.fillColor, alpha);
+      context.fillRect(
+        offsetX + cell.rect.x * scale,
+        offsetY + cell.rect.y * scale,
+        cell.rect.width * scale,
+        cell.rect.height * scale,
+      );
+      context.strokeStyle = intToCss(color, cell.active ? 0.95 : 0.55);
+      context.lineWidth = 2;
+      context.strokeRect(
+        offsetX + cell.rect.x * scale,
+        offsetY + cell.rect.y * scale,
+        cell.rect.width * scale,
+        cell.rect.height * scale,
+      );
+    });
+  };
+
+  const handleClick = (event: MouseEvent): void => {
+    if (options.readOnly) {
+      return;
+    }
+
+    const scale = Math.min((width - 48) / options.imageWidth, (PREVIEW_HEIGHT - 48) / options.imageHeight, 1);
+    const drawWidth = options.imageWidth * scale;
+    const drawHeight = options.imageHeight * scale;
+    const offsetX = Math.round((width - drawWidth) / 2);
+    const offsetY = Math.round((PREVIEW_HEIGHT - drawHeight) / 2);
+    const rect = canvas.getBoundingClientRect();
+    const localX = (event.clientX - rect.left - offsetX) / scale;
+    const localY = (event.clientY - rect.top - offsetY) / scale;
+    const hit = options.cells.find((cell) => rectContainsPoint(cell.rect, localX, localY));
+    if (hit) {
+      options.onToggle(hit.id);
+    }
+  };
+
+  canvas.addEventListener("click", handleClick);
+  image.onload = render;
+  image.src = options.imageUrl;
+  render();
+
+  return () => {
+    disposed = true;
+    canvas.removeEventListener("click", handleClick);
+    canvas.remove();
+  };
+}
+
+function intToCss(color: number, alpha: number): string {
+  const red = (color >> 16) & 0xff;
+  const green = (color >> 8) & 0xff;
+  const blue = color & 0xff;
+  return `rgba(${red}, ${green}, ${blue}, ${alpha})`;
 }

@@ -1,0 +1,27 @@
+{
+  "id": "core:animation:player-jump",
+  "name": "Player Jump",
+  "storageRoot": "core",
+  "folderId": "folder:core:characters:shinobi:animations",
+  "relativePath": "characters/shinobi/animations/player-jump.json",
+  "spriteSheetId": "core:spritesheet:shinobi-jump",
+  "frameIds": [
+    "frame-0",
+    "frame-1",
+    "frame-2",
+    "frame-3",
+    "frame-4",
+    "frame-5",
+    "frame-6",
+    "frame-7",
+    "frame-8",
+    "frame-9",
+    "frame-10",
+    "frame-11"
+  ],
+  "frameDurationMs": 71,
+  "loop": true,
+  "archivedAt": null,
+  "createdAt": "2026-04-23T07:28:07.871Z",
+  "updatedAt": "2026-04-23T07:28:07.871Z"
+}

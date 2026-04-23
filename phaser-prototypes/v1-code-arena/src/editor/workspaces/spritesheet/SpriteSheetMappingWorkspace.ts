@@ -1,16 +1,74 @@
-import type Phaser from "phaser";
-import { buildUniqueAssetName, validateNonNegativeInteger, validatePositiveInteger, validateRequiredName } from "../../domain/editorValidators";
+import { buildUniqueAssetName } from "../../domain/editorValidators";
 import type { RawAssetRecord, SpriteSheetDefinition } from "../../domain/editorTypes";
 import type { EditorStore } from "../../state/EditorStore";
 import { buildUniformGrid } from "../../shared/geometry";
 import { clearElement, createButton, createElement } from "../../shared/dom";
+import { createTextFieldController } from "../../shared/formControls";
 import { createEditorId } from "../../domain/editorIds";
 import type { GridPreviewCell } from "../tileset/tilesetGrid";
 import { mountSpriteSheetGridPreview } from "./spritesheetGrid";
+import type { EditorTranslator } from "../../i18n/EditorTranslator";
+import { buildRelativeFilePath, joinRelativePath } from "../../storage/pathNaming";
 
 export class SpriteSheetMappingWorkspace {
   private readonly root = createElement("section", "workspace-screen");
-  private game: Phaser.Game | null = null;
+  private readonly emptyStateHost = createElement("div");
+  private readonly header = createElement("div", "workspace-header");
+  private readonly copy = createElement("div", "workspace-copy");
+  private readonly title = createElement("h2", "workspace-title");
+  private readonly subtitle = createElement("p", "workspace-subtitle");
+  private readonly overflowBadge = createElement("span", "status-badge badge-warning");
+  private readonly body = createElement("div", "workspace-body");
+  private readonly controls = createElement("div", "workspace-sidebar");
+  private readonly previewCard = createElement("div", "workspace-preview-card");
+  private readonly previewHost = createElement("div", "workspace-preview");
+  private readonly nameField = createTextFieldController("", {
+    onChange: (value) => {
+      this.draftName = value;
+      if (!this.readOnly) {
+        this.render();
+      }
+    },
+  });
+  private readonly cellWidthField = createTextFieldController("", {
+    onChange: (value) => {
+      this.cellWidth = value;
+      if (!this.readOnly) {
+        this.render();
+      }
+    },
+  });
+  private readonly cellHeightField = createTextFieldController("", {
+    onChange: (value) => {
+      this.cellHeight = value;
+      if (!this.readOnly) {
+        this.render();
+      }
+    },
+  });
+  private readonly offsetXField = createTextFieldController("", {
+    onChange: (value) => {
+      this.offsetX = value;
+      if (!this.readOnly) {
+        this.render();
+      }
+    },
+  });
+  private readonly offsetYField = createTextFieldController("", {
+    onChange: (value) => {
+      this.offsetY = value;
+      if (!this.readOnly) {
+        this.render();
+      }
+    },
+  });
+  private readonly summary = createElement("p", "workspace-summary");
+  private readonly actionRow = createElement("div", "workspace-button-row");
+  private readonly generateButton = createButton("", "secondary-button");
+  private readonly saveButton = createButton("", "primary-button");
+  private readonly createAnimationButton = createButton("", "primary-button");
+  private readonly backButton = createButton("", "secondary-button");
+  private destroyPreview: (() => void) | null = null;
   private readonly sourceRawAsset: RawAssetRecord | null;
   private readonly existingSpriteSheet: SpriteSheetDefinition | null;
   private readonly imageUrl: string | null;
@@ -26,6 +84,7 @@ export class SpriteSheetMappingWorkspace {
   constructor(
     private readonly container: HTMLElement,
     private readonly store: EditorStore,
+    private readonly translator: EditorTranslator,
     routeId: string,
   ) {
     const asset = this.store.getAssetById(routeId);
@@ -63,6 +122,7 @@ export class SpriteSheetMappingWorkspace {
       this.offsetY = "0";
     }
 
+    this.buildShell();
     this.container.append(this.root);
     this.render();
   }
@@ -72,120 +132,134 @@ export class SpriteSheetMappingWorkspace {
     clearElement(this.container);
   }
 
+  private buildShell(): void {
+    this.copy.append(this.title, this.subtitle);
+    this.header.append(this.copy, this.overflowBadge);
+
+    this.generateButton.addEventListener("click", () => {
+      this.generateGrid();
+      this.render();
+    });
+    this.saveButton.addEventListener("click", async () => {
+      const error = this.validate();
+      if (error) {
+        window.alert(error);
+        return;
+      }
+      if (!this.sourceRawAsset) {
+        return;
+      }
+
+      const now = new Date().toISOString();
+      const definition: SpriteSheetDefinition = {
+        id: createEditorId(),
+        name: this.draftName.trim(),
+        storageRoot: "user",
+        folderId: this.sourceRawAsset.folderId,
+        relativePath: joinRelativePath(
+          this.store.getFolderById(this.sourceRawAsset.folderId ?? "")?.relativePath ?? "",
+          buildRelativeFilePath(this.draftName.trim(), ".json"),
+        ),
+        sourceAssetId: this.sourceRawAsset.id,
+        cellWidth: Number.parseInt(this.cellWidth, 10),
+        cellHeight: Number.parseInt(this.cellHeight, 10),
+        offsetX: Number.parseInt(this.offsetX, 10),
+        offsetY: Number.parseInt(this.offsetY, 10),
+        frames: this.cells
+          .filter((cell) => cell.active)
+          .map((cell) => ({
+            id: cell.id,
+            rect: cell.rect,
+            label: null,
+          })),
+        archivedAt: null,
+        createdAt: now,
+        updatedAt: now,
+      };
+
+      await this.store.saveSpriteSheet(definition);
+      this.store.setLibraryTab("game");
+      this.store.selectAsset(definition.id);
+      this.store.navigate({ kind: "spritesheet", id: definition.id });
+    });
+    this.createAnimationButton.addEventListener("click", () => {
+      if (this.existingSpriteSheet) {
+        this.store.navigate({ kind: "animation", id: this.existingSpriteSheet.id });
+      }
+    });
+    this.backButton.addEventListener("click", () => this.store.navigate({ kind: "library" }));
+
+    this.actionRow.append(this.generateButton, this.saveButton, this.createAnimationButton, this.backButton);
+    this.controls.append(
+      this.nameField.field,
+      this.cellWidthField.field,
+      this.cellHeightField.field,
+      this.offsetXField.field,
+      this.offsetYField.field,
+      this.summary,
+      this.actionRow,
+    );
+
+    this.previewCard.append(this.previewHost);
+    this.body.append(this.controls, this.previewCard);
+    this.root.append(this.emptyStateHost, this.header, this.body);
+  }
+
   private render(): void {
     this.destroyGame();
-    clearElement(this.root);
 
     if (!this.sourceRawAsset) {
-      this.root.append(createMessageCard("Spritesheet no disponible", "Abre un raw asset de tipo spritesheet o uno ya guardado."));
+      this.header.hidden = true;
+      this.body.hidden = true;
+      clearElement(this.emptyStateHost);
+      this.emptyStateHost.append(
+        createMessageCard(
+          this.translator.t("editor.workspace.spritesheet.unavailableTitle"),
+          this.translator.t("editor.workspace.spritesheet.unavailableBody"),
+        ),
+      );
       return;
     }
 
-    const header = createElement("div", "workspace-header");
-    const copy = createElement("div", "workspace-copy");
-    copy.append(
-      createElement("h2", "workspace-title", this.readOnly ? this.existingSpriteSheet?.name ?? "Spritesheet" : "Create spritesheet mapping"),
-      createElement(
-        "p",
-        "workspace-subtitle",
-        this.readOnly
-          ? `Read only. ${this.cells.length} frames guardados.`
-          : `PNG source: ${this.sourceRawAsset.name}. Haz click en una celda para activarla o desactivarla.`,
-      ),
-    );
-    header.append(copy);
-    if (this.hasOverflow && !this.readOnly) {
-      header.append(createElement("span", "status-badge badge-warning", "Overflow ignored"));
-    }
+    clearElement(this.emptyStateHost);
+    this.header.hidden = false;
+    this.body.hidden = false;
+    this.overflowBadge.textContent = this.translator.t("editor.workspace.spritesheet.overflowIgnored");
+    this.nameField.label.textContent = this.translator.t("editor.workspace.spritesheet.labels.name");
+    this.cellWidthField.label.textContent = this.translator.t("editor.workspace.spritesheet.labels.cellWidth");
+    this.cellHeightField.label.textContent = this.translator.t("editor.workspace.spritesheet.labels.cellHeight");
+    this.offsetXField.label.textContent = this.translator.t("editor.workspace.spritesheet.labels.offsetX");
+    this.offsetYField.label.textContent = this.translator.t("editor.workspace.spritesheet.labels.offsetY");
+    this.generateButton.textContent = this.translator.t("editor.workspace.spritesheet.generateGrid");
+    this.saveButton.textContent = this.translator.t("editor.workspace.spritesheet.save");
+    this.createAnimationButton.textContent = this.translator.t("editor.workspace.spritesheet.createAnimation");
+    this.backButton.textContent = this.translator.t("editor.common.backToLibrary");
+    this.title.textContent = this.readOnly
+      ? this.existingSpriteSheet?.name ?? this.translator.t("editor.workspace.spritesheet.titleReadOnly")
+      : this.translator.t("editor.workspace.spritesheet.titleCreate");
+    this.subtitle.textContent = this.readOnly
+      ? this.translator.t("editor.workspace.spritesheet.subtitleReadOnly", { count: this.cells.length })
+      : this.translator.t("editor.workspace.spritesheet.subtitleCreate", { name: this.sourceRawAsset.name });
+    this.overflowBadge.hidden = !this.hasOverflow || this.readOnly;
+    this.nameField.sync(this.draftName, this.readOnly);
+    this.cellWidthField.sync(this.cellWidth, this.readOnly);
+    this.cellHeightField.sync(this.cellHeight, this.readOnly);
+    this.offsetXField.sync(this.offsetX, this.readOnly);
+    this.offsetYField.sync(this.offsetY, this.readOnly);
+    this.summary.textContent = this.translator.t("editor.workspace.spritesheet.activeFrames", {
+      count: this.cells.filter((cell) => cell.active).length,
+    });
+    this.generateButton.hidden = this.readOnly;
+    this.saveButton.hidden = this.readOnly;
+    this.createAnimationButton.hidden = !this.readOnly;
+    this.createAnimationButton.disabled = Boolean(this.existingSpriteSheet?.archivedAt);
+    this.backButton.hidden = !this.readOnly;
 
-    const body = createElement("div", "workspace-body");
-    const controls = createElement("div", "workspace-sidebar");
-    const previewCard = createElement("div", "workspace-preview-card");
-    const previewHost = createElement("div", "workspace-preview");
-    previewCard.append(previewHost);
-
-    controls.append(
-      buildTextField("Name", this.draftName, this.readOnly, (value) => {
-        this.draftName = value;
-      }, () => this.render()),
-      buildTextField("Cell width", this.cellWidth, this.readOnly, (value) => {
-        this.cellWidth = value;
-      }, () => this.render()),
-      buildTextField("Cell height", this.cellHeight, this.readOnly, (value) => {
-        this.cellHeight = value;
-      }, () => this.render()),
-      buildTextField("Offset X", this.offsetX, this.readOnly, (value) => {
-        this.offsetX = value;
-      }, () => this.render()),
-      buildTextField("Offset Y", this.offsetY, this.readOnly, (value) => {
-        this.offsetY = value;
-      }, () => this.render()),
-      createElement("p", "workspace-summary", `${this.cells.filter((cell) => cell.active).length} active frames`),
-    );
-
-    if (!this.readOnly) {
-      const generate = createButton("Generate grid", "secondary-button");
-      generate.addEventListener("click", () => {
-        this.generateGrid();
-        this.render();
-      });
-      const save = createButton("Save spritesheet mapping", "primary-button");
-      save.addEventListener("click", async () => {
-        const error = this.validate();
-        if (error) {
-          window.alert(error);
-          return;
-        }
-        if (!this.sourceRawAsset) {
-          return;
-        }
-
-        const now = new Date().toISOString();
-        const definition: SpriteSheetDefinition = {
-          id: createEditorId(),
-          name: this.draftName.trim(),
-          sourceAssetId: this.sourceRawAsset.id,
-          cellWidth: Number.parseInt(this.cellWidth, 10),
-          cellHeight: Number.parseInt(this.cellHeight, 10),
-          offsetX: Number.parseInt(this.offsetX, 10),
-          offsetY: Number.parseInt(this.offsetY, 10),
-          frames: this.cells
-            .filter((cell) => cell.active)
-            .map((cell) => ({
-              id: cell.id,
-              rect: cell.rect,
-              label: null,
-            })),
-          archivedAt: null,
-          createdAt: now,
-          updatedAt: now,
-        };
-
-        await this.store.saveSpriteSheet(definition);
-        this.store.setLibraryTab("game");
-        this.store.selectAsset(definition.id);
-        this.store.navigate({ kind: "spritesheet", id: definition.id });
-      });
-      controls.append(generate, save);
-    } else {
-      const createAnimation = createButton("Create animation", "primary-button");
-      createAnimation.disabled = Boolean(this.existingSpriteSheet?.archivedAt);
-      createAnimation.addEventListener("click", () => {
-        if (this.existingSpriteSheet) {
-          this.store.navigate({ kind: "animation", id: this.existingSpriteSheet.id });
-        }
-      });
-      const openLibrary = createButton("Back to library", "secondary-button");
-      openLibrary.addEventListener("click", () => this.store.navigate({ kind: "library" }));
-      controls.append(createAnimation, openLibrary);
-    }
-
-    body.append(controls, previewCard);
-    this.root.append(header, body);
-
+    clearElement(this.previewCard);
+    this.previewCard.append(this.previewHost);
     if (this.imageUrl) {
-      this.game = mountSpriteSheetGridPreview({
-        container: previewHost,
+      this.destroyPreview = mountSpriteSheetGridPreview({
+        container: this.previewHost,
         imageUrl: this.imageUrl,
         imageWidth: this.sourceRawAsset.width,
         imageHeight: this.sourceRawAsset.height,
@@ -203,7 +277,12 @@ export class SpriteSheetMappingWorkspace {
         },
       });
     } else {
-      previewCard.append(createMessageCard("Sin preview", "No se pudo resolver el PNG fuente de este spritesheet."));
+      this.previewCard.append(
+        createMessageCard(
+          this.translator.t("editor.workspace.spritesheet.noPreviewTitle"),
+          this.translator.t("editor.workspace.spritesheet.noPreviewBody"),
+        ),
+      );
     }
   }
 
@@ -246,64 +325,54 @@ export class SpriteSheetMappingWorkspace {
   }
 
   private validate(): string | null {
-    const nameError = validateRequiredName(this.draftName);
+    const nameError = this.translator.validateRequiredName(this.draftName);
     if (nameError) {
       return nameError;
     }
     if (this.store.isAssetNameTaken(this.draftName.trim())) {
-      return "El nombre del spritesheet ya existe.";
+      return this.translator.t("editor.validation.duplicateSpritesheetName");
     }
-    const widthError = validatePositiveInteger(this.cellWidth, "Cell width");
+    const widthError = this.translator.validatePositiveInteger(
+      this.cellWidth,
+      this.translator.t("editor.workspace.spritesheet.labels.cellWidth"),
+    );
     if (widthError) {
       return widthError;
     }
-    const heightError = validatePositiveInteger(this.cellHeight, "Cell height");
+    const heightError = this.translator.validatePositiveInteger(
+      this.cellHeight,
+      this.translator.t("editor.workspace.spritesheet.labels.cellHeight"),
+    );
     if (heightError) {
       return heightError;
     }
-    const offsetXError = validateNonNegativeInteger(this.offsetX, "Offset X");
+    const offsetXError = this.translator.validateNonNegativeInteger(
+      this.offsetX,
+      this.translator.t("editor.workspace.spritesheet.labels.offsetX"),
+    );
     if (offsetXError) {
       return offsetXError;
     }
-    const offsetYError = validateNonNegativeInteger(this.offsetY, "Offset Y");
+    const offsetYError = this.translator.validateNonNegativeInteger(
+      this.offsetY,
+      this.translator.t("editor.workspace.spritesheet.labels.offsetY"),
+    );
     if (offsetYError) {
       return offsetYError;
     }
     if (this.cells.filter((cell) => cell.active).length === 0) {
-      return "Debe quedar al menos un frame activo.";
+      return this.translator.t("editor.validation.atLeastOneActiveFrame");
     }
     return null;
   }
 
   private destroyGame(): void {
-    if (this.game) {
-      this.game.destroy(true);
-      this.game = null;
+    if (this.destroyPreview) {
+      this.destroyPreview();
+      this.destroyPreview = null;
     }
+    clearElement(this.previewHost);
   }
-}
-
-function buildTextField(
-  label: string,
-  value: string,
-  disabled: boolean,
-  onChange: (value: string) => void,
-  onRender: () => void,
-): HTMLElement {
-  const field = createElement("label", "form-field");
-  field.append(createElement("span", "form-label", label));
-  const input = createElement("input", "text-input") as HTMLInputElement;
-  input.type = "text";
-  input.value = value;
-  input.disabled = disabled;
-  input.addEventListener("change", () => {
-    onChange(input.value);
-    if (!disabled) {
-      onRender();
-    }
-  });
-  field.append(input);
-  return field;
 }
 
 function createMessageCard(title: string, body: string): HTMLElement {

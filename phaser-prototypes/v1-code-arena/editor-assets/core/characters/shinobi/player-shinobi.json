@@ -1,0 +1,15 @@
+{
+  "id": "core:character:player-shinobi",
+  "name": "Player Shinobi",
+  "storageRoot": "core",
+  "folderId": "folder:core:characters:shinobi",
+  "relativePath": "characters/shinobi/player-shinobi.json",
+  "idleAnimationId": "core:animation:player-idle",
+  "runSideAnimationId": "core:animation:player-run",
+  "runSideFacing": "right",
+  "jumpAnimationId": "core:animation:player-jump",
+  "attackAnimationId": "core:animation:player-attack-1",
+  "archivedAt": null,
+  "createdAt": "2026-04-23T07:28:07.871Z",
+  "updatedAt": "2026-04-23T07:28:07.871Z"
+}

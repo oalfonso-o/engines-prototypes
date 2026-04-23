@@ -2,7 +2,14 @@ import type { EditorRoute } from "../domain/editorTypes";
 
 type RouteListener = (route: EditorRoute) => void;
 
-export class EditorRouter {
+export interface EditorRouteController {
+  getCurrentRoute(): EditorRoute;
+  subscribe(listener: RouteListener): () => void;
+  navigate(route: EditorRoute): void;
+  destroy(): void;
+}
+
+export class EditorRouter implements EditorRouteController {
   private readonly listeners = new Set<RouteListener>();
 
   constructor() {

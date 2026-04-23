@@ -1,0 +1,167 @@
+{
+  "id": "core:level:campaign-v1",
+  "name": "Campaign V1",
+  "storageRoot": "core",
+  "folderId": "folder:core:worlds:swamp:levels",
+  "relativePath": "worlds/swamp/levels/campaign-v1.json",
+  "archivedAt": null,
+  "createdAt": "2026-04-23T07:28:07.871Z",
+  "updatedAt": "2026-04-23T07:28:07.871Z",
+  "mapId": "core:map:swamp-campaign-v1",
+  "playerCharacterId": "core:character:player-shinobi",
+  "spawnX": 144,
+  "spawnY": 400,
+  "groundSegments": [
+    {
+      "start": 0,
+      "end": 11,
+      "top": 15,
+      "height": 3
+    },
+    {
+      "start": 16,
+      "end": 27,
+      "top": 15,
+      "height": 3
+    },
+    {
+      "start": 33,
+      "end": 44,
+      "top": 15,
+      "height": 3
+    },
+    {
+      "start": 50,
+      "end": 59,
+      "top": 15,
+      "height": 3
+    },
+    {
+      "start": 24,
+      "end": 26,
+      "top": 13,
+      "height": 5
+    },
+    {
+      "start": 46,
+      "end": 48,
+      "top": 12,
+      "height": 6
+    }
+  ],
+  "floatingPlatforms": [
+    {
+      "start": 4,
+      "end": 8,
+      "y": 12
+    },
+    {
+      "start": 10,
+      "end": 13,
+      "y": 10
+    },
+    {
+      "start": 18,
+      "end": 22,
+      "y": 11
+    },
+    {
+      "start": 26,
+      "end": 30,
+      "y": 9
+    },
+    {
+      "start": 35,
+      "end": 38,
+      "y": 11
+    },
+    {
+      "start": 40,
+      "end": 44,
+      "y": 8
+    },
+    {
+      "start": 52,
+      "end": 55,
+      "y": 9
+    }
+  ],
+  "waterStrips": [
+    {
+      "start": 12,
+      "end": 15,
+      "top": 15,
+      "rows": 3
+    },
+    {
+      "start": 28,
+      "end": 32,
+      "top": 15,
+      "rows": 3
+    },
+    {
+      "start": 45,
+      "end": 49,
+      "top": 15,
+      "rows": 3
+    }
+  ],
+  "placements": [
+    {
+      "id": "coin-0",
+      "type": "coin",
+      "assetId": "core:animation:coin-spin",
+      "x": 6.5,
+      "y": 10.8
+    },
+    {
+      "id": "coin-1",
+      "type": "coin",
+      "assetId": "core:animation:coin-spin",
+      "x": 11.5,
+      "y": 8.8
+    },
+    {
+      "id": "coin-2",
+      "type": "coin",
+      "assetId": "core:animation:coin-spin",
+      "x": 20.5,
+      "y": 9.8
+    },
+    {
+      "id": "coin-3",
+      "type": "coin",
+      "assetId": "core:animation:coin-spin",
+      "x": 28.5,
+      "y": 7
+    },
+    {
+      "id": "coin-4",
+      "type": "coin",
+      "assetId": "core:animation:coin-spin",
+      "x": 25.5,
+      "y": 11.8
+    },
+    {
+      "id": "coin-5",
+      "type": "coin",
+      "assetId": "core:animation:coin-spin",
+      "x": 37,
+      "y": 9.8
+    },
+    {
+      "id": "coin-6",
+      "type": "coin",
+      "assetId": "core:animation:coin-spin",
+      "x": 42,
+      "y": 6
+    },
+    {
+      "id": "coin-7",
+      "type": "coin",
+      "assetId": "core:animation:coin-spin",
+      "x": 54,
+      "y": 7
+    }
+  ]
+}

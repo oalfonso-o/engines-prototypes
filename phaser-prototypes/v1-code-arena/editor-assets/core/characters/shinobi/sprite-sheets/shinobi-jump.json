@@ -1,0 +1,137 @@
+{
+  "id": "core:spritesheet:shinobi-jump",
+  "name": "Shinobi Jump Sheet",
+  "storageRoot": "core",
+  "folderId": "folder:core:characters:shinobi:sprite-sheets",
+  "relativePath": "characters/shinobi/sprite-sheets/shinobi-jump.json",
+  "sourceAssetId": "core:raw:shinobi:jump",
+  "cellWidth": 128,
+  "cellHeight": 128,
+  "offsetX": 0,
+  "offsetY": 0,
+  "frames": [
+    {
+      "id": "frame-0",
+      "rect": {
+        "x": 0,
+        "y": 0,
+        "width": 128,
+        "height": 128
+      },
+      "label": null
+    },
+    {
+      "id": "frame-1",
+      "rect": {
+        "x": 128,
+        "y": 0,
+        "width": 128,
+        "height": 128
+      },
+      "label": null
+    },
+    {
+      "id": "frame-2",
+      "rect": {
+        "x": 256,
+        "y": 0,
+        "width": 128,
+        "height": 128
+      },
+      "label": null
+    },
+    {
+      "id": "frame-3",
+      "rect": {
+        "x": 384,
+        "y": 0,
+        "width": 128,
+        "height": 128
+      },
+      "label": null
+    },
+    {
+      "id": "frame-4",
+      "rect": {
+        "x": 512,
+        "y": 0,
+        "width": 128,
+        "height": 128
+      },
+      "label": null
+    },
+    {
+      "id": "frame-5",
+      "rect": {
+        "x": 640,
+        "y": 0,
+        "width": 128,
+        "height": 128
+      },
+      "label": null
+    },
+    {
+      "id": "frame-6",
+      "rect": {
+        "x": 768,
+        "y": 0,
+        "width": 128,
+        "height": 128
+      },
+      "label": null
+    },
+    {
+      "id": "frame-7",
+      "rect": {
+        "x": 896,
+        "y": 0,
+        "width": 128,
+        "height": 128
+      },
+      "label": null
+    },
+    {
+      "id": "frame-8",
+      "rect": {
+        "x": 1024,
+        "y": 0,
+        "width": 128,
+        "height": 128
+      },
+      "label": null
+    },
+    {
+      "id": "frame-9",
+      "rect": {
+        "x": 1152,
+        "y": 0,
+        "width": 128,
+        "height": 128
+      },
+      "label": null
+    },
+    {
+      "id": "frame-10",
+      "rect": {
+        "x": 1280,
+        "y": 0,
+        "width": 128,
+        "height": 128
+      },
+      "label": null
+    },
+    {
+      "id": "frame-11",
+      "rect": {
+        "x": 1408,
+        "y": 0,
+        "width": 128,
+        "height": 128
+      },
+      "label": null
+    }
+  ],
+  "archivedAt": null,
+  "createdAt": "2026-04-23T07:28:07.871Z",
+  "updatedAt": "2026-04-23T07:28:07.871Z"
+}

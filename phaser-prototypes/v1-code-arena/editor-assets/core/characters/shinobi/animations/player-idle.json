@@ -1,0 +1,21 @@
+{
+  "id": "core:animation:player-idle",
+  "name": "Player Idle",
+  "storageRoot": "core",
+  "folderId": "folder:core:characters:shinobi:animations",
+  "relativePath": "characters/shinobi/animations/player-idle.json",
+  "spriteSheetId": "core:spritesheet:shinobi-idle",
+  "frameIds": [
+    "frame-0",
+    "frame-1",
+    "frame-2",
+    "frame-3",
+    "frame-4",
+    "frame-5"
+  ],
+  "frameDurationMs": 125,
+  "loop": true,
+  "archivedAt": null,
+  "createdAt": "2026-04-23T07:28:07.871Z",
+  "updatedAt": "2026-04-23T07:28:07.871Z"
+}

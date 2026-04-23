@@ -1,22 +1,39 @@
 import Phaser from "phaser";
-import type { DynamicRectColliderConfig } from "../colliders/createColliderSystem";
-import type { PlayerBodySettings, PlayerSettings } from "../../settings/prototypeSettings";
+import {
+  getWorldHeightPx,
+  getWorldWidthPx,
+  type PlayerSettings,
+  type WorldSettings,
+} from "../../settings/prototypeSettings";
 import type { ColliderSystem } from "../colliders/createColliderSystem";
-import { WORLD_HEIGHT, WORLD_WIDTH } from "../level/levelData";
+import type { OneWayPlatformSystem } from "../colliders/createOneWayPlatformSystem";
+import { hexColorToNumber } from "../shared/color";
+import { resolvePlayerBodyColliderConfig } from "./resolvePlayerBodyColliderConfig";
 
 type ControlKeys = {
   left: Phaser.Input.Keyboard.Key;
   right: Phaser.Input.Keyboard.Key;
   jump: Phaser.Input.Keyboard.Key;
   altJump: Phaser.Input.Keyboard.Key;
+  down: Phaser.Input.Keyboard.Key;
   reset: Phaser.Input.Keyboard.Key;
 };
 
 type PlayerAnimationKey = "player-idle" | "player-run" | "player-jump";
 
+export interface PlayerControllerState {
+  x: number;
+  y: number;
+  velocityX: number;
+  velocityY: number;
+  flipX: boolean;
+}
+
 export class PlayerController {
   private readonly scene: Phaser.Scene;
+  private readonly worldSettings: WorldSettings;
   private readonly playerSettings: PlayerSettings;
+  private readonly oneWayPlatforms: OneWayPlatformSystem;
   private readonly playerBody: Phaser.Physics.Arcade.Image;
   private readonly playerSprite: Phaser.GameObjects.Sprite;
   private readonly cursors: Phaser.Types.Input.Keyboard.CursorKeys;
@@ -25,12 +42,16 @@ export class PlayerController {
 
   constructor(
     scene: Phaser.Scene,
+    worldSettings: WorldSettings,
     playerSettings: PlayerSettings,
     solidBodies: Phaser.Physics.Arcade.StaticGroup,
     colliders: ColliderSystem,
+    oneWayPlatforms: OneWayPlatformSystem,
   ) {
     this.scene = scene;
+    this.worldSettings = worldSettings;
     this.playerSettings = playerSettings;
+    this.oneWayPlatforms = oneWayPlatforms;
 
     const keyboard = scene.input.keyboard;
     if (!keyboard) {
@@ -43,6 +64,7 @@ export class PlayerController {
       right: Phaser.Input.Keyboard.KeyCodes.D,
       jump: Phaser.Input.Keyboard.KeyCodes.W,
       altJump: Phaser.Input.Keyboard.KeyCodes.SPACE,
+      down: Phaser.Input.Keyboard.KeyCodes.S,
       reset: Phaser.Input.Keyboard.KeyCodes.R,
     }) as ControlKeys;
 
@@ -56,28 +78,66 @@ export class PlayerController {
 
     this.playerSprite = scene.add.sprite(
       this.playerBody.x,
-      this.playerBody.y + playerSettings.visual_offset_y,
+      this.playerBody.y + playerSettings.visual.offset_y,
       "shinobi-idle",
       0,
     );
-    this.playerSprite.setScale(playerSettings.sprite_scale);
-    this.playerSprite.setOrigin(0.5, 0.8);
+    this.playerSprite.setScale(playerSettings.visual.scale);
+    this.playerSprite.setOrigin(playerSettings.visual.origin_x, playerSettings.visual.origin_y);
     this.playAnimation("player-idle");
 
-    colliders.attachDynamicRect(this.playerBody, this.resolveBodyColliderConfig());
+    colliders.attachDynamicRect(
+      this.playerBody,
+      resolvePlayerBodyColliderConfig(this.playerBody, this.playerSprite, this.playerSettings.body),
+    );
 
     scene.physics.add.collider(this.playerBody, solidBodies);
+    oneWayPlatforms.registerActor(this.playerBody, { allowManualDropThrough: true });
   }
 
   getBody(): Phaser.Physics.Arcade.Image {
     return this.playerBody;
   }
 
+  captureState(): PlayerControllerState {
+    const body = this.getPhysicsBody();
+    return {
+      x: this.playerBody.x,
+      y: this.playerBody.y,
+      velocityX: body.velocity.x,
+      velocityY: body.velocity.y,
+      flipX: this.playerSprite.flipX,
+    };
+  }
+
+  restoreState(state: PlayerControllerState): void {
+    this.playerBody.setPosition(state.x, state.y);
+    this.playerBody.setVelocity(state.velocityX, state.velocityY);
+    this.playerSprite.setFlipX(state.flipX);
+    this.syncVisual();
+    this.updateAnimation();
+  }
+
   configureCamera(camera: Phaser.Cameras.Scene2D.Camera): void {
-    this.scene.physics.world.setBounds(0, 0, WORLD_WIDTH, WORLD_HEIGHT + 160);
-    camera.setBounds(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
-    camera.startFollow(this.playerBody, true, 0.09, 0.09);
-    camera.setDeadzone(160, 90);
+    const worldWidth = getWorldWidthPx(this.worldSettings);
+    const worldHeight = getWorldHeightPx(this.worldSettings);
+    this.scene.physics.world.setBounds(
+      0,
+      0,
+      worldWidth,
+      worldHeight + this.playerSettings.camera.world_bottom_padding_px,
+    );
+    camera.setBounds(0, 0, worldWidth, worldHeight);
+    camera.startFollow(
+      this.playerBody,
+      true,
+      this.playerSettings.camera.follow_lerp_x,
+      this.playerSettings.camera.follow_lerp_y,
+    );
+    camera.setDeadzone(
+      this.playerSettings.camera.deadzone_width,
+      this.playerSettings.camera.deadzone_height,
+    );
     camera.setRoundPixels(true);
   }
 
@@ -87,7 +147,7 @@ export class PlayerController {
       return true;
     }
 
-    if (this.playerBody.y > WORLD_HEIGHT + 64) {
+    if (this.playerBody.y > getWorldHeightPx(this.worldSettings) + this.playerSettings.respawn.fall_margin_px) {
       this.respawn();
     }
 
@@ -111,6 +171,13 @@ export class PlayerController {
       this.playerBody.setVelocityX(approach(currentVelocityX, targetVelocityX, acceleration * delta * 0.001));
     } else {
       this.playerBody.setVelocityX(approach(currentVelocityX, 0, deceleration * delta * 0.001));
+    }
+
+    const wantsDropThrough = Phaser.Input.Keyboard.JustDown(this.cursors.down)
+      || Phaser.Input.Keyboard.JustDown(this.keys.down);
+
+    if (wantsDropThrough) {
+      this.oneWayPlatforms.requestDropDown(this.playerBody);
     }
 
     const wantsJump = Phaser.Input.Keyboard.JustDown(this.cursors.up)
@@ -137,13 +204,23 @@ export class PlayerController {
   }
 
   private syncVisual(): void {
-    this.playerSprite.setPosition(this.playerBody.x, this.playerBody.y + this.playerSettings.visual_offset_y);
+    this.playerSprite.setPosition(this.playerBody.x, this.playerBody.y + this.playerSettings.visual.offset_y);
   }
 
   private respawn(): void {
     this.playerBody.setPosition(this.playerSettings.spawn_x, this.playerSettings.spawn_y);
     this.playerBody.setVelocity(0, 0);
-    this.scene.cameras.main.flash(120, 120, 180, 255, false);
+    const flashColor = hexColorToNumber(this.playerSettings.respawn.flash_color);
+    const flashR = (flashColor >> 16) & 0xff;
+    const flashG = (flashColor >> 8) & 0xff;
+    const flashB = flashColor & 0xff;
+    this.scene.cameras.main.flash(
+      this.playerSettings.respawn.flash_duration_ms,
+      flashR,
+      flashG,
+      flashB,
+      false,
+    );
   }
 
   private updateAnimation(): void {
@@ -152,7 +229,7 @@ export class PlayerController {
       return;
     }
 
-    if (Math.abs(this.getPhysicsBody().velocity.x) > 4) {
+    if (Math.abs(this.getPhysicsBody().velocity.x) > this.playerSettings.animation.run_min_horizontal_speed) {
       this.playAnimation("player-run");
       return;
     }
@@ -178,43 +255,9 @@ export class PlayerController {
     return this.playerBody.body as Phaser.Physics.Arcade.Body;
   }
 
-  private resolveBodyColliderConfig(): DynamicRectColliderConfig {
-    if (this.playerSettings.body.mode === "from_sprite") {
-      return this.createSpriteSizedBodyConfig(this.playerSettings.body);
-    }
-
-    return {
-      type: "player",
-      width: this.playerSettings.body.width,
-      height: this.playerSettings.body.height,
-      offsetX: this.playerSettings.body.offset_x,
-      offsetY: this.playerSettings.body.offset_y,
-    };
-  }
-
-  private createSpriteSizedBodyConfig(bodySettings: PlayerBodySettings): DynamicRectColliderConfig {
-    const spriteWidth = this.playerSprite.displayWidth;
-    const spriteHeight = this.playerSprite.displayHeight;
-    const colliderWidth = Math.max(1, Math.round(spriteWidth * bodySettings.width_ratio));
-    const colliderHeight = Math.max(1, Math.round(spriteHeight * bodySettings.height_ratio));
-
-    const bodyTopLeftX = this.playerBody.x - (this.playerBody.displayWidth * this.playerBody.originX);
-    const bodyTopLeftY = this.playerBody.y - (this.playerBody.displayHeight * this.playerBody.originY);
-    const spriteTopLeftX = this.playerSprite.x - (spriteWidth * this.playerSprite.originX);
-    const spriteTopLeftY = this.playerSprite.y - (spriteHeight * this.playerSprite.originY);
-
-    const spriteLocalLeft = spriteTopLeftX - bodyTopLeftX;
-    const spriteLocalTop = spriteTopLeftY - bodyTopLeftY;
-    const offsetX = Math.round(spriteLocalLeft + ((spriteWidth - colliderWidth) * bodySettings.align_x));
-    const offsetY = Math.round(spriteLocalTop + ((spriteHeight - colliderHeight) * bodySettings.align_y));
-
-    return {
-      type: "player",
-      width: colliderWidth,
-      height: colliderHeight,
-      offsetX,
-      offsetY,
-    };
+  destroy(): void {
+    this.playerSprite.destroy();
+    this.playerBody.destroy();
   }
 }
 

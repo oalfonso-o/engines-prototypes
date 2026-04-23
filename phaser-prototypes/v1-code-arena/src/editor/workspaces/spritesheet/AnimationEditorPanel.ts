@@ -1,16 +1,49 @@
-import type Phaser from "phaser";
 import { isAnimation, isSpriteSheet } from "../../domain/assetReferences";
 import { createEditorId } from "../../domain/editorIds";
-import { buildUniqueAssetName, validatePositiveInteger, validateRequiredName } from "../../domain/editorValidators";
+import { buildUniqueAssetName } from "../../domain/editorValidators";
 import type { AnimationDefinition, SpriteFrameRecord, SpriteSheetDefinition } from "../../domain/editorTypes";
 import type { EditorStore } from "../../state/EditorStore";
 import { clearElement, createButton, createElement } from "../../shared/dom";
+import { createCheckboxFieldController, createTextFieldController } from "../../shared/formControls";
 import { createCroppedThumbnail, loadImage } from "../../shared/loadImage";
 import { mountAnimationPreview } from "./animationPreview";
+import type { EditorTranslator } from "../../i18n/EditorTranslator";
+import { buildRelativeFilePath, joinRelativePath } from "../../storage/pathNaming";
 
 export class AnimationEditorPanel {
   private readonly root = createElement("section", "workspace-screen");
-  private game: Phaser.Game | null = null;
+  private readonly emptyStateHost = createElement("div");
+  private readonly header = createElement("div", "workspace-header");
+  private readonly copy = createElement("div", "workspace-copy");
+  private readonly title = createElement("h2", "workspace-title");
+  private readonly subtitle = createElement("p", "workspace-subtitle");
+  private readonly body = createElement("div", "workspace-body");
+  private readonly controls = createElement("div", "workspace-sidebar");
+  private readonly previewCard = createElement("div", "workspace-preview-card");
+  private readonly previewHost = createElement("div", "animation-preview");
+  private readonly frameStrip = createElement("div", "frame-strip");
+  private readonly nameField = createTextFieldController("", {
+    onChange: (value) => {
+      this.draftName = value;
+      this.render();
+    },
+  });
+  private readonly frameDurationField = createTextFieldController("", {
+    onChange: (value) => {
+      this.frameDurationMs = value;
+      this.render();
+    },
+  });
+  private readonly loopField = createCheckboxFieldController("", (checked) => {
+    this.loop = checked;
+    this.render();
+  });
+  private readonly playbackRow = createElement("div", "workspace-button-row");
+  private readonly previewButton = createButton("", "secondary-button");
+  private readonly pauseButton = createButton("", "secondary-button");
+  private readonly saveButton = createButton("", "primary-button");
+  private readonly backButton = createButton("", "secondary-button");
+  private destroyPreview: (() => void) | null = null;
   private readonly sourceSpriteSheet: SpriteSheetDefinition | null;
   private readonly existingAnimation: AnimationDefinition | null;
   private readonly imageUrl: string | null;
@@ -25,6 +58,7 @@ export class AnimationEditorPanel {
   constructor(
     private readonly container: HTMLElement,
     private readonly store: EditorStore,
+    private readonly translator: EditorTranslator,
     routeId: string,
   ) {
     const asset = this.store.getAssetById(routeId);
@@ -67,6 +101,7 @@ export class AnimationEditorPanel {
       });
     }
 
+    this.buildShell();
     this.container.append(this.root);
     this.render();
   }
@@ -76,141 +111,130 @@ export class AnimationEditorPanel {
     clearElement(this.container);
   }
 
-  private render(): void {
-    this.destroyGame();
-    clearElement(this.root);
+  private buildShell(): void {
+    this.copy.append(this.title, this.subtitle);
+    this.header.append(this.copy);
 
-    if (!this.sourceSpriteSheet || !this.imageUrl) {
-      this.root.append(createMessageCard("Animación no disponible", "Abre un spritesheet activo o una animación ya guardada."));
-      return;
-    }
-
-    const header = createElement("div", "workspace-header");
-    const copy = createElement("div", "workspace-copy");
-    copy.append(
-      createElement("h2", "workspace-title", this.readOnly ? this.existingAnimation?.name ?? "Animation" : "Create animation"),
-      createElement(
-        "p",
-        "workspace-subtitle",
-        this.readOnly
-          ? `Read only. ${this.frameIds.length} frames guardados.`
-          : `Selecciona frames en orden. Si vuelves a clicar un frame, se elimina de la secuencia.`,
-      ),
-    );
-    header.append(copy);
-
-    const body = createElement("div", "workspace-body");
-    const controls = createElement("div", "workspace-sidebar");
-    const previewCard = createElement("div", "workspace-preview-card");
-    const previewHost = createElement("div", "animation-preview");
-    previewCard.append(previewHost);
-
-    controls.append(
-      this.buildTextField("Name", this.draftName, this.readOnly, (value) => {
-        this.draftName = value;
-      }),
-      this.buildTextField("Frame duration (ms)", this.frameDurationMs, this.readOnly, (value) => {
-        this.frameDurationMs = value;
-      }),
-    );
-
-    const loopField = createElement("label", "checkbox-field");
-    const loopInput = createElement("input") as HTMLInputElement;
-    loopInput.type = "checkbox";
-    loopInput.checked = this.loop;
-    loopInput.disabled = this.readOnly;
-    loopInput.addEventListener("change", () => {
-      this.loop = loopInput.checked;
-      this.render();
-    });
-    loopField.append(loopInput, createElement("span", "form-label", "Loop"));
-    controls.append(loopField);
-
-    const controlRow = createElement("div", "workspace-button-row");
-    const playButton = createButton("Preview", "secondary-button");
-    playButton.addEventListener("click", () => {
+    this.previewButton.addEventListener("click", () => {
       this.playing = true;
       this.render();
     });
-    const pauseButton = createButton("Pause", "secondary-button");
-    pauseButton.addEventListener("click", () => {
+    this.pauseButton.addEventListener("click", () => {
       this.playing = false;
       this.render();
     });
-    controlRow.append(playButton, pauseButton);
-    controls.append(controlRow);
+    this.playbackRow.append(this.previewButton, this.pauseButton);
 
-    if (!this.readOnly) {
-      const save = createButton("Save animation", "primary-button");
-      save.addEventListener("click", async () => {
-        const error = this.validate();
-        if (error) {
-          window.alert(error);
-          return;
-        }
-        const now = new Date().toISOString();
-        const definition: AnimationDefinition = {
-          id: createEditorId(),
-          name: this.draftName.trim(),
-          spriteSheetId: this.sourceSpriteSheet!.id,
-          frameIds: [...this.frameIds],
-          frameDurationMs: Number.parseInt(this.frameDurationMs, 10),
-          loop: this.loop,
-          archivedAt: null,
-          createdAt: now,
-          updatedAt: now,
-        };
-        await this.store.saveAnimation(definition);
-        this.store.setLibraryTab("game");
-        this.store.selectAsset(definition.id);
-        this.store.navigate({ kind: "animation", id: definition.id });
-      });
-      controls.append(save);
-    } else {
-      const openLibrary = createButton("Back to library", "secondary-button");
-      openLibrary.addEventListener("click", () => this.store.navigate({ kind: "library" }));
-      controls.append(openLibrary);
+    this.saveButton.addEventListener("click", async () => {
+      const error = this.validate();
+      if (error) {
+        window.alert(error);
+        return;
+      }
+      const now = new Date().toISOString();
+      const definition: AnimationDefinition = {
+        id: createEditorId(),
+        name: this.draftName.trim(),
+        storageRoot: "user",
+        folderId: this.sourceSpriteSheet!.folderId,
+        relativePath: joinRelativePath(
+          this.store.getFolderById(this.sourceSpriteSheet!.folderId ?? "")?.relativePath ?? "",
+          buildRelativeFilePath(this.draftName.trim(), ".json"),
+        ),
+        spriteSheetId: this.sourceSpriteSheet!.id,
+        frameIds: [...this.frameIds],
+        frameDurationMs: Number.parseInt(this.frameDurationMs, 10),
+        loop: this.loop,
+        archivedAt: null,
+        createdAt: now,
+        updatedAt: now,
+      };
+      await this.store.saveAnimation(definition);
+      this.store.setLibraryTab("game");
+      this.store.selectAsset(definition.id);
+      this.store.navigate({ kind: "animation", id: definition.id });
+    });
+    this.backButton.addEventListener("click", () => this.store.navigate({ kind: "library" }));
+
+    this.controls.append(
+      this.nameField.field,
+      this.frameDurationField.field,
+      this.loopField.field,
+      this.playbackRow,
+      this.saveButton,
+      this.backButton,
+    );
+
+    this.previewCard.append(this.previewHost, this.frameStrip);
+    this.body.append(this.controls, this.previewCard);
+    this.root.append(this.emptyStateHost, this.header, this.body);
+  }
+
+  private render(): void {
+    this.destroyGame();
+
+    if (!this.sourceSpriteSheet || !this.imageUrl) {
+      this.header.hidden = true;
+      this.body.hidden = true;
+      clearElement(this.emptyStateHost);
+      this.emptyStateHost.append(
+        createMessageCard(
+          this.translator.t("editor.workspace.animation.unavailableTitle"),
+          this.translator.t("editor.workspace.animation.unavailableBody"),
+        ),
+      );
+      return;
     }
 
-    const frameStrip = createElement("div", "frame-strip");
-    this.getFrames().forEach((frame) => frameStrip.append(this.buildFrameCard(frame)));
-    previewCard.append(frameStrip);
+    clearElement(this.emptyStateHost);
+    this.header.hidden = false;
+    this.body.hidden = false;
+    this.nameField.label.textContent = this.translator.t("editor.workspace.animation.labels.name");
+    this.frameDurationField.label.textContent = this.translator.t("editor.workspace.animation.labels.frameDuration");
+    this.loopField.label.textContent = this.translator.t("editor.workspace.animation.labels.loop");
+    this.previewButton.textContent = this.translator.t("editor.workspace.animation.preview");
+    this.pauseButton.textContent = this.translator.t("editor.workspace.animation.pause");
+    this.saveButton.textContent = this.translator.t("editor.workspace.animation.save");
+    this.backButton.textContent = this.translator.t("editor.common.backToLibrary");
+    this.title.textContent = this.readOnly
+      ? this.existingAnimation?.name ?? this.translator.t("editor.workspace.animation.titleReadOnly")
+      : this.translator.t("editor.workspace.animation.titleCreate");
+    this.subtitle.textContent = this.readOnly
+      ? this.translator.t("editor.workspace.animation.subtitleReadOnly", { count: this.frameIds.length })
+      : this.translator.t("editor.workspace.animation.subtitleCreate");
+    this.nameField.sync(this.draftName, this.readOnly);
+    this.frameDurationField.sync(this.frameDurationMs, this.readOnly);
+    this.loopField.sync(this.loop, this.readOnly);
+    this.saveButton.hidden = this.readOnly;
+    this.backButton.hidden = !this.readOnly;
+    clearElement(this.previewCard);
+    this.previewCard.append(this.previewHost, this.frameStrip);
 
-    body.append(controls, previewCard);
-    this.root.append(header, body);
+    clearElement(this.frameStrip);
+    this.getFrames().forEach((frame) => this.frameStrip.append(this.buildFrameCard(frame)));
 
     const playbackFrames = this.getFrames()
       .filter((frame) => this.frameIds.includes(frame.id))
       .sort((left, right) => this.frameIds.indexOf(left.id) - this.frameIds.indexOf(right.id));
 
-    this.game = mountAnimationPreview({
-      container: previewHost,
+    if (playbackFrames.length === 0) {
+      this.previewCard.append(
+        createMessageCard(
+          this.translator.t("editor.workspace.animation.noPreviewTitle"),
+          this.translator.t("editor.workspace.animation.noPreviewBody"),
+        ),
+      );
+      return;
+    }
+
+    this.destroyPreview = mountAnimationPreview({
+      container: this.previewHost,
       imageUrl: this.imageUrl,
       frames: playbackFrames,
       frameDurationMs: Number.parseInt(this.frameDurationMs, 10) || 120,
       loop: this.loop,
       playing: this.playing,
     });
-  }
-
-  private buildTextField(
-    label: string,
-    value: string,
-    disabled: boolean,
-    onChange: (value: string) => void,
-  ): HTMLElement {
-    const field = createElement("label", "form-field");
-    field.append(createElement("span", "form-label", label));
-    const input = createElement("input", "text-input") as HTMLInputElement;
-    input.type = "text";
-    input.value = value;
-    input.disabled = disabled;
-    input.addEventListener("change", () => {
-      onChange(input.value);
-      this.render();
-    });
-    field.append(input);
-    return field;
   }
 
   private buildFrameCard(frame: SpriteFrameRecord): HTMLElement {
@@ -237,7 +261,13 @@ export class AnimationEditorPanel {
     if (this.sourceImage) {
       button.append(createCroppedThumbnail(this.sourceImage, frame.rect, 88, 88));
     } else {
-      button.append(createElement("div", "frame-thumb-placeholder", `Frame ${frame.id.slice(0, 4)}`));
+      button.append(
+        createElement(
+          "div",
+          "frame-thumb-placeholder",
+          this.translator.t("editor.workspace.animation.framePlaceholder", { id: frame.id.slice(0, 4) }),
+        ),
+      );
     }
 
     const caption = createElement("div", "frame-card-meta");
@@ -246,7 +276,9 @@ export class AnimationEditorPanel {
       createElement(
         "span",
         "frame-card-copy",
-        selectedIndex >= 0 ? `Selected #${selectedIndex + 1}` : "Not selected",
+        selectedIndex >= 0
+          ? this.translator.t("editor.workspace.animation.selected", { index: selectedIndex + 1 })
+          : this.translator.t("editor.workspace.animation.notSelected"),
       ),
     );
     button.append(caption);
@@ -261,28 +293,32 @@ export class AnimationEditorPanel {
   }
 
   private validate(): string | null {
-    const nameError = validateRequiredName(this.draftName);
+    const nameError = this.translator.validateRequiredName(this.draftName);
     if (nameError) {
       return nameError;
     }
     if (this.store.isAssetNameTaken(this.draftName.trim())) {
-      return "El nombre de la animación ya existe.";
+      return this.translator.t("editor.validation.duplicateAnimationName");
     }
-    const durationError = validatePositiveInteger(this.frameDurationMs, "Frame duration");
+    const durationError = this.translator.validatePositiveInteger(
+      this.frameDurationMs,
+      this.translator.t("editor.workspace.animation.labels.frameDuration"),
+    );
     if (durationError) {
       return durationError;
     }
     if (this.frameIds.length === 0) {
-      return "Selecciona al menos un frame.";
+      return this.translator.t("editor.validation.atLeastOneFrame");
     }
     return null;
   }
 
   private destroyGame(): void {
-    if (this.game) {
-      this.game.destroy(true);
-      this.game = null;
+    if (this.destroyPreview) {
+      this.destroyPreview();
+      this.destroyPreview = null;
     }
+    clearElement(this.previewHost);
   }
 }
 

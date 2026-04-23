@@ -1,0 +1,19 @@
+{
+  "id": "core:animation:coin-spin",
+  "name": "Coin Spin",
+  "storageRoot": "core",
+  "folderId": "folder:core:pickups:coin:animations",
+  "relativePath": "pickups/coin/animations/coin-spin.json",
+  "spriteSheetId": "core:spritesheet:coin-spin",
+  "frameIds": [
+    "frame-0",
+    "frame-1",
+    "frame-2",
+    "frame-3"
+  ],
+  "frameDurationMs": 100,
+  "loop": true,
+  "archivedAt": null,
+  "createdAt": "2026-04-23T07:28:07.871Z",
+  "updatedAt": "2026-04-23T07:28:07.871Z"
+}

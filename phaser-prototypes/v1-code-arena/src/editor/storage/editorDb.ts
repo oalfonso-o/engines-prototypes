@@ -1,6 +1,8 @@
 import type {
   AnimationDefinition,
   CharacterDefinition,
+  FolderRecord,
+  LevelCompositionRecord,
   MapDefinition,
   RawAssetBlobRecord,
   RawAssetRecord,
@@ -9,6 +11,7 @@ import type {
 } from "../domain/editorTypes";
 
 export type EditorStoreName =
+  | "folders"
   | "rawAssets"
   | "rawAssetBlobs"
   | "tilesets"
@@ -16,6 +19,7 @@ export type EditorStoreName =
   | "animations"
   | "characters"
   | "maps"
+  | "levelCompositions"
   | "meta";
 
 interface MetaRecord {
@@ -24,6 +28,7 @@ interface MetaRecord {
 }
 
 interface EditorStoreMap {
+  folders: FolderRecord;
   rawAssets: RawAssetRecord;
   rawAssetBlobs: RawAssetBlobRecord;
   tilesets: TilesetDefinition;
@@ -31,11 +36,12 @@ interface EditorStoreMap {
   animations: AnimationDefinition;
   characters: CharacterDefinition;
   maps: MapDefinition;
+  levelCompositions: LevelCompositionRecord;
   meta: MetaRecord;
 }
 
 const DB_NAME = "canuter-phaser-v1-editor";
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 export class EditorDb {
   private databasePromise: Promise<IDBDatabase> | null = null;
@@ -69,6 +75,14 @@ export class EditorDb {
     await transactionComplete(transaction);
   }
 
+  async clear<TStore extends EditorStoreName>(storeName: TStore): Promise<void> {
+    const database = await this.open();
+    const transaction = database.transaction(storeName, "readwrite");
+    const store = transaction.objectStore(storeName);
+    store.clear();
+    await transactionComplete(transaction);
+  }
+
   async close(): Promise<void> {
     if (!this.databasePromise) {
       return;
@@ -94,6 +108,7 @@ function openDatabase(): Promise<IDBDatabase> {
 
     request.onupgradeneeded = () => {
       const database = request.result;
+      createStoreIfMissing(database, "folders");
       createStoreIfMissing(database, "rawAssets");
       createStoreIfMissing(database, "rawAssetBlobs");
       createStoreIfMissing(database, "tilesets");
@@ -101,6 +116,7 @@ function openDatabase(): Promise<IDBDatabase> {
       createStoreIfMissing(database, "animations");
       createStoreIfMissing(database, "characters");
       createStoreIfMissing(database, "maps");
+      createStoreIfMissing(database, "levelCompositions");
       createStoreIfMissing(database, "meta");
     };
 
@@ -109,7 +125,7 @@ function openDatabase(): Promise<IDBDatabase> {
     };
 
     request.onerror = () => {
-      reject(request.error ?? new Error("No se pudo abrir IndexedDB"));
+      reject(request.error ?? new Error("Could not open IndexedDB"));
     };
   });
 }

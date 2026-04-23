@@ -1,6 +1,7 @@
 import type { TilesetDefinition } from "../../domain/editorTypes";
 import { clearElement, createElement } from "../../shared/dom";
 import { createCroppedThumbnail, loadImage } from "../../shared/loadImage";
+import type { EditorTranslator } from "../../i18n/EditorTranslator";
 
 export interface MapPalettePanelOptions {
   tilesets: TilesetDefinition[];
@@ -15,7 +16,10 @@ export interface MapPalettePanelOptions {
 export class MapPalettePanel {
   private renderToken = 0;
 
-  constructor(private readonly root: HTMLElement) {}
+  constructor(
+    private readonly root: HTMLElement,
+    private readonly translator: EditorTranslator,
+  ) {}
 
   update(options: MapPalettePanelOptions): void {
     this.renderToken += 1;
@@ -24,7 +28,12 @@ export class MapPalettePanel {
     this.root.className = "map-palette";
 
     if (options.tilesets.length === 0) {
-      this.root.append(createEmptyState("No mapped tilesets", "Crea un tileset antes de intentar pintar un mapa."));
+      this.root.append(
+        createEmptyState(
+          this.translator.t("editor.workspace.map.palette.noMappedTilesetsTitle"),
+          this.translator.t("editor.workspace.map.palette.noMappedTilesetsBody"),
+        ),
+      );
       return;
     }
 
@@ -49,7 +58,12 @@ export class MapPalettePanel {
 
     const url = options.rawUrlResolver(selectedTileset.sourceAssetId);
     if (!url) {
-      this.root.append(createEmptyState("Source missing", "No se pudo resolver el PNG fuente del tileset seleccionado."));
+      this.root.append(
+        createEmptyState(
+          this.translator.t("editor.workspace.map.palette.sourceMissingTitle"),
+          this.translator.t("editor.workspace.map.palette.sourceMissingBody"),
+        ),
+      );
       return;
     }
 

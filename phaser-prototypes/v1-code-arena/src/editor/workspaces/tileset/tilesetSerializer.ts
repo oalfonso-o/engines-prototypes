@@ -5,6 +5,8 @@ import type { GridPreviewCell } from "./tilesetGrid";
 export interface TilesetSerializerInput {
   rawAsset: RawAssetRecord;
   name: string;
+  folderId: string | null;
+  relativePath: string;
   cellWidth: number;
   cellHeight: number;
   offsetX: number;
@@ -17,6 +19,9 @@ export function buildTilesetDefinition(input: TilesetSerializerInput): TilesetDe
   return {
     id: createEditorId(),
     name: input.name,
+    storageRoot: "user",
+    folderId: input.folderId,
+    relativePath: input.relativePath,
     sourceAssetId: input.rawAsset.id,
     cellWidth: input.cellWidth,
     cellHeight: input.cellHeight,

@@ -1,16 +1,73 @@
-import type Phaser from "phaser";
-import { buildUniqueAssetName, validateNonNegativeInteger, validatePositiveInteger, validateRequiredName } from "../../domain/editorValidators";
+import { buildUniqueAssetName } from "../../domain/editorValidators";
 import type { RawAssetRecord, TilesetDefinition } from "../../domain/editorTypes";
 import type { EditorStore } from "../../state/EditorStore";
 import { buildUniformGrid } from "../../shared/geometry";
 import { clearElement, createButton, createElement } from "../../shared/dom";
+import { createTextFieldController } from "../../shared/formControls";
 import { buildTilesetDefinition } from "./tilesetSerializer";
 import { mountTilesetGridPreview } from "./tilesetGrid";
 import type { GridPreviewCell } from "./tilesetGrid";
+import type { EditorTranslator } from "../../i18n/EditorTranslator";
+import { buildRelativeFilePath, joinRelativePath } from "../../storage/pathNaming";
 
 export class TilesetMappingWorkspace {
   private readonly root = createElement("section", "workspace-screen");
-  private game: Phaser.Game | null = null;
+  private readonly emptyStateHost = createElement("div");
+  private readonly header = createElement("div", "workspace-header");
+  private readonly copy = createElement("div", "workspace-copy");
+  private readonly title = createElement("h2", "workspace-title");
+  private readonly subtitle = createElement("p", "workspace-subtitle");
+  private readonly overflowBadge = createElement("span", "status-badge badge-warning");
+  private readonly body = createElement("div", "workspace-body");
+  private readonly controls = createElement("div", "workspace-sidebar");
+  private readonly previewCard = createElement("div", "workspace-preview-card");
+  private readonly previewHost = createElement("div", "workspace-preview");
+  private readonly nameField = createTextFieldController("", {
+    onChange: (value) => {
+      this.draftName = value;
+      if (!this.readOnly) {
+        this.render();
+      }
+    },
+  });
+  private readonly cellWidthField = createTextFieldController("", {
+    onChange: (value) => {
+      this.cellWidth = value;
+      if (!this.readOnly) {
+        this.render();
+      }
+    },
+  });
+  private readonly cellHeightField = createTextFieldController("", {
+    onChange: (value) => {
+      this.cellHeight = value;
+      if (!this.readOnly) {
+        this.render();
+      }
+    },
+  });
+  private readonly offsetXField = createTextFieldController("", {
+    onChange: (value) => {
+      this.offsetX = value;
+      if (!this.readOnly) {
+        this.render();
+      }
+    },
+  });
+  private readonly offsetYField = createTextFieldController("", {
+    onChange: (value) => {
+      this.offsetY = value;
+      if (!this.readOnly) {
+        this.render();
+      }
+    },
+  });
+  private readonly summary = createElement("p", "workspace-summary");
+  private readonly actionRow = createElement("div", "workspace-button-row");
+  private readonly generateButton = createButton("", "secondary-button");
+  private readonly saveButton = createButton("", "primary-button");
+  private readonly backButton = createButton("", "secondary-button");
+  private destroyPreview: (() => void) | null = null;
   private readonly sourceRawAsset: RawAssetRecord | null;
   private readonly existingTileset: TilesetDefinition | null;
   private readonly imageUrl: string | null;
@@ -26,6 +83,7 @@ export class TilesetMappingWorkspace {
   constructor(
     private readonly container: HTMLElement,
     private readonly store: EditorStore,
+    private readonly translator: EditorTranslator,
     routeId: string,
   ) {
     const asset = this.store.getAssetById(routeId);
@@ -63,6 +121,7 @@ export class TilesetMappingWorkspace {
       this.offsetY = "0";
     }
 
+    this.buildShell();
     this.container.append(this.root);
     this.render();
   }
@@ -72,103 +131,116 @@ export class TilesetMappingWorkspace {
     clearElement(this.container);
   }
 
+  private buildShell(): void {
+    this.copy.append(this.title, this.subtitle);
+    this.header.append(this.copy, this.overflowBadge);
+
+    this.generateButton.addEventListener("click", () => {
+      this.generateGrid();
+      this.render();
+    });
+    this.saveButton.addEventListener("click", async () => {
+      const error = this.validate();
+      if (error) {
+        window.alert(error);
+        return;
+      }
+      if (!this.sourceRawAsset) {
+        return;
+      }
+
+      const definition = buildTilesetDefinition({
+        rawAsset: this.sourceRawAsset,
+        name: this.draftName.trim(),
+        folderId: this.sourceRawAsset.folderId,
+        relativePath: joinRelativePath(
+          this.store.getFolderById(this.sourceRawAsset.folderId ?? "")?.relativePath ?? "",
+          buildRelativeFilePath(this.draftName.trim(), ".json"),
+        ),
+        cellWidth: Number.parseInt(this.cellWidth, 10),
+        cellHeight: Number.parseInt(this.cellHeight, 10),
+        offsetX: Number.parseInt(this.offsetX, 10),
+        offsetY: Number.parseInt(this.offsetY, 10),
+        cells: this.cells,
+      });
+      await this.store.saveTileset(definition);
+      this.store.setLibraryTab("game");
+      this.store.selectAsset(definition.id);
+      this.store.navigate({ kind: "tileset", id: definition.id });
+    });
+    this.backButton.addEventListener("click", () => this.store.navigate({ kind: "library" }));
+
+    this.actionRow.append(this.generateButton, this.saveButton, this.backButton);
+    this.controls.append(
+      this.nameField.field,
+      this.cellWidthField.field,
+      this.cellHeightField.field,
+      this.offsetXField.field,
+      this.offsetYField.field,
+      this.summary,
+      this.actionRow,
+    );
+
+    this.previewCard.append(this.previewHost);
+    this.body.append(this.controls, this.previewCard);
+    this.root.append(this.emptyStateHost, this.header, this.body);
+  }
+
   private render(): void {
     this.destroyGame();
-    clearElement(this.root);
 
     if (!this.sourceRawAsset) {
-      this.root.append(createMessageCard("Tileset no disponible", "Abre un raw asset de tipo tileset o un tileset guardado."));
+      this.header.hidden = true;
+      this.body.hidden = true;
+      clearElement(this.emptyStateHost);
+      this.emptyStateHost.append(
+        createMessageCard(
+          this.translator.t("editor.workspace.tileset.unavailableTitle"),
+          this.translator.t("editor.workspace.tileset.unavailableBody"),
+        ),
+      );
       return;
     }
 
-    const header = createElement("div", "workspace-header");
-    const copy = createElement("div", "workspace-copy");
-    copy.append(
-      createElement("h2", "workspace-title", this.readOnly ? this.existingTileset?.name ?? "Tileset" : "Create tileset mapping"),
-      createElement(
-        "p",
-        "workspace-subtitle",
-        this.readOnly
-          ? `Read only. ${this.cells.length} tiles guardados desde ${this.sourceRawAsset.name}.`
-          : `PNG source: ${this.sourceRawAsset.name}. Haz click en una celda para activarla o desactivarla.`,
-      ),
-    );
-    header.append(copy);
-    if (this.hasOverflow && !this.readOnly) {
-      header.append(createElement("span", "status-badge badge-warning", "Overflow ignored"));
-    }
+    clearElement(this.emptyStateHost);
+    this.header.hidden = false;
+    this.body.hidden = false;
+    this.overflowBadge.textContent = this.translator.t("editor.workspace.tileset.overflowIgnored");
+    this.nameField.label.textContent = this.translator.t("editor.workspace.tileset.labels.name");
+    this.cellWidthField.label.textContent = this.translator.t("editor.workspace.tileset.labels.cellWidth");
+    this.cellHeightField.label.textContent = this.translator.t("editor.workspace.tileset.labels.cellHeight");
+    this.offsetXField.label.textContent = this.translator.t("editor.workspace.tileset.labels.offsetX");
+    this.offsetYField.label.textContent = this.translator.t("editor.workspace.tileset.labels.offsetY");
+    this.generateButton.textContent = this.translator.t("editor.workspace.tileset.generateGrid");
+    this.saveButton.textContent = this.translator.t("editor.workspace.tileset.save");
+    this.backButton.textContent = this.translator.t("editor.common.backToLibrary");
+    this.title.textContent = this.readOnly
+      ? this.existingTileset?.name ?? this.translator.t("editor.workspace.tileset.titleReadOnly")
+      : this.translator.t("editor.workspace.tileset.titleCreate");
+    this.subtitle.textContent = this.readOnly
+      ? this.translator.t("editor.workspace.tileset.subtitleReadOnly", {
+        count: this.cells.length,
+        name: this.sourceRawAsset.name,
+      })
+      : this.translator.t("editor.workspace.tileset.subtitleCreate", { name: this.sourceRawAsset.name });
+    this.overflowBadge.hidden = !this.hasOverflow || this.readOnly;
+    this.nameField.sync(this.draftName, this.readOnly);
+    this.cellWidthField.sync(this.cellWidth, this.readOnly);
+    this.cellHeightField.sync(this.cellHeight, this.readOnly);
+    this.offsetXField.sync(this.offsetX, this.readOnly);
+    this.offsetYField.sync(this.offsetY, this.readOnly);
+    this.summary.textContent = this.translator.t("editor.workspace.tileset.activeTiles", {
+      count: this.cells.filter((cell) => cell.active).length,
+    });
+    this.generateButton.hidden = this.readOnly;
+    this.saveButton.hidden = this.readOnly;
+    this.backButton.hidden = !this.readOnly;
 
-    const body = createElement("div", "workspace-body");
-    const controls = createElement("div", "workspace-sidebar");
-    const previewCard = createElement("div", "workspace-preview-card");
-    const previewHost = createElement("div", "workspace-preview");
-    previewCard.append(previewHost);
-
-    controls.append(
-      this.buildTextField("Name", this.draftName, this.readOnly, (value) => {
-        this.draftName = value;
-      }),
-      this.buildTextField("Cell width", this.cellWidth, this.readOnly, (value) => {
-        this.cellWidth = value;
-      }),
-      this.buildTextField("Cell height", this.cellHeight, this.readOnly, (value) => {
-        this.cellHeight = value;
-      }),
-      this.buildTextField("Offset X", this.offsetX, this.readOnly, (value) => {
-        this.offsetX = value;
-      }),
-      this.buildTextField("Offset Y", this.offsetY, this.readOnly, (value) => {
-        this.offsetY = value;
-      }),
-    );
-
-    const summary = createElement("p", "workspace-summary", `${this.cells.filter((cell) => cell.active).length} active tiles`);
-    controls.append(summary);
-
-    if (!this.readOnly) {
-      const generate = createButton("Generate grid", "secondary-button");
-      generate.addEventListener("click", () => {
-        this.generateGrid();
-        this.render();
-      });
-      const save = createButton("Save tileset mapping", "primary-button");
-      save.addEventListener("click", async () => {
-        const error = this.validate();
-        if (error) {
-          window.alert(error);
-          return;
-        }
-        if (!this.sourceRawAsset) {
-          return;
-        }
-
-        const definition = buildTilesetDefinition({
-          rawAsset: this.sourceRawAsset,
-          name: this.draftName.trim(),
-          cellWidth: Number.parseInt(this.cellWidth, 10),
-          cellHeight: Number.parseInt(this.cellHeight, 10),
-          offsetX: Number.parseInt(this.offsetX, 10),
-          offsetY: Number.parseInt(this.offsetY, 10),
-          cells: this.cells,
-        });
-        await this.store.saveTileset(definition);
-        this.store.setLibraryTab("game");
-        this.store.selectAsset(definition.id);
-        this.store.navigate({ kind: "tileset", id: definition.id });
-      });
-      controls.append(generate, save);
-    } else {
-      const openLibrary = createButton("Back to library", "secondary-button");
-      openLibrary.addEventListener("click", () => this.store.navigate({ kind: "library" }));
-      controls.append(openLibrary);
-    }
-
-    body.append(controls, previewCard);
-    this.root.append(header, body);
-
+    clearElement(this.previewCard);
+    this.previewCard.append(this.previewHost);
     if (this.imageUrl) {
-      this.game = mountTilesetGridPreview({
-        container: previewHost,
+      this.destroyPreview = mountTilesetGridPreview({
+        container: this.previewHost,
         imageUrl: this.imageUrl,
         imageWidth: this.sourceRawAsset.width,
         imageHeight: this.sourceRawAsset.height,
@@ -186,30 +258,13 @@ export class TilesetMappingWorkspace {
         },
       });
     } else {
-      previewCard.append(createMessageCard("Sin preview", "No se pudo resolver el PNG fuente de este tileset."));
+      this.previewCard.append(
+        createMessageCard(
+          this.translator.t("editor.workspace.tileset.noPreviewTitle"),
+          this.translator.t("editor.workspace.tileset.noPreviewBody"),
+        ),
+      );
     }
-  }
-
-  private buildTextField(
-    label: string,
-    value: string,
-    disabled: boolean,
-    onChange: (value: string) => void,
-  ): HTMLElement {
-    const field = createElement("label", "form-field");
-    field.append(createElement("span", "form-label", label));
-    const input = createElement("input", "text-input") as HTMLInputElement;
-    input.type = "text";
-    input.value = value;
-    input.disabled = disabled;
-    input.addEventListener("change", () => {
-      onChange(input.value);
-      if (!this.readOnly) {
-        this.render();
-      }
-    });
-    field.append(input);
-    return field;
   }
 
   private generateGrid(): void {
@@ -251,41 +306,54 @@ export class TilesetMappingWorkspace {
   }
 
   private validate(): string | null {
-    const nameError = validateRequiredName(this.draftName);
+    const nameError = this.translator.validateRequiredName(this.draftName);
     if (nameError) {
       return nameError;
     }
     if (this.store.isAssetNameTaken(this.draftName.trim())) {
-      return "El nombre del tileset ya existe.";
+      return this.translator.t("editor.validation.duplicateTilesetName");
     }
 
-    const widthError = validatePositiveInteger(this.cellWidth, "Cell width");
+    const widthError = this.translator.validatePositiveInteger(
+      this.cellWidth,
+      this.translator.t("editor.workspace.tileset.labels.cellWidth"),
+    );
     if (widthError) {
       return widthError;
     }
-    const heightError = validatePositiveInteger(this.cellHeight, "Cell height");
+    const heightError = this.translator.validatePositiveInteger(
+      this.cellHeight,
+      this.translator.t("editor.workspace.tileset.labels.cellHeight"),
+    );
     if (heightError) {
       return heightError;
     }
-    const offsetXError = validateNonNegativeInteger(this.offsetX, "Offset X");
+    const offsetXError = this.translator.validateNonNegativeInteger(
+      this.offsetX,
+      this.translator.t("editor.workspace.tileset.labels.offsetX"),
+    );
     if (offsetXError) {
       return offsetXError;
     }
-    const offsetYError = validateNonNegativeInteger(this.offsetY, "Offset Y");
+    const offsetYError = this.translator.validateNonNegativeInteger(
+      this.offsetY,
+      this.translator.t("editor.workspace.tileset.labels.offsetY"),
+    );
     if (offsetYError) {
       return offsetYError;
     }
     if (this.cells.filter((cell) => cell.active).length === 0) {
-      return "Debe quedar al menos una celda activa.";
+      return this.translator.t("editor.validation.atLeastOneActiveCell");
     }
     return null;
   }
 
   private destroyGame(): void {
-    if (this.game) {
-      this.game.destroy(true);
-      this.game = null;
+    if (this.destroyPreview) {
+      this.destroyPreview();
+      this.destroyPreview = null;
     }
+    clearElement(this.previewHost);
   }
 }
 

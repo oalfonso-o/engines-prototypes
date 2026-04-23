@@ -1,0 +1,37 @@
+{
+  "id": "core:spritesheet:shinobi-hurt",
+  "name": "Shinobi Hurt Sheet",
+  "storageRoot": "core",
+  "folderId": "folder:core:characters:shinobi:sprite-sheets",
+  "relativePath": "characters/shinobi/sprite-sheets/shinobi-hurt.json",
+  "sourceAssetId": "core:raw:shinobi:hurt",
+  "cellWidth": 128,
+  "cellHeight": 128,
+  "offsetX": 0,
+  "offsetY": 0,
+  "frames": [
+    {
+      "id": "frame-0",
+      "rect": {
+        "x": 0,
+        "y": 0,
+        "width": 128,
+        "height": 128
+      },
+      "label": null
+    },
+    {
+      "id": "frame-1",
+      "rect": {
+        "x": 128,
+        "y": 0,
+        "width": 128,
+        "height": 128
+      },
+      "label": null
+    }
+  ],
+  "archivedAt": null,
+  "createdAt": "2026-04-23T07:28:07.871Z",
+  "updatedAt": "2026-04-23T07:28:07.871Z"
+}

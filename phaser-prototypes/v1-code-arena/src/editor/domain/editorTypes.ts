@@ -1,6 +1,7 @@
-export type RawAssetKind = "tileset-source" | "spritesheet-source";
+export type RawAssetKind = "tileset-source" | "spritesheet-source" | "image-source";
+export type StorageRoot = "core" | "user" | "archived";
 
-export type DerivedAssetType = "tileset" | "spritesheet" | "animation" | "character" | "map";
+export type DerivedAssetType = "tileset" | "spritesheet" | "animation" | "character" | "map" | "level";
 export type AssetEntityType = "raw-asset" | DerivedAssetType;
 export type AssetStatus = "active" | "archived" | "uses-archived-dependencies" | "missing-dependencies";
 export type DependencyStatus = "active" | "archived" | "missing";
@@ -13,6 +14,9 @@ export type RunSideFacing = "left" | "right";
 export interface AssetBaseRecord {
   id: string;
   name: string;
+  storageRoot: StorageRoot;
+  folderId: string | null;
+  relativePath: string;
   archivedAt: string | null;
   createdAt: string;
   updatedAt: string;
@@ -25,12 +29,25 @@ export interface RawAssetRecord extends AssetBaseRecord {
   height: number;
   sizeBytes: number;
   sourceKind: RawAssetKind;
-  blobKey: string;
+  storageMode: "disk" | "blob";
+  blobKey: string | null;
 }
 
 export interface RawAssetBlobRecord {
   id: string;
   blob: Blob;
+}
+
+export interface FolderRecord {
+  id: string;
+  name: string;
+  slug: string;
+  storageRoot: StorageRoot;
+  parentFolderId: string | null;
+  relativePath: string;
+  createdAt: string;
+  updatedAt: string;
+  system: boolean;
 }
 
 export interface Rect {
@@ -107,15 +124,44 @@ export interface MapDefinition extends AssetBaseRecord {
   collisionCells: CollisionCellRecord[];
 }
 
+export interface LevelPlacementRecord {
+  id: string;
+  type: "coin";
+  assetId?: string | null;
+  x: number;
+  y: number;
+}
+
+export interface LevelCompositionRecord {
+  id: string;
+  name: string;
+  storageRoot: StorageRoot;
+  folderId: string | null;
+  relativePath: string;
+  archivedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  mapId: string;
+  playerCharacterId: string;
+  spawnX: number;
+  spawnY: number;
+  groundSegments: Array<{ start: number; end: number; top: number; height: number }>;
+  floatingPlatforms: Array<{ start: number; end: number; y: number }>;
+  waterStrips: Array<{ start: number; end: number; top: number; rows: number }>;
+  placements: LevelPlacementRecord[];
+}
+
 export type EditorEntityRecord =
   | RawAssetRecord
   | TilesetDefinition
   | SpriteSheetDefinition
   | AnimationDefinition
   | CharacterDefinition
-  | MapDefinition;
+  | MapDefinition
+  | LevelCompositionRecord;
 
 export interface EditorSnapshot {
+  folders: FolderRecord[];
   rawAssets: RawAssetRecord[];
   rawAssetBlobs: RawAssetBlobRecord[];
   tilesets: TilesetDefinition[];
@@ -123,6 +169,7 @@ export interface EditorSnapshot {
   animations: AnimationDefinition[];
   characters: CharacterDefinition[];
   maps: MapDefinition[];
+  levelCompositions: LevelCompositionRecord[];
 }
 
 export interface AssetSummary {
@@ -156,6 +203,7 @@ export interface EditorState {
   libraryTab: LibraryTab;
   detailTab: DetailTab;
   selectedAssetId: string | null;
+  selectedFolderId: string | null;
   importModalOpen: boolean;
 }
 
@@ -163,6 +211,7 @@ export interface ImportDraft {
   file: File | null;
   name: string;
   sourceKind: RawAssetKind | null;
+  destinationFolderId: string | null;
   error: string | null;
 }
 

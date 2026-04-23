@@ -1,0 +1,617 @@
+{
+  "id": "core:tileset:swamp-main",
+  "name": "Swamp Main Tileset",
+  "storageRoot": "core",
+  "folderId": "folder:core:worlds:swamp:tilesets",
+  "relativePath": "worlds/swamp/tilesets/swamp-main.json",
+  "sourceAssetId": "core:raw:swamp:tileset",
+  "cellWidth": 32,
+  "cellHeight": 32,
+  "offsetX": 0,
+  "offsetY": 0,
+  "tiles": [
+    {
+      "id": "tile-0",
+      "rect": {
+        "x": 0,
+        "y": 0,
+        "width": 32,
+        "height": 32
+      },
+      "label": null
+    },
+    {
+      "id": "tile-1",
+      "rect": {
+        "x": 32,
+        "y": 0,
+        "width": 32,
+        "height": 32
+      },
+      "label": null
+    },
+    {
+      "id": "tile-2",
+      "rect": {
+        "x": 64,
+        "y": 0,
+        "width": 32,
+        "height": 32
+      },
+      "label": null
+    },
+    {
+      "id": "tile-3",
+      "rect": {
+        "x": 96,
+        "y": 0,
+        "width": 32,
+        "height": 32
+      },
+      "label": null
+    },
+    {
+      "id": "tile-4",
+      "rect": {
+        "x": 128,
+        "y": 0,
+        "width": 32,
+        "height": 32
+      },
+      "label": null
+    },
+    {
+      "id": "tile-5",
+      "rect": {
+        "x": 160,
+        "y": 0,
+        "width": 32,
+        "height": 32
+      },
+      "label": null
+    },
+    {
+      "id": "tile-6",
+      "rect": {
+        "x": 192,
+        "y": 0,
+        "width": 32,
+        "height": 32
+      },
+      "label": null
+    },
+    {
+      "id": "tile-7",
+      "rect": {
+        "x": 224,
+        "y": 0,
+        "width": 32,
+        "height": 32
+      },
+      "label": null
+    },
+    {
+      "id": "tile-8",
+      "rect": {
+        "x": 256,
+        "y": 0,
+        "width": 32,
+        "height": 32
+      },
+      "label": null
+    },
+    {
+      "id": "tile-9",
+      "rect": {
+        "x": 288,
+        "y": 0,
+        "width": 32,
+        "height": 32
+      },
+      "label": null
+    },
+    {
+      "id": "tile-10",
+      "rect": {
+        "x": 0,
+        "y": 32,
+        "width": 32,
+        "height": 32
+      },
+      "label": null
+    },
+    {
+      "id": "tile-11",
+      "rect": {
+        "x": 32,
+        "y": 32,
+        "width": 32,
+        "height": 32
+      },
+      "label": null
+    },
+    {
+      "id": "tile-12",
+      "rect": {
+        "x": 64,
+        "y": 32,
+        "width": 32,
+        "height": 32
+      },
+      "label": null
+    },
+    {
+      "id": "tile-13",
+      "rect": {
+        "x": 96,
+        "y": 32,
+        "width": 32,
+        "height": 32
+      },
+      "label": null
+    },
+    {
+      "id": "tile-14",
+      "rect": {
+        "x": 128,
+        "y": 32,
+        "width": 32,
+        "height": 32
+      },
+      "label": null
+    },
+    {
+      "id": "tile-15",
+      "rect": {
+        "x": 160,
+        "y": 32,
+        "width": 32,
+        "height": 32
+      },
+      "label": null
+    },
+    {
+      "id": "tile-16",
+      "rect": {
+        "x": 192,
+        "y": 32,
+        "width": 32,
+        "height": 32
+      },
+      "label": null
+    },
+    {
+      "id": "tile-17",
+      "rect": {
+        "x": 224,
+        "y": 32,
+        "width": 32,
+        "height": 32
+      },
+      "label": null
+    },
+    {
+      "id": "tile-18",
+      "rect": {
+        "x": 256,
+        "y": 32,
+        "width": 32,
+        "height": 32
+      },
+      "label": null
+    },
+    {
+      "id": "tile-19",
+      "rect": {
+        "x": 288,
+        "y": 32,
+        "width": 32,
+        "height": 32
+      },
+      "label": null
+    },
+    {
+      "id": "tile-20",
+      "rect": {
+        "x": 0,
+        "y": 64,
+        "width": 32,
+        "height": 32
+      },
+      "label": null
+    },
+    {
+      "id": "tile-21",
+      "rect": {
+        "x": 32,
+        "y": 64,
+        "width": 32,
+        "height": 32
+      },
+      "label": null
+    },
+    {
+      "id": "tile-22",
+      "rect": {
+        "x": 64,
+        "y": 64,
+        "width": 32,
+        "height": 32
+      },
+      "label": null
+    },
+    {
+      "id": "tile-23",
+      "rect": {
+        "x": 96,
+        "y": 64,
+        "width": 32,
+        "height": 32
+      },
+      "label": null
+    },
+    {
+      "id": "tile-24",
+      "rect": {
+        "x": 128,
+        "y": 64,
+        "width": 32,
+        "height": 32
+      },
+      "label": null
+    },
+    {
+      "id": "tile-25",
+      "rect": {
+        "x": 160,
+        "y": 64,
+        "width": 32,
+        "height": 32
+      },
+      "label": null
+    },
+    {
+      "id": "tile-26",
+      "rect": {
+        "x": 192,
+        "y": 64,
+        "width": 32,
+        "height": 32
+      },
+      "label": null
+    },
+    {
+      "id": "tile-27",
+      "rect": {
+        "x": 224,
+        "y": 64,
+        "width": 32,
+        "height": 32
+      },
+      "label": null
+    },
+    {
+      "id": "tile-28",
+      "rect": {
+        "x": 256,
+        "y": 64,
+        "width": 32,
+        "height": 32
+      },
+      "label": null
+    },
+    {
+      "id": "tile-29",
+      "rect": {
+        "x": 288,
+        "y": 64,
+        "width": 32,
+        "height": 32
+      },
+      "label": null
+    },
+    {
+      "id": "tile-30",
+      "rect": {
+        "x": 0,
+        "y": 96,
+        "width": 32,
+        "height": 32
+      },
+      "label": null
+    },
+    {
+      "id": "tile-31",
+      "rect": {
+        "x": 32,
+        "y": 96,
+        "width": 32,
+        "height": 32
+      },
+      "label": null
+    },
+    {
+      "id": "tile-32",
+      "rect": {
+        "x": 64,
+        "y": 96,
+        "width": 32,
+        "height": 32
+      },
+      "label": null
+    },
+    {
+      "id": "tile-33",
+      "rect": {
+        "x": 96,
+        "y": 96,
+        "width": 32,
+        "height": 32
+      },
+      "label": null
+    },
+    {
+      "id": "tile-34",
+      "rect": {
+        "x": 128,
+        "y": 96,
+        "width": 32,
+        "height": 32
+      },
+      "label": null
+    },
+    {
+      "id": "tile-35",
+      "rect": {
+        "x": 160,
+        "y": 96,
+        "width": 32,
+        "height": 32
+      },
+      "label": null
+    },
+    {
+      "id": "tile-36",
+      "rect": {
+        "x": 192,
+        "y": 96,
+        "width": 32,
+        "height": 32
+      },
+      "label": null
+    },
+    {
+      "id": "tile-37",
+      "rect": {
+        "x": 224,
+        "y": 96,
+        "width": 32,
+        "height": 32
+      },
+      "label": null
+    },
+    {
+      "id": "tile-38",
+      "rect": {
+        "x": 256,
+        "y": 96,
+        "width": 32,
+        "height": 32
+      },
+      "label": null
+    },
+    {
+      "id": "tile-39",
+      "rect": {
+        "x": 288,
+        "y": 96,
+        "width": 32,
+        "height": 32
+      },
+      "label": null
+    },
+    {
+      "id": "tile-40",
+      "rect": {
+        "x": 0,
+        "y": 128,
+        "width": 32,
+        "height": 32
+      },
+      "label": null
+    },
+    {
+      "id": "tile-41",
+      "rect": {
+        "x": 32,
+        "y": 128,
+        "width": 32,
+        "height": 32
+      },
+      "label": null
+    },
+    {
+      "id": "tile-42",
+      "rect": {
+        "x": 64,
+        "y": 128,
+        "width": 32,
+        "height": 32
+      },
+      "label": null
+    },
+    {
+      "id": "tile-43",
+      "rect": {
+        "x": 96,
+        "y": 128,
+        "width": 32,
+        "height": 32
+      },
+      "label": null
+    },
+    {
+      "id": "tile-44",
+      "rect": {
+        "x": 128,
+        "y": 128,
+        "width": 32,
+        "height": 32
+      },
+      "label": null
+    },
+    {
+      "id": "tile-45",
+      "rect": {
+        "x": 160,
+        "y": 128,
+        "width": 32,
+        "height": 32
+      },
+      "label": null
+    },
+    {
+      "id": "tile-46",
+      "rect": {
+        "x": 192,
+        "y": 128,
+        "width": 32,
+        "height": 32
+      },
+      "label": null
+    },
+    {
+      "id": "tile-47",
+      "rect": {
+        "x": 224,
+        "y": 128,
+        "width": 32,
+        "height": 32
+      },
+      "label": null
+    },
+    {
+      "id": "tile-48",
+      "rect": {
+        "x": 256,
+        "y": 128,
+        "width": 32,
+        "height": 32
+      },
+      "label": null
+    },
+    {
+      "id": "tile-49",
+      "rect": {
+        "x": 288,
+        "y": 128,
+        "width": 32,
+        "height": 32
+      },
+      "label": null
+    },
+    {
+      "id": "tile-50",
+      "rect": {
+        "x": 0,
+        "y": 160,
+        "width": 32,
+        "height": 32
+      },
+      "label": null
+    },
+    {
+      "id": "tile-51",
+      "rect": {
+        "x": 32,
+        "y": 160,
+        "width": 32,
+        "height": 32
+      },
+      "label": null
+    },
+    {
+      "id": "tile-52",
+      "rect": {
+        "x": 64,
+        "y": 160,
+        "width": 32,
+        "height": 32
+      },
+      "label": null
+    },
+    {
+      "id": "tile-53",
+      "rect": {
+        "x": 96,
+        "y": 160,
+        "width": 32,
+        "height": 32
+      },
+      "label": null
+    },
+    {
+      "id": "tile-54",
+      "rect": {
+        "x": 128,
+        "y": 160,
+        "width": 32,
+        "height": 32
+      },
+      "label": null
+    },
+    {
+      "id": "tile-55",
+      "rect": {
+        "x": 160,
+        "y": 160,
+        "width": 32,
+        "height": 32
+      },
+      "label": null
+    },
+    {
+      "id": "tile-56",
+      "rect": {
+        "x": 192,
+        "y": 160,
+        "width": 32,
+        "height": 32
+      },
+      "label": null
+    },
+    {
+      "id": "tile-57",
+      "rect": {
+        "x": 224,
+        "y": 160,
+        "width": 32,
+        "height": 32
+      },
+      "label": null
+    },
+    {
+      "id": "tile-58",
+      "rect": {
+        "x": 256,
+        "y": 160,
+        "width": 32,
+        "height": 32
+      },
+      "label": null
+    },
+    {
+      "id": "tile-59",
+      "rect": {
+        "x": 288,
+        "y": 160,
+        "width": 32,
+        "height": 32
+      },
+      "label": null
+    }
+  ],
+  "archivedAt": null,
+  "createdAt": "2026-04-23T07:28:07.871Z",
+  "updatedAt": "2026-04-23T07:28:07.871Z"
+}

@@ -1,42 +1,61 @@
 import Phaser from "phaser";
 import type { ColliderSystem } from "../colliders/createColliderSystem";
-import {
-  FLOATING_PLATFORMS,
-  GROUND_SEGMENTS,
-  TILE_FRAME,
-  TILE_SIZE,
-  WATER_STRIPS,
-} from "./levelData";
+import { TILE_FRAME } from "./levelData";
+import type { FloatingPlatform, GroundSegment, PrototypeSettings, WaterStrip } from "../../settings/prototypeSettings";
+import type { RuntimeCampaignContent } from "../content/runtimeContent";
 
 export interface BuiltLevel {
   solidBodies: Phaser.Physics.Arcade.StaticGroup;
+  oneWayPlatforms: Phaser.Physics.Arcade.StaticGroup;
+  destroy(): void;
 }
 
-export function buildLevel(scene: Phaser.Scene, colliders: ColliderSystem): BuiltLevel {
+export function buildLevel(
+  scene: Phaser.Scene,
+  colliders: ColliderSystem,
+  settings: PrototypeSettings,
+  levelSource?: Pick<RuntimeCampaignContent, "groundSegments" | "floatingPlatforms" | "waterStrips">,
+): BuiltLevel {
   const solidBodies = scene.physics.add.staticGroup();
+  const oneWayPlatforms = scene.physics.add.staticGroup();
   const tileLayer = scene.add.layer();
+  const tileSize = settings.world.tile_size;
+  const layout = levelSource ?? {
+    groundSegments: settings.level.ground_segments,
+    floatingPlatforms: settings.level.floating_platforms,
+    waterStrips: settings.level.water_strips,
+  };
 
-  GROUND_SEGMENTS.forEach((segment) => {
-    renderGroundSegment(scene, tileLayer, segment);
-    createSolidCollider(solidBodies, colliders, segment.start, segment.end, segment.top, segment.height);
+  layout.groundSegments.forEach((segment) => {
+    renderGroundSegment(scene, tileLayer, segment, tileSize);
+    createSolidCollider(solidBodies, colliders, segment.start, segment.end, segment.top, segment.height, tileSize);
   });
 
-  FLOATING_PLATFORMS.forEach((segment) => {
-    renderFloatingPlatform(scene, tileLayer, segment);
-    createPlatformCollider(solidBodies, colliders, segment.start, segment.end, segment.y);
+  layout.floatingPlatforms.forEach((segment) => {
+    renderFloatingPlatform(scene, tileLayer, segment, tileSize);
+    createPlatformCollider(oneWayPlatforms, colliders, settings, segment.start, segment.end, segment.y, tileSize);
   });
 
-  WATER_STRIPS.forEach((strip) => {
-    renderWater(scene, tileLayer, strip);
+  layout.waterStrips.forEach((strip) => {
+    renderWater(scene, tileLayer, strip, tileSize);
   });
 
-  return { solidBodies };
+  return {
+    solidBodies,
+    oneWayPlatforms,
+    destroy(): void {
+      tileLayer.destroy(true);
+      solidBodies.destroy(true);
+      oneWayPlatforms.destroy(true);
+    },
+  };
 }
 
 function renderGroundSegment(
   scene: Phaser.Scene,
   tileLayer: Phaser.GameObjects.Layer,
-  segment: (typeof GROUND_SEGMENTS)[number],
+  segment: GroundSegment,
+  tileSize: number,
 ): void {
   for (let x = segment.start; x <= segment.end; x += 1) {
     const topFrame = x === segment.start
@@ -44,7 +63,7 @@ function renderGroundSegment(
       : x === segment.end
         ? TILE_FRAME.groundRight
         : TILE_FRAME.groundMid;
-    addTile(scene, tileLayer, x, segment.top, topFrame);
+    addTile(scene, tileLayer, x, segment.top, topFrame, tileSize);
 
     for (let row = 1; row < segment.height; row += 1) {
       const fillFrame = x === segment.start
@@ -52,7 +71,7 @@ function renderGroundSegment(
         : x === segment.end
           ? TILE_FRAME.fillRight
           : TILE_FRAME.fillMid;
-      addTile(scene, tileLayer, x, segment.top + row, fillFrame);
+      addTile(scene, tileLayer, x, segment.top + row, fillFrame, tileSize);
     }
   }
 }
@@ -60,7 +79,8 @@ function renderGroundSegment(
 function renderFloatingPlatform(
   scene: Phaser.Scene,
   tileLayer: Phaser.GameObjects.Layer,
-  segment: (typeof FLOATING_PLATFORMS)[number],
+  segment: FloatingPlatform,
+  tileSize: number,
 ): void {
   for (let x = segment.start; x <= segment.end; x += 1) {
     const frame = x === segment.start
@@ -68,18 +88,19 @@ function renderFloatingPlatform(
       : x === segment.end
         ? TILE_FRAME.platformRight
         : TILE_FRAME.platformMid;
-    addTile(scene, tileLayer, x, segment.y, frame);
+    addTile(scene, tileLayer, x, segment.y, frame, tileSize);
   }
 }
 
 function renderWater(
   scene: Phaser.Scene,
   tileLayer: Phaser.GameObjects.Layer,
-  strip: (typeof WATER_STRIPS)[number],
+  strip: WaterStrip,
+  tileSize: number,
 ): void {
   for (let x = strip.start; x <= strip.end; x += 1) {
     for (let row = 0; row < strip.rows; row += 1) {
-      addTile(scene, tileLayer, x, strip.top + row, TILE_FRAME.water);
+      addTile(scene, tileLayer, x, strip.top + row, TILE_FRAME.water, tileSize);
     }
   }
 }
@@ -90,10 +111,11 @@ function addTile(
   tileX: number,
   tileY: number,
   frame: number,
+  tileSize: number,
 ): Phaser.GameObjects.Image {
   const image = scene.add.image(
-    (tileX * TILE_SIZE) + (TILE_SIZE * 0.5),
-    (tileY * TILE_SIZE) + (TILE_SIZE * 0.5),
+    (tileX * tileSize) + (tileSize * 0.5),
+    (tileY * tileSize) + (tileSize * 0.5),
     "swamp-tiles",
     frame,
   );
@@ -109,11 +131,12 @@ function createSolidCollider(
   endTileX: number,
   topTileY: number,
   heightInTiles: number,
+  tileSize: number,
 ): void {
-  const width = (endTileX - startTileX + 1) * TILE_SIZE;
-  const height = heightInTiles * TILE_SIZE;
-  const x = (startTileX * TILE_SIZE) + (width * 0.5);
-  const y = (topTileY * TILE_SIZE) + (height * 0.5);
+  const width = (endTileX - startTileX + 1) * tileSize;
+  const height = heightInTiles * tileSize;
+  const x = (startTileX * tileSize) + (width * 0.5);
+  const y = (topTileY * tileSize) + (height * 0.5);
   colliders.createStaticRect({
     type: "floor",
     group: solidBodies,
@@ -125,21 +148,23 @@ function createSolidCollider(
 }
 
 function createPlatformCollider(
-  solidBodies: Phaser.Physics.Arcade.StaticGroup,
+  oneWayPlatforms: Phaser.Physics.Arcade.StaticGroup,
   colliders: ColliderSystem,
+  settings: PrototypeSettings,
   startTileX: number,
   endTileX: number,
   tileY: number,
+  tileSize: number,
 ): void {
-  const width = (endTileX - startTileX + 1) * TILE_SIZE;
-  const x = (startTileX * TILE_SIZE) + (width * 0.5);
-  const y = (tileY * TILE_SIZE) + 7;
+  const width = (endTileX - startTileX + 1) * tileSize;
+  const x = (startTileX * tileSize) + (width * 0.5);
+  const y = (tileY * tileSize) + settings.one_way_platforms.collider_y_offset_px;
   colliders.createStaticRect({
     type: "platform",
-    group: solidBodies,
+    group: oneWayPlatforms,
     x,
     y,
     width,
-    height: 14,
+    height: settings.one_way_platforms.collider_height_px,
   });
 }

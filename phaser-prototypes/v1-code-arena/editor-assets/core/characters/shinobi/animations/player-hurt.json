@@ -1,0 +1,17 @@
+{
+  "id": "core:animation:player-hurt",
+  "name": "Player Hurt",
+  "storageRoot": "core",
+  "folderId": "folder:core:characters:shinobi:animations",
+  "relativePath": "characters/shinobi/animations/player-hurt.json",
+  "spriteSheetId": "core:spritesheet:shinobi-hurt",
+  "frameIds": [
+    "frame-0",
+    "frame-1"
+  ],
+  "frameDurationMs": 120,
+  "loop": false,
+  "archivedAt": null,
+  "createdAt": "2026-04-23T07:28:07.871Z",
+  "updatedAt": "2026-04-23T07:28:07.871Z"
+}

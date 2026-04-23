@@ -1,5 +1,7 @@
 import Phaser from "phaser";
-import { COLLIDER_DEBUG_COLORS, type ColliderType } from "./colliderTypes";
+import type { DebugSettings } from "../../settings/prototypeSettings";
+import { hexColorToNumber } from "../shared/color";
+import type { ColliderType } from "./colliderTypes";
 
 type StaticRect = Phaser.GameObjects.Rectangle & { body: Phaser.Physics.Arcade.StaticBody };
 type ArcadeRectBody = Phaser.Physics.Arcade.Body | Phaser.Physics.Arcade.StaticBody;
@@ -51,10 +53,18 @@ export interface ColliderSystem {
   createStaticRect(config: StaticRectColliderConfig): StaticRect;
   attachDynamicRect(target: DynamicBodyGameObject, config: DynamicRectColliderConfig): Phaser.Physics.Arcade.Body;
   attachDynamicCircle(target: DynamicBodyGameObject, config: DynamicCircleColliderConfig): Phaser.Physics.Arcade.Body;
+  destroy(): void;
 }
 
-export function createColliderSystem(scene: Phaser.Scene, showDebug: boolean): ColliderSystem {
+export function createColliderSystem(scene: Phaser.Scene, debugSettings: DebugSettings): ColliderSystem {
   const trackedColliders: TrackedCollider[] = [];
+  const showDebug = debugSettings.enabled && debugSettings.show_colliders;
+  const debugColors: Record<ColliderType, number> = {
+    floor: hexColorToNumber(debugSettings.collider_colors.floor),
+    platform: hexColorToNumber(debugSettings.collider_colors.platform),
+    player: hexColorToNumber(debugSettings.collider_colors.player),
+    coin: hexColorToNumber(debugSettings.collider_colors.coin),
+  };
   const debugGraphics = showDebug ? scene.add.graphics().setDepth(1000) : null;
   let destroyed = false;
 
@@ -69,7 +79,7 @@ export function createColliderSystem(scene: Phaser.Scene, showDebug: boolean): C
         return;
       }
 
-      debugGraphics.lineStyle(2, COLLIDER_DEBUG_COLORS[collider.type], 1);
+      debugGraphics.lineStyle(2, debugColors[collider.type], 1);
 
       if (collider.shape === "rect") {
         debugGraphics.strokeRect(collider.body.x, collider.body.y, collider.body.width, collider.body.height);
@@ -150,6 +160,10 @@ export function createColliderSystem(scene: Phaser.Scene, showDebug: boolean): C
       }
 
       return body;
+    },
+
+    destroy(): void {
+      teardown();
     },
   };
 }

@@ -1,15 +1,17 @@
 import Phaser from "phaser";
 import { preloadGameAssets, createGameAnimations, createGameTextures } from "../assets/gameAssets";
 import { createColliderSystem } from "../colliders/createColliderSystem";
+import { createOneWayPlatformSystem } from "../colliders/createOneWayPlatformSystem";
 import { CoinField } from "../collectibles/CoinField";
 import { buildLevel } from "../level/buildLevel";
 import { createParallaxBackground, updateParallaxBackground, type BackgroundLayer } from "../level/parallaxBackground";
 import { PlayerController } from "../player/PlayerController";
 import { HudController } from "../ui/HudController";
 import type { PrototypeSettings } from "../../settings/prototypeSettings";
+import { createFallbackAnimations, createFallbackTextures } from "../content/runtimeContent";
 
 export class CodeArenaScene extends Phaser.Scene {
-  private readonly prototypeSettings: PrototypeSettings;
+  private prototypeSettings: PrototypeSettings;
   private backgroundLayers: BackgroundLayer[] = [];
   private coinField!: CoinField;
   private player!: PlayerController;
@@ -21,20 +23,32 @@ export class CodeArenaScene extends Phaser.Scene {
   }
 
   preload(): void {
-    preloadGameAssets(this);
+    preloadGameAssets(this, createFallbackTextures());
   }
 
   create(): void {
     createGameTextures(this);
-    createGameAnimations(this);
-    this.backgroundLayers = createParallaxBackground(this);
+    createGameAnimations(this, createFallbackAnimations());
+    this.backgroundLayers = createParallaxBackground(this, this.prototypeSettings);
 
-    const colliders = createColliderSystem(this, this.prototypeSettings.debug.show_colliders);
-    const level = buildLevel(this, colliders);
-    this.coinField = new CoinField(this, colliders);
-    this.player = new PlayerController(this, this.prototypeSettings.player, level.solidBodies, colliders);
+    const colliders = createColliderSystem(this, this.prototypeSettings.debug);
+    const level = buildLevel(this, colliders, this.prototypeSettings);
+    const oneWayPlatforms = createOneWayPlatformSystem(
+      this,
+      level.oneWayPlatforms,
+      this.prototypeSettings.one_way_platforms,
+    );
+    this.coinField = new CoinField(this, colliders, this.prototypeSettings);
+    this.player = new PlayerController(
+      this,
+      this.prototypeSettings.world,
+      this.prototypeSettings.player,
+      level.solidBodies,
+      colliders,
+      oneWayPlatforms,
+    );
     this.coinField.attachPlayer(this.player.getBody());
-    this.hud = new HudController(this);
+    this.hud = new HudController(this, this.prototypeSettings);
     this.player.configureCamera(this.cameras.main);
     this.hud.update(this.coinField.getCollectedCount(), this.coinField.getTotalCount(), this.coinField.isComplete());
   }

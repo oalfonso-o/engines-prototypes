@@ -1,7 +1,6 @@
-import type Phaser from "phaser";
 import { isAnimation } from "../../domain/assetReferences";
 import { createEditorId } from "../../domain/editorIds";
-import { buildUniqueAssetName, validateRequiredName } from "../../domain/editorValidators";
+import { buildUniqueAssetName } from "../../domain/editorValidators";
 import type {
   AnimationDefinition,
   CharacterDefinition,
@@ -10,13 +9,68 @@ import type {
 } from "../../domain/editorTypes";
 import type { EditorStore } from "../../state/EditorStore";
 import { clearElement, createButton, createElement } from "../../shared/dom";
+import { createSelectFieldController, createTextFieldController } from "../../shared/formControls";
 import { mountAnimationPreview } from "../spritesheet/animationPreview";
+import type { EditorTranslator } from "../../i18n/EditorTranslator";
+import { buildRelativeFilePath, joinRelativePath } from "../../storage/pathNaming";
 
 type PreviewSlot = "idle" | "run_side" | "jump" | "attack";
 
 export class CharacterEditorView {
   private readonly root = createElement("section", "workspace-screen");
-  private game: Phaser.Game | null = null;
+  private readonly emptyStateHost = createElement("div");
+  private readonly header = createElement("div", "workspace-header");
+  private readonly copy = createElement("div", "workspace-copy");
+  private readonly title = createElement("h2", "workspace-title");
+  private readonly subtitle = createElement("p", "workspace-subtitle");
+  private readonly body = createElement("div", "workspace-body");
+  private readonly controls = createElement("div", "workspace-sidebar");
+  private readonly previewCard = createElement("div", "workspace-preview-card");
+  private readonly previewHost = createElement("div", "animation-preview");
+  private readonly nameField = createTextFieldController("", {
+    onChange: (value) => {
+      this.draftName = value;
+      if (!this.readOnly) {
+        this.render();
+      }
+    },
+  });
+  private readonly idleField = createSelectFieldController("", (value) => {
+    this.idleAnimationId = value === "" ? null : value;
+    this.render();
+  });
+  private readonly runSideField = createSelectFieldController("", (value) => {
+    this.runSideAnimationId = value === "" ? null : value;
+    if (!this.runSideAnimationId) {
+      this.runSideFacing = null;
+    }
+    this.render();
+  });
+  private readonly jumpField = createSelectFieldController("", (value) => {
+    this.jumpAnimationId = value === "" ? null : value;
+    this.render();
+  });
+  private readonly attackField = createSelectFieldController("", (value) => {
+    this.attackAnimationId = value === "" ? null : value;
+    this.render();
+  });
+  private readonly facingField = createSelectFieldController("", (value) => {
+    this.runSideFacing = value === "" ? null : value as RunSideFacing;
+    this.render();
+  });
+  private readonly previewButtons = createElement("div", "workspace-button-row");
+  private readonly previewSlotButtons: Record<PreviewSlot, HTMLButtonElement> = {
+    idle: createButton("", "tab-button"),
+    run_side: createButton("", "tab-button"),
+    jump: createButton("", "tab-button"),
+    attack: createButton("", "tab-button"),
+  };
+  private readonly playbackButtons = createElement("div", "workspace-button-row");
+  private readonly previewButton = createButton("", "secondary-button");
+  private readonly pauseButton = createButton("", "secondary-button");
+  private readonly saveButton = createButton("", "primary-button");
+  private readonly backButton = createButton("", "secondary-button");
+  private destroyPreview: (() => void) | null = null;
   private readonly existingCharacter: CharacterDefinition | null;
   private readonly readOnly: boolean;
   private draftName: string;
@@ -31,6 +85,7 @@ export class CharacterEditorView {
   constructor(
     private readonly container: HTMLElement,
     private readonly store: EditorStore,
+    private readonly translator: EditorTranslator,
     routeId: string,
   ) {
     const asset = this.store.getAssetById(routeId);
@@ -63,6 +118,7 @@ export class CharacterEditorView {
       this.attackAnimationId = null;
     }
 
+    this.buildShell();
     this.container.append(this.root);
     this.render();
   }
@@ -72,175 +128,162 @@ export class CharacterEditorView {
     clearElement(this.container);
   }
 
-  private render(): void {
-    this.destroyGame();
-    clearElement(this.root);
+  private buildShell(): void {
+    this.copy.append(this.title, this.subtitle);
+    this.header.append(this.copy);
 
-    if (!this.readOnly && this.getAvailableAnimations().length === 0) {
-      this.root.append(createMessageCard("No animations yet", "Necesitas al menos una animación activa para crear un personaje."));
-      return;
-    }
-
-    const header = createElement("div", "workspace-header");
-    const copy = createElement("div", "workspace-copy");
-    copy.append(
-      createElement("h2", "workspace-title", this.readOnly ? this.existingCharacter?.name ?? "Character" : "Create character"),
-      createElement(
-        "p",
-        "workspace-subtitle",
-        this.readOnly
-          ? "Read only. El preview reproduce la animación asociada a cada slot."
-          : "Idle es obligatorio. Run, Jump y Attack pueden faltar y harán fallback a idle.",
-      ),
-    );
-    header.append(copy);
-
-    const body = createElement("div", "workspace-body");
-    const controls = createElement("div", "workspace-sidebar");
-    const previewCard = createElement("div", "workspace-preview-card");
-    const previewHost = createElement("div", "animation-preview");
-    previewCard.append(previewHost);
-
-    controls.append(
-      buildTextField("Name", this.draftName, this.readOnly, (value) => {
-        this.draftName = value;
-      }, () => this.render()),
-      this.buildAnimationSelect("Idle", this.idleAnimationId, true, (value) => {
-        this.idleAnimationId = value;
-      }),
-      this.buildAnimationSelect("Run side", this.runSideAnimationId, false, (value) => {
-        this.runSideAnimationId = value;
-        if (!value) {
-          this.runSideFacing = null;
-        }
-      }),
-      this.buildAnimationSelect("Jump", this.jumpAnimationId, false, (value) => {
-        this.jumpAnimationId = value;
-      }),
-      this.buildAnimationSelect("Attack", this.attackAnimationId, false, (value) => {
-        this.attackAnimationId = value;
-      }),
-    );
-
-    if (this.runSideAnimationId) {
-      const facingField = createElement("label", "form-field");
-      facingField.append(createElement("span", "form-label", "Run side facing"));
-      const select = createElement("select", "text-input") as HTMLSelectElement;
-      select.disabled = this.readOnly;
-      select.append(new Option("Select one", ""), new Option("left", "left"), new Option("right", "right"));
-      select.value = this.runSideFacing ?? "";
-      select.addEventListener("change", () => {
-        this.runSideFacing = select.value === "" ? null : select.value as RunSideFacing;
-        this.render();
-      });
-      facingField.append(select);
-      controls.append(facingField);
-    }
-
-    const previewButtons = createElement("div", "workspace-button-row");
     (["idle", "run_side", "jump", "attack"] as CharacterSlot[]).forEach((slot) => {
-      const label = slot === "run_side" ? "Run" : slot.charAt(0).toUpperCase() + slot.slice(1);
-      const button = createButton(label, this.previewSlot === slot ? "tab-button is-active" : "tab-button");
-      button.addEventListener("click", () => {
+      this.previewSlotButtons[slot].addEventListener("click", () => {
         this.previewSlot = slot;
         this.render();
       });
-      previewButtons.append(button);
+      this.previewButtons.append(this.previewSlotButtons[slot]);
     });
-    controls.append(previewButtons);
 
-    const playbackButtons = createElement("div", "workspace-button-row");
-    const previewButton = createButton("Preview", "secondary-button");
-    previewButton.addEventListener("click", () => {
+    this.previewButton.addEventListener("click", () => {
       this.playing = true;
       this.render();
     });
-    const pauseButton = createButton("Pause", "secondary-button");
-    pauseButton.addEventListener("click", () => {
+    this.pauseButton.addEventListener("click", () => {
       this.playing = false;
       this.render();
     });
-    playbackButtons.append(previewButton, pauseButton);
-    controls.append(playbackButtons);
+    this.playbackButtons.append(this.previewButton, this.pauseButton);
 
-    if (!this.readOnly) {
-      const save = createButton("Save character", "primary-button");
-      save.addEventListener("click", async () => {
-        const error = this.validate();
-        if (error) {
-          window.alert(error);
-          return;
-        }
-        const now = new Date().toISOString();
-        const definition: CharacterDefinition = {
-          id: createEditorId(),
-          name: this.draftName.trim(),
-          idleAnimationId: this.idleAnimationId!,
-          runSideAnimationId: this.runSideAnimationId,
-          runSideFacing: this.runSideAnimationId ? this.runSideFacing : null,
-          jumpAnimationId: this.jumpAnimationId,
-          attackAnimationId: this.attackAnimationId,
-          archivedAt: null,
-          createdAt: now,
-          updatedAt: now,
-        };
-        await this.store.saveCharacter(definition);
-        this.store.setLibraryTab("game");
-        this.store.selectAsset(definition.id);
-        this.store.navigate({ kind: "character", id: definition.id });
-      });
-      controls.append(save);
-    } else {
-      const openLibrary = createButton("Back to library", "secondary-button");
-      openLibrary.addEventListener("click", () => this.store.navigate({ kind: "library" }));
-      controls.append(openLibrary);
-    }
+    this.saveButton.addEventListener("click", async () => {
+      const error = this.validate();
+      if (error) {
+        window.alert(error);
+        return;
+      }
+      const now = new Date().toISOString();
+      const definition: CharacterDefinition = {
+        id: createEditorId(),
+        name: this.draftName.trim(),
+        storageRoot: "user",
+        folderId: this.store.getAssetById(this.idleAnimationId!)?.folderId ?? null,
+        relativePath: joinRelativePath(
+          this.store.getFolderById(this.store.getAssetById(this.idleAnimationId!)?.folderId ?? "")?.relativePath ?? "",
+          buildRelativeFilePath(this.draftName.trim(), ".json"),
+        ),
+        idleAnimationId: this.idleAnimationId!,
+        runSideAnimationId: this.runSideAnimationId,
+        runSideFacing: this.runSideAnimationId ? this.runSideFacing : null,
+        jumpAnimationId: this.jumpAnimationId,
+        attackAnimationId: this.attackAnimationId,
+        archivedAt: null,
+        createdAt: now,
+        updatedAt: now,
+      };
+      await this.store.saveCharacter(definition);
+      this.store.setLibraryTab("game");
+      this.store.selectAsset(definition.id);
+      this.store.navigate({ kind: "character", id: definition.id });
+    });
+    this.backButton.addEventListener("click", () => this.store.navigate({ kind: "library" }));
 
-    body.append(controls, previewCard);
-    this.root.append(header, body);
+    this.controls.append(
+      this.nameField.field,
+      this.idleField.field,
+      this.runSideField.field,
+      this.jumpField.field,
+      this.attackField.field,
+      this.facingField.field,
+      this.previewButtons,
+      this.playbackButtons,
+      this.saveButton,
+      this.backButton,
+    );
 
-    const playback = this.resolvePreviewAnimation();
-    if (!playback) {
-      previewCard.append(createMessageCard("No preview", "Selecciona una animación idle para poder previsualizar el personaje."));
+    this.previewCard.append(this.previewHost);
+    this.body.append(this.controls, this.previewCard);
+    this.root.append(this.emptyStateHost, this.header, this.body);
+  }
+
+  private render(): void {
+    this.destroyGame();
+
+    if (!this.readOnly && this.getAvailableAnimations().length === 0) {
+      this.header.hidden = true;
+      this.body.hidden = true;
+      clearElement(this.emptyStateHost);
+      this.emptyStateHost.append(
+        createMessageCard(
+          this.translator.t("editor.workspace.character.noAnimationsTitle"),
+          this.translator.t("editor.workspace.character.noAnimationsBody"),
+        ),
+      );
       return;
     }
 
-    this.game = mountAnimationPreview({
-      container: previewHost,
+    clearElement(this.emptyStateHost);
+    this.header.hidden = false;
+    this.body.hidden = false;
+    this.nameField.label.textContent = this.translator.t("editor.workspace.character.labels.name");
+    this.idleField.label.textContent = this.translator.t("editor.workspace.character.labels.idle");
+    this.runSideField.label.textContent = this.translator.t("editor.workspace.character.labels.runSide");
+    this.jumpField.label.textContent = this.translator.t("editor.workspace.character.labels.jump");
+    this.attackField.label.textContent = this.translator.t("editor.workspace.character.labels.attack");
+    this.facingField.label.textContent = this.translator.t("editor.workspace.character.labels.runSideFacing");
+    this.previewSlotButtons.idle.textContent = this.translator.t("editor.workspace.character.previewTabs.idle");
+    this.previewSlotButtons.run_side.textContent = this.translator.t("editor.workspace.character.previewTabs.run");
+    this.previewSlotButtons.jump.textContent = this.translator.t("editor.workspace.character.previewTabs.jump");
+    this.previewSlotButtons.attack.textContent = this.translator.t("editor.workspace.character.previewTabs.attack");
+    this.previewButton.textContent = this.translator.t("editor.workspace.character.preview");
+    this.pauseButton.textContent = this.translator.t("editor.workspace.character.pause");
+    this.saveButton.textContent = this.translator.t("editor.workspace.character.save");
+    this.backButton.textContent = this.translator.t("editor.common.backToLibrary");
+    this.title.textContent = this.readOnly
+      ? this.existingCharacter?.name ?? this.translator.t("editor.workspace.character.titleReadOnly")
+      : this.translator.t("editor.workspace.character.titleCreate");
+    this.subtitle.textContent = this.readOnly
+      ? this.translator.t("editor.workspace.character.subtitleReadOnly")
+      : this.translator.t("editor.workspace.character.subtitleCreate");
+    this.nameField.sync(this.draftName, this.readOnly);
+
+    const animationOptions = this.getAnimationOptions().map((entry) => ({ label: entry.name, value: entry.id }));
+    this.idleField.sync([{ label: this.translator.t("editor.common.selectOne"), value: "" }, ...animationOptions], this.idleAnimationId ?? "", this.readOnly);
+    this.runSideField.sync([{ label: this.translator.t("editor.common.idleFallback"), value: "" }, ...animationOptions], this.runSideAnimationId ?? "", this.readOnly);
+    this.jumpField.sync([{ label: this.translator.t("editor.common.idleFallback"), value: "" }, ...animationOptions], this.jumpAnimationId ?? "", this.readOnly);
+    this.attackField.sync([{ label: this.translator.t("editor.common.idleFallback"), value: "" }, ...animationOptions], this.attackAnimationId ?? "", this.readOnly);
+    this.facingField.sync(
+      [
+        { label: this.translator.t("editor.common.selectOne"), value: "" },
+        { label: this.translator.t("editor.workspace.character.labels.left"), value: "left" },
+        { label: this.translator.t("editor.workspace.character.labels.right"), value: "right" },
+      ],
+      this.runSideFacing ?? "",
+      this.readOnly,
+    );
+    this.facingField.field.hidden = !this.runSideAnimationId;
+
+    (Object.keys(this.previewSlotButtons) as PreviewSlot[]).forEach((slot) => {
+      this.previewSlotButtons[slot].className = this.previewSlot === slot ? "tab-button is-active" : "tab-button";
+    });
+    this.saveButton.hidden = this.readOnly;
+    this.backButton.hidden = !this.readOnly;
+
+    clearElement(this.previewCard);
+    this.previewCard.append(this.previewHost);
+    const playback = this.resolvePreviewAnimation();
+    if (!playback) {
+      this.previewCard.append(
+        createMessageCard(
+          this.translator.t("editor.workspace.character.noPreviewTitle"),
+          this.translator.t("editor.workspace.character.noPreviewBody"),
+        ),
+      );
+      return;
+    }
+
+    this.destroyPreview = mountAnimationPreview({
+      container: this.previewHost,
       imageUrl: playback.imageUrl,
       frames: playback.frames,
       frameDurationMs: playback.animation.frameDurationMs,
       loop: playback.animation.loop,
       playing: this.playing,
     });
-  }
-
-  private buildAnimationSelect(
-    label: string,
-    value: string | null,
-    required: boolean,
-    onChange: (value: string | null) => void,
-  ): HTMLElement {
-    const field = createElement("label", "form-field");
-    field.append(createElement("span", "form-label", label));
-    const select = createElement("select", "text-input") as HTMLSelectElement;
-    select.disabled = this.readOnly;
-    if (!required) {
-      select.append(new Option("Use idle fallback", ""));
-    } else {
-      select.append(new Option("Select one", ""));
-    }
-
-    this.getAnimationOptions().forEach((entry) => {
-      select.append(new Option(entry.name, entry.id));
-    });
-    select.value = value ?? "";
-    select.addEventListener("change", () => {
-      onChange(select.value === "" ? null : select.value);
-      this.render();
-    });
-    field.append(select);
-    return field;
   }
 
   private getAnimationOptions(): AnimationDefinition[] {
@@ -298,51 +341,29 @@ export class CharacterEditorView {
   }
 
   private validate(): string | null {
-    const nameError = validateRequiredName(this.draftName);
+    const nameError = this.translator.validateRequiredName(this.draftName);
     if (nameError) {
       return nameError;
     }
     if (this.store.isAssetNameTaken(this.draftName.trim())) {
-      return "El nombre del personaje ya existe.";
+      return this.translator.t("editor.validation.duplicateCharacterName");
     }
     if (!this.idleAnimationId || !this.store.getAssetById(this.idleAnimationId) || !isAnimation(this.store.getAssetById(this.idleAnimationId)!)) {
-      return "Debes asignar una animación idle válida.";
+      return this.translator.t("editor.validation.validIdleAnimation");
     }
     if (this.runSideAnimationId && !this.runSideFacing) {
-      return "Si hay run side, también debes indicar su facing.";
+      return this.translator.t("editor.validation.runSideFacingRequired");
     }
     return null;
   }
 
   private destroyGame(): void {
-    if (this.game) {
-      this.game.destroy(true);
-      this.game = null;
+    if (this.destroyPreview) {
+      this.destroyPreview();
+      this.destroyPreview = null;
     }
+    clearElement(this.previewHost);
   }
-}
-
-function buildTextField(
-  label: string,
-  value: string,
-  disabled: boolean,
-  onChange: (value: string) => void,
-  onRender: () => void,
-): HTMLElement {
-  const field = createElement("label", "form-field");
-  field.append(createElement("span", "form-label", label));
-  const input = createElement("input", "text-input") as HTMLInputElement;
-  input.type = "text";
-  input.value = value;
-  input.disabled = disabled;
-  input.addEventListener("change", () => {
-    onChange(input.value);
-    if (!disabled) {
-      onRender();
-    }
-  });
-  field.append(input);
-  return field;
 }
 
 function getSlotAnimationId(

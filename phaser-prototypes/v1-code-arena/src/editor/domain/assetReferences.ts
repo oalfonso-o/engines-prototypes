@@ -5,11 +5,13 @@ import type {
   CharacterDefinition,
   EditorEntityRecord,
   EditorSnapshot,
+  LevelCompositionRecord,
   MapDefinition,
   RawAssetRecord,
   SpriteSheetDefinition,
   TilesetDefinition,
 } from "./editorTypes";
+import { CORE_DERIVED_IDS } from "../content/coreDerivedManifest";
 
 interface AssetLookupEntry {
   entityType: AssetEntityType;
@@ -24,6 +26,7 @@ export function getAllAssets(snapshot: EditorSnapshot): EditorEntityRecord[] {
     ...snapshot.animations,
     ...snapshot.characters,
     ...snapshot.maps,
+    ...snapshot.levelCompositions,
   ];
 }
 
@@ -55,6 +58,9 @@ export function getEntityType(asset: EditorEntityRecord): AssetEntityType {
   }
   if (isCharacter(asset)) {
     return "character";
+  }
+  if (isLevelComposition(asset)) {
+    return "level";
   }
 
   return "map";
@@ -123,13 +129,20 @@ export function getSourceRawAssetId(asset: EditorEntityRecord, snapshot: EditorS
     return spritesheet?.sourceAssetId ?? null;
   }
 
-  const firstCell = asset.cells[0];
-  if (!firstCell) {
-    return null;
+  if (isLevelComposition(asset)) {
+    const map = snapshot.maps.find((entry) => entry.id === asset.mapId);
+    if (!map) {
+      return null;
+    }
+
+    return getMapSourceRawAssetId(map, snapshot);
   }
 
-  const tileset = snapshot.tilesets.find((entry) => entry.id === firstCell.tilesetId);
-  return tileset?.sourceAssetId ?? null;
+  if (isMap(asset)) {
+    return getMapSourceRawAssetId(asset, snapshot);
+  }
+
+  return null;
 }
 
 interface DirectReference {
@@ -143,26 +156,34 @@ function getDirectReferences(asset: EditorEntityRecord): DirectReference[] {
   }
 
   if (isTileset(asset) || isSpriteSheet(asset)) {
-    return [{ id: asset.sourceAssetId, fallbackName: "Raw asset missing" }];
+    return [{ id: asset.sourceAssetId, fallbackName: "rawAssetMissing" }];
   }
 
   if (isAnimation(asset)) {
-    return [{ id: asset.spriteSheetId, fallbackName: "Spritesheet missing" }];
+    return [{ id: asset.spriteSheetId, fallbackName: "spritesheetMissing" }];
   }
 
   if (isCharacter(asset)) {
     return compactReferences([
-      buildOptionalReference(asset.idleAnimationId, "Idle animation missing"),
-      buildOptionalReference(asset.runSideAnimationId, "Run animation missing"),
-      buildOptionalReference(asset.jumpAnimationId, "Jump animation missing"),
-      buildOptionalReference(asset.attackAnimationId, "Attack animation missing"),
+      buildOptionalReference(asset.idleAnimationId, "idleAnimationMissing"),
+      buildOptionalReference(asset.runSideAnimationId, "runAnimationMissing"),
+      buildOptionalReference(asset.jumpAnimationId, "jumpAnimationMissing"),
+      buildOptionalReference(asset.attackAnimationId, "attackAnimationMissing"),
     ]);
+  }
+
+  if (isLevelComposition(asset)) {
+    return uniqueReferences(compactReferences([
+      buildOptionalReference(asset.mapId, "missing"),
+      buildOptionalReference(asset.playerCharacterId, "missing"),
+      ...asset.placements.map((placement) => buildOptionalReference(resolvePlacementAssetId(placement), "missing")),
+    ]));
   }
 
   return uniqueReferences(
     asset.cells.map((cell) => ({
       id: cell.tilesetId,
-      fallbackName: "Tileset missing",
+      fallbackName: "tilesetMissing",
     })),
   );
 }
@@ -191,8 +212,29 @@ function uniqueReferences(references: DirectReference[]): DirectReference[] {
   });
 }
 
+function getMapSourceRawAssetId(asset: MapDefinition, snapshot: EditorSnapshot): string | null {
+  const firstCell = asset.cells[0];
+  if (!firstCell) {
+    return null;
+  }
+
+  const tileset = snapshot.tilesets.find((entry) => entry.id === firstCell.tilesetId);
+  return tileset?.sourceAssetId ?? null;
+}
+
+function resolvePlacementAssetId(placement: LevelCompositionRecord["placements"][number]): string | null {
+  if (placement.assetId) {
+    return placement.assetId;
+  }
+
+  switch (placement.type) {
+    case "coin":
+      return CORE_DERIVED_IDS.animationCoinSpin;
+  }
+}
+
 export function isRawAsset(asset: EditorEntityRecord): asset is RawAssetRecord {
-  return "sourceKind" in asset && "blobKey" in asset;
+  return "sourceKind" in asset && "storageMode" in asset;
 }
 
 export function isTileset(asset: EditorEntityRecord): asset is TilesetDefinition {
@@ -217,3 +259,7 @@ export function isMap(asset: EditorEntityRecord): asset is MapDefinition {
 
 const _mapTypeGuardCheck: (asset: EditorEntityRecord) => asset is MapDefinition = isMap;
 void _mapTypeGuardCheck;
+
+export function isLevelComposition(asset: EditorEntityRecord): asset is LevelCompositionRecord {
+  return "placements" in asset && "playerCharacterId" in asset && "mapId" in asset;
+}
