@@ -11,6 +11,7 @@ import type {
   EditorRoute,
   EditorSnapshot,
   EditorState,
+  GameDefinition,
   ImportDraft,
   LibraryTab,
   LevelCompositionRecord,
@@ -475,6 +476,12 @@ export class EditorStore {
   async saveAction(record: ActionDefinition): Promise<void> {
     await this.persistJsonDefinition(record);
     await this.repository.saveAction(record);
+    await this.reload();
+  }
+
+  async saveGame(record: GameDefinition): Promise<void> {
+    await this.persistJsonDefinition(record);
+    await this.repository.saveGame(record);
     await this.reload();
   }
 

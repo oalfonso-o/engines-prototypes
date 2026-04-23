@@ -2,6 +2,7 @@ import {
   isAction,
   isAnimation,
   isCharacter,
+  isGame,
   isLevelComposition,
   isMap,
   isRawAsset,
@@ -73,5 +74,10 @@ export function openAssetSelection(store: EditorStore, assetId: string): void {
 
   if (isAction(asset)) {
     store.navigate({ kind: "action", id: assetId });
+    return;
+  }
+
+  if (isGame(asset)) {
+    store.navigate({ kind: "game", id: assetId });
   }
 }

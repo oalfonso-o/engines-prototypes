@@ -71,6 +71,8 @@ export function parseHash(hash: string): EditorRoute {
       return { kind: "action", id: id ?? "" };
     case "scene":
       return { kind: "scene", id: id ?? "" };
+    case "game":
+      return { kind: "game", id: id ?? "" };
     default:
       return { kind: "library" };
   }

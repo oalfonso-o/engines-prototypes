@@ -25,6 +25,7 @@ export const editor = {
     newLevel: "Nuevo nivel",
     newAction: "Nueva acción",
     newScene: "Nueva escena",
+    game: "Juego",
   },
   properties: {
     panelLabel: "Properties",
@@ -98,6 +99,7 @@ export const editor = {
     level: "Nivel",
     action: "Acción",
     scene: "Escena",
+    game: "Juego",
     missing: "Falta",
   },
   assetTypes: {
@@ -112,6 +114,7 @@ export const editor = {
     level: "Nivel",
     action: "Acción",
     scene: "Escena",
+    game: "Juego",
   },
   statuses: {
     active: "Activo",
@@ -247,6 +250,9 @@ export const editor = {
       pickups: "Pickups",
       layers: "Capas",
       objects: "Objetos",
+      entryScene: "Escena de entrada",
+      defaultPlayer: "Jugador por defecto",
+      flags: "Flags",
       targetScene: "Escena destino",
       entryPoint: "Punto de entrada",
       transitionStyle: "Estilo de transición",
@@ -425,6 +431,21 @@ export const editor = {
         fade: "fundido",
       },
       save: "Guardar acción",
+    },
+    game: {
+      unavailableTitle: "Juego no disponible",
+      unavailableBody: "No se ha podido resolver esta definición de juego desde el estado actual del editor.",
+      entrySceneRequired: "Selecciona una escena de entrada válida.",
+      defaultPlayerRequired: "Selecciona un jugador por defecto válido.",
+      noEntryScene: "Sin escena de entrada",
+      defaultEntry: "Entrada por defecto",
+      labels: {
+        name: "Nombre",
+        entryScene: "Escena de entrada",
+        entryPoint: "Punto de entrada",
+        defaultPlayer: "Jugador por defecto",
+      },
+      save: "Guardar juego",
     },
     scene: {
       unavailableTitle: "Escena no disponible",

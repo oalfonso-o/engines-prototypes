@@ -25,6 +25,7 @@ export const editor = {
     newLevel: "Nivell nou",
     newAction: "Acció nova",
     newScene: "Escena nova",
+    game: "Joc",
   },
   properties: {
     panelLabel: "Properties",
@@ -98,6 +99,7 @@ export const editor = {
     level: "Nivell",
     action: "Acció",
     scene: "Escena",
+    game: "Joc",
     missing: "Falta",
   },
   assetTypes: {
@@ -112,6 +114,7 @@ export const editor = {
     level: "Nivell",
     action: "Acció",
     scene: "Escena",
+    game: "Joc",
   },
   statuses: {
     active: "Actiu",
@@ -247,6 +250,9 @@ export const editor = {
       pickups: "Pickups",
       layers: "Capes",
       objects: "Objectes",
+      entryScene: "Escena d'entrada",
+      defaultPlayer: "Jugador per defecte",
+      flags: "Flags",
       targetScene: "Escena destí",
       entryPoint: "Punt d'entrada",
       transitionStyle: "Estil de transició",
@@ -425,6 +431,21 @@ export const editor = {
         fade: "fos",
       },
       save: "Desa acció",
+    },
+    game: {
+      unavailableTitle: "Joc no disponible",
+      unavailableBody: "No s'ha pogut resoldre aquesta definició de joc des de l'estat actual de l'editor.",
+      entrySceneRequired: "Selecciona una escena d'entrada vàlida.",
+      defaultPlayerRequired: "Selecciona un jugador per defecte vàlid.",
+      noEntryScene: "Sense escena d'entrada",
+      defaultEntry: "Entrada per defecte",
+      labels: {
+        name: "Nom",
+        entryScene: "Escena d'entrada",
+        entryPoint: "Punt d'entrada",
+        defaultPlayer: "Jugador per defecte",
+      },
+      save: "Desa joc",
     },
     scene: {
       unavailableTitle: "Escena no disponible",

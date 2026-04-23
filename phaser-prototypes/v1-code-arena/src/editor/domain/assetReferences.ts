@@ -6,6 +6,7 @@ import type {
   CharacterDefinition,
   EditorEntityRecord,
   EditorSnapshot,
+  GameDefinition,
   LevelCompositionRecord,
   MapDefinition,
   RawAssetRecord,
@@ -30,6 +31,7 @@ export function getAllAssets(snapshot: EditorSnapshot): EditorEntityRecord[] {
     ...snapshot.maps,
     ...snapshot.levelCompositions,
     ...snapshot.scenes,
+    ...snapshot.games,
     ...snapshot.actions,
   ];
 }
@@ -68,6 +70,9 @@ export function getEntityType(asset: EditorEntityRecord): AssetEntityType {
   }
   if (isAction(asset)) {
     return "action";
+  }
+  if (isGame(asset)) {
+    return "game";
   }
   if (isScene(asset)) {
     return "scene";
@@ -171,6 +176,15 @@ export function getSourceRawAssetId(asset: EditorEntityRecord, snapshot: EditorS
     return tileset?.sourceAssetId ?? null;
   }
 
+  if (isGame(asset)) {
+    const entryScene = snapshot.scenes.find((entry) => entry.id === asset.entrySceneId);
+    if (!entryScene) {
+      return null;
+    }
+
+    return getSourceRawAssetId(entryScene, snapshot);
+  }
+
   if (isAction(asset) && asset.kind === "scene-transition") {
     const targetScene = snapshot.scenes.find((entry) => entry.id === asset.targetSceneId);
     if (!targetScene) {
@@ -249,6 +263,13 @@ function getDirectReferences(asset: EditorEntityRecord): DirectReference[] {
     return uniqueReferences(compactReferences([
       buildOptionalReference(asset.defaultPlayerCharacterId, "missing"),
       ...layerReferences,
+    ]));
+  }
+
+  if (isGame(asset)) {
+    return uniqueReferences(compactReferences([
+      buildOptionalReference(asset.entrySceneId, "missing"),
+      buildOptionalReference(asset.defaultPlayerCharacterId, "missing"),
     ]));
   }
 
@@ -354,6 +375,10 @@ export function isLevelComposition(asset: EditorEntityRecord): asset is LevelCom
 
 export function isScene(asset: EditorEntityRecord): asset is SceneDefinition {
   return "layers" in asset && "defaultPlayerCharacterId" in asset;
+}
+
+export function isGame(asset: EditorEntityRecord): asset is GameDefinition {
+  return "entrySceneId" in asset && "initialFlags" in asset;
 }
 
 export function isAction(asset: EditorEntityRecord): asset is ActionDefinition {

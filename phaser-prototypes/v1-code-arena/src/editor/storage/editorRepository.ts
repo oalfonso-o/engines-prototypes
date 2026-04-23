@@ -202,6 +202,10 @@ export class EditorRepository {
       await this.db.put("scenes", record);
       return;
     }
+    if ("entrySceneId" in record && "initialFlags" in record) {
+      await this.db.put("games", record);
+      return;
+    }
     if ("kind" in record && !("layers" in record) && !("cells" in record)) {
       await this.db.put("actions", record);
       return;

@@ -5,6 +5,7 @@ import {
   getUsedByEntries,
   isAnimation,
   isCharacter,
+  isGame,
   isLevelComposition,
   isMap,
   isRawAsset,
@@ -401,6 +402,21 @@ function createMetadataBlock(asset: EditorEntityRecord, state: EditorState, tran
       );
       append(translator.t("editor.details.metadata.transitionStyle"), asset.transitionStyle);
     }
+  } else if (isGame(asset)) {
+    const entryScene = state.snapshot.scenes.find((entry) => entry.id === asset.entrySceneId);
+    const defaultPlayer = asset.defaultPlayerCharacterId
+      ? state.snapshot.characters.find((entry) => entry.id === asset.defaultPlayerCharacterId)
+      : null;
+    append(translator.t("editor.details.metadata.entryScene"), entryScene?.name ?? asset.entrySceneId);
+    append(
+      translator.t("editor.details.metadata.entryPoint"),
+      asset.entryPointId ?? translator.t("editor.workspace.game.defaultEntry"),
+    );
+    append(
+      translator.t("editor.details.metadata.defaultPlayer"),
+      defaultPlayer?.name ?? translator.t("editor.common.no"),
+    );
+    append(translator.t("editor.details.metadata.flags"), `${asset.initialFlags.length}`);
   } else {
     append(translator.t("editor.details.metadata.pickups"), `${asset.placements.length}`);
   }
@@ -470,6 +486,9 @@ function getAssetTypeLabel(asset: EditorEntityRecord, translator: EditorTranslat
   if (isAction(asset)) {
     return formatAssetTypeLabel("action", translator);
   }
+  if (isGame(asset)) {
+    return formatAssetTypeLabel("game", translator);
+  }
   return formatAssetTypeLabel("map", translator);
 }
 
@@ -483,6 +502,8 @@ function getDraftRouteTitle(state: EditorState, translator: EditorTranslator): s
       return translator.t("editor.workspaceTabs.newScene");
     case "action":
       return translator.t("editor.workspaceTabs.newAction");
+    case "game":
+      return translator.formatEntityType("game");
     default:
       return "";
   }
@@ -498,6 +519,8 @@ function getDraftRouteTypeLabel(state: EditorState, translator: EditorTranslator
       return formatAssetTypeLabel("scene", translator);
     case "action":
       return formatAssetTypeLabel("action", translator);
+    case "game":
+      return formatAssetTypeLabel("game", translator);
     default:
       return "";
   }
@@ -539,6 +562,7 @@ function countFolderItems(folder: FolderRecord, state: EditorState): number {
     ...state.snapshot.maps,
     ...state.snapshot.levelCompositions,
     ...state.snapshot.scenes,
+    ...state.snapshot.games,
     ...state.snapshot.actions,
   ].filter((entry) => entry.folderId === folder.id).length;
   return childFolderCount + childAssetCount;

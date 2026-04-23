@@ -13,6 +13,7 @@ export type EditorIconName =
   | "map"
   | "level"
   | "action"
+  | "game"
   | "archive"
   | "restore"
   | "chevron-left"
@@ -32,6 +33,7 @@ const ICONS: Record<EditorIconName, string> = {
   map: `<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 3.3 6.2 2l3.6 1.3 3.7-1.3v10.7l-3.7 1.3-3.6-1.3-3.7 1.3z" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/><path d="M6.2 2v10.7M9.8 3.3V14" fill="none" stroke="currentColor" stroke-width="1"/></svg>`,
   level: `<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.2 2.7h7.6a1 1 0 0 1 1 1v8.6l-2.2-1.3-2.4 1.3L5 11l-1.8 1.3z" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/><path d="M5.2 5.4h4.8M5.2 7.8h4.8" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/><circle cx="12.8" cy="4" r="1.2" fill="currentColor"/></svg>`,
   action: `<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8h7.2" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="m8.7 4.9 3.3 3.1-3.3 3.1" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="4" cy="8" r="1.3" fill="currentColor"/></svg>`,
+  game: `<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6.2h8a2 2 0 0 1 2 2v1.6a2 2 0 0 1-2 2h-1.2l-1.4-1.7H6.6l-1.4 1.7H4a2 2 0 0 1-2-2V8.2a2 2 0 0 1 2-2z" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/><path d="M5 8.2v1.8M4.1 9.1h1.8" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/><circle cx="10.8" cy="8.8" r="0.8" fill="currentColor"/><circle cx="12.6" cy="9.8" r="0.8" fill="currentColor"/></svg>`,
   archive: `<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.2 4.1h9.6v8.1a1 1 0 0 1-1 1H4.2a1 1 0 0 1-1-1z" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/><path d="M2.7 4.1h10.6M5.7 2.9h4.6" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><path d="M6.4 6.5v4M9.6 6.5v4" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></svg>`,
   restore: `<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.2 8A4.8 4.8 0 1 0 8 3.2h-3" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><path d="m3.2 4.6-.9 3 3 .8" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M8 5.4v2.9l2 1.3" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
   "chevron-left": `<svg viewBox="0 0 16 16" aria-hidden="true"><path d="m9.8 3.6-4 4.4 4 4.4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`,

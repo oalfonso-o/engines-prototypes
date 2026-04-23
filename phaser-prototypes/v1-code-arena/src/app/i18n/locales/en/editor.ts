@@ -25,6 +25,7 @@ export const editor = {
     newLevel: "New Level",
     newAction: "New Action",
     newScene: "New Scene",
+    game: "Game",
   },
   properties: {
     panelLabel: "Properties",
@@ -98,6 +99,7 @@ export const editor = {
     level: "Level",
     action: "Action",
     scene: "Scene",
+    game: "Game",
     missing: "Missing",
   },
   assetTypes: {
@@ -112,6 +114,7 @@ export const editor = {
     level: "Level",
     action: "Action",
     scene: "Scene",
+    game: "Game",
   },
   statuses: {
     active: "Active",
@@ -247,6 +250,9 @@ export const editor = {
       pickups: "Pickups",
       layers: "Layers",
       objects: "Objects",
+      entryScene: "Entry scene",
+      defaultPlayer: "Default player",
+      flags: "Flags",
       targetScene: "Target scene",
       entryPoint: "Entry point",
       transitionStyle: "Transition style",
@@ -425,6 +431,21 @@ export const editor = {
         fade: "fade",
       },
       save: "Save action",
+    },
+    game: {
+      unavailableTitle: "Game unavailable",
+      unavailableBody: "This game definition could not be resolved from the current editor snapshot.",
+      entrySceneRequired: "Select a valid entry scene.",
+      defaultPlayerRequired: "Select a valid default player.",
+      noEntryScene: "No entry scene",
+      defaultEntry: "Default entry",
+      labels: {
+        name: "Name",
+        entryScene: "Entry scene",
+        entryPoint: "Entry point",
+        defaultPlayer: "Default player",
+      },
+      save: "Save game",
     },
     scene: {
       unavailableTitle: "Scene unavailable",
