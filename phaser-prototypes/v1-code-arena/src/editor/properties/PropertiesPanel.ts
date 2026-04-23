@@ -478,7 +478,7 @@ function getAssetTypeLabel(asset: EditorEntityRecord, translator: EditorTranslat
     return formatAssetTypeLabel("character", translator);
   }
   if (isLevelComposition(asset)) {
-    return formatAssetTypeLabel("level", translator);
+    return formatLegacyAssetTypeLabel("level", translator);
   }
   if (isScene(asset)) {
     return formatAssetTypeLabel("scene", translator);
@@ -489,7 +489,7 @@ function getAssetTypeLabel(asset: EditorEntityRecord, translator: EditorTranslat
   if (isGame(asset)) {
     return formatAssetTypeLabel("game", translator);
   }
-  return formatAssetTypeLabel("map", translator);
+  return formatLegacyAssetTypeLabel("map", translator);
 }
 
 function getDraftRouteTitle(state: EditorState, translator: EditorTranslator): string {
@@ -514,7 +514,7 @@ function getDraftRouteTypeLabel(state: EditorState, translator: EditorTranslator
     case "character":
       return formatAssetTypeLabel("character", translator);
     case "map":
-      return formatAssetTypeLabel("map", translator);
+      return formatLegacyAssetTypeLabel("map", translator);
     case "scene":
       return formatAssetTypeLabel("scene", translator);
     case "action":
@@ -524,6 +524,10 @@ function getDraftRouteTypeLabel(state: EditorState, translator: EditorTranslator
     default:
       return "";
   }
+}
+
+function formatLegacyAssetTypeLabel(type: "map" | "level", translator: EditorTranslator): string {
+  return `${formatAssetTypeLabel(type, translator)} · ${translator.t("editor.common.legacy")}`;
 }
 
 function resolveDependencyName(entry: AssetDependencyEntry, translator: EditorTranslator): string {

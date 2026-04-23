@@ -79,6 +79,7 @@ export const editor = {
   common: {
     no: "No",
     yes: "Sí",
+    legacy: "Legacy",
     selectOne: "Selecciona uno",
     cancel: "Cancelar",
     backToLibrary: "Volver a la biblioteca",

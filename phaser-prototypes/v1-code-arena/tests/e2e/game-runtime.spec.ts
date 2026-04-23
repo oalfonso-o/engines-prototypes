@@ -517,4 +517,9 @@ test("campaign can transition across scenes authored from the editor", async ({ 
   expect(state.surface).toBe("campaign");
   expect(state.sceneId).toBe(targetSceneId);
   expect(state.entryPointId).toBe(targetEntryPointId);
+
+  await openEditor(page);
+  await page.getByTestId("editor-open-game-button").click();
+  await expect(page.getByTestId("game-workspace")).toBeVisible();
+  await expect(page.getByTestId("editor-properties-panel").getByLabel("Entry scene")).toHaveValue(sourceSceneId);
 });
