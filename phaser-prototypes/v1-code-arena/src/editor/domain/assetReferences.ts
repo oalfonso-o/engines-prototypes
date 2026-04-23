@@ -8,6 +8,7 @@ import type {
   LevelCompositionRecord,
   MapDefinition,
   RawAssetRecord,
+  SceneDefinition,
   SpriteSheetDefinition,
   TilesetDefinition,
 } from "./editorTypes";
@@ -27,6 +28,7 @@ export function getAllAssets(snapshot: EditorSnapshot): EditorEntityRecord[] {
     ...snapshot.characters,
     ...snapshot.maps,
     ...snapshot.levelCompositions,
+    ...snapshot.scenes,
   ];
 }
 
@@ -61,6 +63,9 @@ export function getEntityType(asset: EditorEntityRecord): AssetEntityType {
   }
   if (isLevelComposition(asset)) {
     return "level";
+  }
+  if (isScene(asset)) {
+    return "scene";
   }
 
   return "map";
@@ -142,6 +147,25 @@ export function getSourceRawAssetId(asset: EditorEntityRecord, snapshot: EditorS
     return getMapSourceRawAssetId(asset, snapshot);
   }
 
+  if (isScene(asset)) {
+    const backgroundLayer = asset.layers.find((layer) => layer.kind === "background");
+    if (backgroundLayer) {
+      return backgroundLayer.assetId;
+    }
+
+    const tileLayer = asset.layers.find(
+      (layer): layer is Extract<typeof asset.layers[number], { kind: "tiles" }> =>
+        layer.kind === "tiles" && layer.cells.length > 0,
+    );
+    const firstCell = tileLayer?.cells[0];
+    if (!firstCell) {
+      return null;
+    }
+
+    const tileset = snapshot.tilesets.find((entry) => entry.id === firstCell.tilesetId);
+    return tileset?.sourceAssetId ?? null;
+  }
+
   return null;
 }
 
@@ -177,6 +201,41 @@ function getDirectReferences(asset: EditorEntityRecord): DirectReference[] {
       buildOptionalReference(asset.mapId, "missing"),
       buildOptionalReference(asset.playerCharacterId, "missing"),
       ...asset.placements.map((placement) => buildOptionalReference(resolvePlacementAssetId(placement), "missing")),
+    ]));
+  }
+
+  if (isScene(asset)) {
+    const layerReferences = asset.layers.flatMap((layer) => {
+      if (layer.kind === "background") {
+        return [buildOptionalReference(layer.assetId, "rawAssetMissing")];
+      }
+      if (layer.kind === "tiles") {
+        return layer.cells.map((cell) => buildOptionalReference(cell.tilesetId, "tilesetMissing"));
+      }
+      if (layer.kind !== "objects") {
+        return [];
+      }
+
+      return layer.objects.flatMap((object) => {
+        switch (object.type) {
+          case "player-spawn":
+            return [buildOptionalReference(object.characterId, "missing")];
+          case "pickup":
+          case "enemy-spawn":
+          case "boss-spawn":
+          case "prop":
+            return [buildOptionalReference(object.assetId, "missing")];
+          case "trigger-zone":
+            return [buildOptionalReference(object.actionId, "missing")];
+          case "entry-point":
+            return [];
+        }
+      });
+    });
+
+    return uniqueReferences(compactReferences([
+      buildOptionalReference(asset.defaultPlayerCharacterId, "missing"),
+      ...layerReferences,
     ]));
   }
 
@@ -262,4 +321,8 @@ void _mapTypeGuardCheck;
 
 export function isLevelComposition(asset: EditorEntityRecord): asset is LevelCompositionRecord {
   return "placements" in asset && "playerCharacterId" in asset && "mapId" in asset;
+}
+
+export function isScene(asset: EditorEntityRecord): asset is SceneDefinition {
+  return "layers" in asset && "defaultPlayerCharacterId" in asset;
 }

@@ -74,7 +74,21 @@ export function buildGameAssetRows(snapshot: EditorSnapshot, translator: EditorT
     sourceKind: null,
   }));
 
-  return [...tilesets, ...spritesheets, ...animations, ...characters, ...maps, ...levels];
+  const scenes = snapshot.scenes.map((asset) => ({
+    id: asset.id,
+    entityType: "scene" as const,
+    name: asset.name,
+    archivedAt: asset.archivedAt,
+    status: getAssetStatus(asset, snapshot),
+    typeLabel: formatAssetTypeLabel("scene", translator),
+    sizeLabel: translator.t("editor.library.size.mapGrid", {
+      width: asset.widthInCells,
+      height: asset.heightInCells,
+    }),
+    sourceKind: null,
+  }));
+
+  return [...tilesets, ...spritesheets, ...animations, ...characters, ...maps, ...levels, ...scenes];
 }
 
 function countCharacterSlots(asset: EditorSnapshot["characters"][number]): number {

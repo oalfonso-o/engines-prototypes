@@ -7,6 +7,7 @@ import {
   isLevelComposition,
   isMap,
   isRawAsset,
+  isScene,
   isSpriteSheet,
   isTileset,
 } from "../domain/assetReferences";
@@ -66,6 +67,11 @@ export class PropertiesPanel {
   update(state: EditorState, contributor: WorkspacePropertiesContributor | null): void {
     const asset = state.selectedAssetId ? this.store.getAssetById(state.selectedAssetId) : null;
     const folder = !asset && state.selectedFolderId ? this.store.getFolderById(state.selectedFolderId) : null;
+    const draftRoute = !asset
+      && !folder
+      && contributor
+      && state.route.kind !== "library"
+      && state.route.id === "new";
     const isActiveAssetRoute = asset
       && state.route.kind !== "library"
       && state.route.id === asset.id;
@@ -79,6 +85,23 @@ export class PropertiesPanel {
     this.dependenciesTab.textContent = this.translator.t("editor.properties.tabs.dependencies");
     this.archiveButton.title = this.translator.t("editor.details.actions.archive");
     this.archiveButton.setAttribute("aria-label", this.translator.t("editor.details.actions.archive"));
+
+    if (draftRoute) {
+      this.header.hidden = false;
+      this.tabBar.hidden = true;
+      this.tilesTab.hidden = true;
+      this.archiveButton.hidden = true;
+      clearElement(this.statusCluster);
+      this.type.textContent = getDraftRouteTypeLabel(state, this.translator);
+      this.title.textContent = getDraftRouteTitle(state, this.translator);
+      clearElement(this.actions);
+      this.actions.hidden = true;
+      clearElement(this.body);
+      const editorSection = createPropertiesSection(this.translator.t("editor.properties.sections.editor"));
+      contributor.renderProperties(editorSection);
+      this.body.append(editorSection);
+      return;
+    }
 
     if (!asset && !folder) {
       this.header.hidden = true;
@@ -354,6 +377,18 @@ function createMetadataBlock(asset: EditorEntityRecord, state: EditorState, tran
     );
     append(translator.t("editor.details.metadata.cells"), `${asset.cells.length}`);
     append(translator.t("editor.details.metadata.collisionCells"), `${asset.collisionCells.length}`);
+  } else if (isScene(asset)) {
+    append(translator.t("editor.details.metadata.grid"), `${asset.widthInCells}x${asset.heightInCells}`);
+    append(translator.t("editor.details.metadata.tile"), `${asset.tileWidth}x${asset.tileHeight}`);
+    append(
+      translator.t("editor.details.metadata.fitMode"),
+      translator.t(`editor.workspace.map.fitModes.${asset.tileFitMode}`),
+    );
+    append(translator.t("editor.details.metadata.layers"), `${asset.layers.length}`);
+    append(
+      translator.t("editor.details.metadata.objects"),
+      `${asset.layers.filter((layer) => layer.kind === "objects").reduce((count, layer) => count + layer.objects.length, 0)}`,
+    );
   } else {
     append(translator.t("editor.details.metadata.pickups"), `${asset.placements.length}`);
   }
@@ -417,7 +452,36 @@ function getAssetTypeLabel(asset: EditorEntityRecord, translator: EditorTranslat
   if (isLevelComposition(asset)) {
     return formatAssetTypeLabel("level", translator);
   }
+  if (isScene(asset)) {
+    return formatAssetTypeLabel("scene", translator);
+  }
   return formatAssetTypeLabel("map", translator);
+}
+
+function getDraftRouteTitle(state: EditorState, translator: EditorTranslator): string {
+  switch (state.route.kind) {
+    case "character":
+      return translator.t("editor.workspaceTabs.newCharacter");
+    case "map":
+      return translator.t("editor.workspaceTabs.newMap");
+    case "scene":
+      return translator.t("editor.workspaceTabs.newScene");
+    default:
+      return "";
+  }
+}
+
+function getDraftRouteTypeLabel(state: EditorState, translator: EditorTranslator): string {
+  switch (state.route.kind) {
+    case "character":
+      return formatAssetTypeLabel("character", translator);
+    case "map":
+      return formatAssetTypeLabel("map", translator);
+    case "scene":
+      return formatAssetTypeLabel("scene", translator);
+    default:
+      return "";
+  }
 }
 
 function resolveDependencyName(entry: AssetDependencyEntry, translator: EditorTranslator): string {
@@ -455,6 +519,7 @@ function countFolderItems(folder: FolderRecord, state: EditorState): number {
     ...state.snapshot.characters,
     ...state.snapshot.maps,
     ...state.snapshot.levelCompositions,
+    ...state.snapshot.scenes,
   ].filter((entry) => entry.folderId === folder.id).length;
   return childFolderCount + childAssetCount;
 }

@@ -4,6 +4,7 @@ import {
   isLevelComposition,
   isMap,
   isRawAsset,
+  isScene,
   isSpriteSheet,
   isTileset,
 } from "../domain/assetReferences";
@@ -61,5 +62,10 @@ export function openAssetSelection(store: EditorStore, assetId: string): void {
 
   if (isLevelComposition(asset)) {
     store.navigate({ kind: "level", id: assetId });
+    return;
+  }
+
+  if (isScene(asset)) {
+    store.navigate({ kind: "scene", id: assetId });
   }
 }

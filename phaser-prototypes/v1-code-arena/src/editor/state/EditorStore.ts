@@ -17,6 +17,7 @@ import type {
   PropertiesTab,
   RawAssetBlobRecord,
   RawAssetRecord,
+  SceneDefinition,
   SpriteSheetDefinition,
   TilesetDefinition,
   WorkspaceRoute,
@@ -464,6 +465,12 @@ export class EditorStore {
     await this.reload();
   }
 
+  async saveScene(record: SceneDefinition): Promise<void> {
+    await this.persistJsonDefinition(record);
+    await this.repository.saveScene(record);
+    await this.reload();
+  }
+
   async renameFolder(folder: FolderRecord, name: string): Promise<void> {
     if (folder.system || folder.storageRoot === "core") {
       return;
@@ -714,10 +721,14 @@ export class EditorStore {
   }
 
   private async persistUserEntityDefinition(record: EditorEntityRecord): Promise<void> {
+    await this.persistJsonDefinition(record);
+  }
+
+  private async persistJsonDefinition(record: { storageRoot: "core" | "user" | "archived"; relativePath: string }): Promise<void> {
     if (record.storageRoot !== "user" && record.storageRoot !== "archived") {
       return;
     }
-    if (isRawAsset(record)) {
+    if (isRawAsset(record as EditorEntityRecord)) {
       return;
     }
 

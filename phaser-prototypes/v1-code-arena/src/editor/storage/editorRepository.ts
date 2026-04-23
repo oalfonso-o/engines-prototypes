@@ -198,6 +198,10 @@ export class EditorRepository {
       await this.db.put("levelCompositions", record);
       return;
     }
+    if ("layers" in record && "defaultPlayerCharacterId" in record) {
+      await this.db.put("scenes", record);
+      return;
+    }
 
     await this.db.put("maps", record);
   }

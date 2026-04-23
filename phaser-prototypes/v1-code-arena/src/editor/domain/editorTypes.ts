@@ -1,7 +1,7 @@
 export type RawAssetKind = "tileset-source" | "spritesheet-source" | "image-source";
 export type StorageRoot = "core" | "user" | "archived";
 
-export type DerivedAssetType = "tileset" | "spritesheet" | "animation" | "character" | "map" | "level";
+export type DerivedAssetType = "tileset" | "spritesheet" | "animation" | "character" | "map" | "level" | "scene";
 export type AssetEntityType = "raw-asset" | DerivedAssetType;
 export type AssetStatus = "active" | "archived" | "uses-archived-dependencies" | "missing-dependencies";
 export type DependencyStatus = "active" | "archived" | "missing";
@@ -346,7 +346,8 @@ export type EditorEntityRecord =
   | AnimationDefinition
   | CharacterDefinition
   | MapDefinition
-  | LevelCompositionRecord;
+  | LevelCompositionRecord
+  | SceneDefinition;
 
 export interface EditorSnapshot {
   folders: FolderRecord[];
@@ -386,7 +387,8 @@ export type EditorRoute =
   | { kind: "animation"; id: string }
   | { kind: "character"; id: string }
   | { kind: "map"; id: string }
-  | { kind: "level"; id: string };
+  | { kind: "level"; id: string }
+  | { kind: "scene"; id: string };
 
 export type WorkspaceRoute = Exclude<EditorRoute, { kind: "library" }>;
 

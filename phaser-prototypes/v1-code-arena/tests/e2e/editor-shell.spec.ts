@@ -101,6 +101,52 @@ test("editor seeds a core game and scene migration baseline", async ({ page }) =
   expect(swampScene?.layers.some((entry) => entry.kind === "objects")).toBe(true);
 });
 
+test("new scenes can be created and survive reload", async ({ page }) => {
+  const sceneName = `playwright-scene-${Date.now()}`;
+  await openEditor(page);
+
+  await page.getByTestId("editor-create-scene-button").click();
+  await expect(page).toHaveURL(/#scene\/new$/);
+  await expect(page.getByTestId("scene-workspace")).toBeVisible();
+  await expect(page.getByTestId("scene-preview")).toBeVisible();
+
+  const propertiesPanel = page.getByTestId("editor-properties-panel");
+  await propertiesPanel.getByLabel("Name").fill(sceneName);
+  await propertiesPanel.getByTestId("scene-save-button").click();
+
+  await expect(page).toHaveURL(/#scene\/[0-9a-f-]+$/);
+  await expect(page.getByTestId("scene-workspace")).toBeVisible();
+
+  const urlAfterSave = page.url();
+  const savedScene = await page.evaluate(async (name) => {
+    const database = await new Promise<IDBDatabase>((resolve, reject) => {
+      const request = indexedDB.open("canuter-phaser-v1-editor");
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error ?? new Error("Could not open editor database"));
+    });
+
+    const scene = await new Promise<{ id: string; name: string; storageRoot: string } | null>((resolve, reject) => {
+      const transaction = database.transaction("scenes", "readonly");
+      const store = transaction.objectStore("scenes");
+      const request = store.getAll();
+      request.onsuccess = () => resolve(
+        (request.result as Array<{ id: string; name: string; storageRoot: string }>).find((entry) => entry.name === name) ?? null,
+      );
+      request.onerror = () => reject(request.error ?? new Error("Could not read scenes store"));
+    });
+
+    database.close();
+    return scene;
+  }, sceneName);
+
+  expect(savedScene?.storageRoot).toBe("user");
+
+  await page.reload();
+
+  await expect(page).toHaveURL(urlAfterSave);
+  await expect(page.getByTestId("scene-workspace")).toBeVisible();
+});
+
 test("folder properties keep archive in the header and no footer action buttons", async ({ page }) => {
   await openEditor(page);
 
