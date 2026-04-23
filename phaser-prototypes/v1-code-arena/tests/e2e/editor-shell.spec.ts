@@ -44,6 +44,26 @@ test("new folder starts inline under User root and cancels cleanly", async ({ pa
   await expect(createInput).toHaveCount(0);
 });
 
+test("editor database includes stores for games, scenes and actions", async ({ page }) => {
+  await openEditor(page);
+
+  const storeNames = await page.evaluate(async () => {
+    const database = await new Promise<IDBDatabase>((resolve, reject) => {
+      const request = indexedDB.open("canuter-phaser-v1-editor");
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error ?? new Error("Could not open editor database"));
+    });
+
+    const names = Array.from(database.objectStoreNames);
+    database.close();
+    return names;
+  });
+
+  expect(storeNames).toContain("games");
+  expect(storeNames).toContain("scenes");
+  expect(storeNames).toContain("actions");
+});
+
 test("folder properties keep archive in the header and no footer action buttons", async ({ page }) => {
   await openEditor(page);
 

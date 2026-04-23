@@ -1,13 +1,16 @@
 import type {
+  ActionDefinition,
   AnimationDefinition,
   CharacterDefinition,
   EditorEntityRecord,
   EditorSnapshot,
   FolderRecord,
+  GameDefinition,
   LevelCompositionRecord,
   MapDefinition,
   RawAssetBlobRecord,
   RawAssetRecord,
+  SceneDefinition,
   SpriteSheetDefinition,
   TilesetDefinition,
 } from "../domain/editorTypes";
@@ -17,7 +20,7 @@ export class EditorRepository {
   constructor(private readonly db: EditorDb) {}
 
   async loadSnapshot(): Promise<EditorSnapshot> {
-    const [folders, rawAssets, rawAssetBlobs, tilesets, spritesheets, animations, characters, maps, levelCompositions] = await Promise.all([
+    const [folders, rawAssets, rawAssetBlobs, tilesets, spritesheets, animations, characters, maps, levelCompositions, scenes, games, actions] = await Promise.all([
       this.db.getAll("folders"),
       this.db.getAll("rawAssets"),
       this.db.getAll("rawAssetBlobs"),
@@ -27,6 +30,9 @@ export class EditorRepository {
       this.db.getAll("characters"),
       this.db.getAll("maps"),
       this.db.getAll("levelCompositions"),
+      this.db.getAll("scenes"),
+      this.db.getAll("games"),
+      this.db.getAll("actions"),
     ]);
 
     return {
@@ -39,6 +45,9 @@ export class EditorRepository {
       characters: sortByCreatedAt(characters),
       maps: sortByCreatedAt(maps),
       levelCompositions: sortByCreatedAt(levelCompositions),
+      scenes: sortByCreatedAt(scenes),
+      games: sortByCreatedAt(games),
+      actions: sortByCreatedAt(actions),
     };
   }
 
@@ -62,6 +71,9 @@ export class EditorRepository {
       this.db.clear("characters"),
       this.db.clear("maps"),
       this.db.clear("levelCompositions"),
+      this.db.clear("scenes"),
+      this.db.clear("games"),
+      this.db.clear("actions"),
     ]);
   }
 
@@ -109,6 +121,18 @@ export class EditorRepository {
 
   async saveLevelComposition(record: LevelCompositionRecord): Promise<void> {
     await this.db.put("levelCompositions", record);
+  }
+
+  async saveScene(record: SceneDefinition): Promise<void> {
+    await this.db.put("scenes", record);
+  }
+
+  async saveGame(record: GameDefinition): Promise<void> {
+    await this.db.put("games", record);
+  }
+
+  async saveAction(record: ActionDefinition): Promise<void> {
+    await this.db.put("actions", record);
   }
 
   async saveEntities(records: EditorEntityRecord[]): Promise<void> {

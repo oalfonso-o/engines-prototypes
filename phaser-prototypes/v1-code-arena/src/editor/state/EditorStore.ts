@@ -49,6 +49,9 @@ const EMPTY_SNAPSHOT: EditorSnapshot = {
   characters: [],
   maps: [],
   levelCompositions: [],
+  scenes: [],
+  games: [],
+  actions: [],
 };
 
 const SESSION_STORAGE_KEY = "canuter:phaser-v1-code-arena:editor-session:v1";

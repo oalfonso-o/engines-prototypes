@@ -1,11 +1,14 @@
 import type {
+  ActionDefinition,
   AnimationDefinition,
   CharacterDefinition,
   FolderRecord,
+  GameDefinition,
   LevelCompositionRecord,
   MapDefinition,
   RawAssetBlobRecord,
   RawAssetRecord,
+  SceneDefinition,
   SpriteSheetDefinition,
   TilesetDefinition,
 } from "../domain/editorTypes";
@@ -20,6 +23,9 @@ export type EditorStoreName =
   | "characters"
   | "maps"
   | "levelCompositions"
+  | "scenes"
+  | "games"
+  | "actions"
   | "meta";
 
 interface MetaRecord {
@@ -37,11 +43,14 @@ interface EditorStoreMap {
   characters: CharacterDefinition;
   maps: MapDefinition;
   levelCompositions: LevelCompositionRecord;
+  scenes: SceneDefinition;
+  games: GameDefinition;
+  actions: ActionDefinition;
   meta: MetaRecord;
 }
 
 const DB_NAME = "canuter-phaser-v1-editor";
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 
 export class EditorDb {
   private databasePromise: Promise<IDBDatabase> | null = null;
@@ -117,6 +126,9 @@ function openDatabase(): Promise<IDBDatabase> {
       createStoreIfMissing(database, "characters");
       createStoreIfMissing(database, "maps");
       createStoreIfMissing(database, "levelCompositions");
+      createStoreIfMissing(database, "scenes");
+      createStoreIfMissing(database, "games");
+      createStoreIfMissing(database, "actions");
       createStoreIfMissing(database, "meta");
     };
 

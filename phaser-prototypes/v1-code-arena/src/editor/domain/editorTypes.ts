@@ -11,6 +11,19 @@ export type DetailTab = PropertiesTab;
 export type TileFitMode = "crop" | "scale-to-fit";
 export type CharacterSlot = "idle" | "run_side" | "jump" | "attack";
 export type RunSideFacing = "left" | "right";
+export type SceneLayerKind = "background" | "tiles" | "collision" | "objects";
+export type SceneObjectType =
+  | "entry-point"
+  | "player-spawn"
+  | "pickup"
+  | "enemy-spawn"
+  | "boss-spawn"
+  | "prop"
+  | "trigger-zone";
+export type SceneTriggerMode = "overlap" | "interact";
+export type SceneCollisionKind = "solid" | "one-way" | "water" | "hazard";
+export type SceneBackgroundFitMode = "cover" | "contain" | "repeat";
+export type ActionKind = "scene-transition" | "set-flag" | "sequence" | "conditional";
 
 export interface AssetBaseRecord {
   id: string;
@@ -152,6 +165,180 @@ export interface LevelCompositionRecord {
   placements: LevelPlacementRecord[];
 }
 
+export interface GameFlagRecord {
+  key: string;
+  value: string | number | boolean;
+}
+
+export interface SceneLayerBaseRecord {
+  id: string;
+  name: string;
+  kind: SceneLayerKind;
+  visible: boolean;
+  locked: boolean;
+}
+
+export interface SceneBackgroundLayerRecord extends SceneLayerBaseRecord {
+  kind: "background";
+  assetId: string;
+  parallaxX: number;
+  parallaxY: number;
+  fitMode: SceneBackgroundFitMode;
+  offsetX: number;
+  offsetY: number;
+}
+
+export interface SceneTileCellRecord {
+  x: number;
+  y: number;
+  tilesetId: string;
+  tileId: string;
+}
+
+export interface SceneTileLayerRecord extends SceneLayerBaseRecord {
+  kind: "tiles";
+  cells: SceneTileCellRecord[];
+}
+
+export interface SceneCollisionCellRecord {
+  x: number;
+  y: number;
+}
+
+export interface SceneCollisionLayerRecord extends SceneLayerBaseRecord {
+  kind: "collision";
+  collisionKind: SceneCollisionKind;
+  cells: SceneCollisionCellRecord[];
+}
+
+export interface SceneEntryPointObjectRecord {
+  id: string;
+  type: "entry-point";
+  name: string;
+  x: number;
+  y: number;
+}
+
+export interface ScenePlayerSpawnObjectRecord {
+  id: string;
+  type: "player-spawn";
+  x: number;
+  y: number;
+  characterId: string | null;
+}
+
+export interface ScenePickupObjectRecord {
+  id: string;
+  type: "pickup";
+  x: number;
+  y: number;
+  assetId: string | null;
+}
+
+export interface SceneEnemySpawnObjectRecord {
+  id: string;
+  type: "enemy-spawn";
+  x: number;
+  y: number;
+  assetId: string | null;
+}
+
+export interface SceneBossSpawnObjectRecord {
+  id: string;
+  type: "boss-spawn";
+  x: number;
+  y: number;
+  assetId: string | null;
+}
+
+export interface ScenePropObjectRecord {
+  id: string;
+  type: "prop";
+  x: number;
+  y: number;
+  assetId: string | null;
+}
+
+export interface SceneTriggerZoneObjectRecord {
+  id: string;
+  type: "trigger-zone";
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  triggerMode: SceneTriggerMode;
+  actionId: string | null;
+}
+
+export type SceneObjectRecord =
+  | SceneEntryPointObjectRecord
+  | ScenePlayerSpawnObjectRecord
+  | ScenePickupObjectRecord
+  | SceneEnemySpawnObjectRecord
+  | SceneBossSpawnObjectRecord
+  | ScenePropObjectRecord
+  | SceneTriggerZoneObjectRecord;
+
+export interface SceneObjectLayerRecord extends SceneLayerBaseRecord {
+  kind: "objects";
+  objects: SceneObjectRecord[];
+}
+
+export type SceneLayerRecord =
+  | SceneBackgroundLayerRecord
+  | SceneTileLayerRecord
+  | SceneCollisionLayerRecord
+  | SceneObjectLayerRecord;
+
+export interface SceneDefinition extends AssetBaseRecord {
+  widthInCells: number;
+  heightInCells: number;
+  tileWidth: number;
+  tileHeight: number;
+  tileFitMode: TileFitMode;
+  defaultPlayerCharacterId: string | null;
+  layers: SceneLayerRecord[];
+}
+
+export interface GameDefinition extends AssetBaseRecord {
+  entrySceneId: string;
+  entryPointId: string | null;
+  defaultPlayerCharacterId: string | null;
+  initialFlags: GameFlagRecord[];
+}
+
+export interface SceneTransitionActionDefinition extends AssetBaseRecord {
+  kind: "scene-transition";
+  targetSceneId: string;
+  targetEntryPointId: string | null;
+  transitionStyle: "none" | "fade";
+}
+
+export interface SetFlagActionDefinition extends AssetBaseRecord {
+  kind: "set-flag";
+  flag: string;
+  value: string | number | boolean;
+}
+
+export interface SequenceActionDefinition extends AssetBaseRecord {
+  kind: "sequence";
+  actionIds: string[];
+}
+
+export interface ConditionalActionDefinition extends AssetBaseRecord {
+  kind: "conditional";
+  flag: string;
+  equals: string | number | boolean;
+  thenActionId: string;
+  elseActionId: string | null;
+}
+
+export type ActionDefinition =
+  | SceneTransitionActionDefinition
+  | SetFlagActionDefinition
+  | SequenceActionDefinition
+  | ConditionalActionDefinition;
+
 export type EditorEntityRecord =
   | RawAssetRecord
   | TilesetDefinition
@@ -171,6 +358,9 @@ export interface EditorSnapshot {
   characters: CharacterDefinition[];
   maps: MapDefinition[];
   levelCompositions: LevelCompositionRecord[];
+  scenes: SceneDefinition[];
+  games: GameDefinition[];
+  actions: ActionDefinition[];
 }
 
 export interface AssetSummary {
