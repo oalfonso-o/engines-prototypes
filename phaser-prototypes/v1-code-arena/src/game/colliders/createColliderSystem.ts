@@ -1,4 +1,4 @@
-import Phaser from "phaser";
+import * as Phaser from "phaser";
 import type { DebugSettings } from "../../settings/prototypeSettings";
 import { hexColorToNumber } from "../shared/color";
 import type { ColliderType } from "./colliderTypes";

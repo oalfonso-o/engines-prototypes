@@ -53,6 +53,8 @@ export function parseHash(hash: string): EditorRoute {
 
   const [kind, id] = normalized.split("/");
   switch (kind) {
+    case "raw-asset":
+      return { kind: "raw-asset", id: id ?? "" };
     case "tileset":
       return { kind: "tileset", id: id ?? "" };
     case "spritesheet":
@@ -63,6 +65,8 @@ export function parseHash(hash: string): EditorRoute {
       return { kind: "character", id: id ?? "" };
     case "map":
       return { kind: "map", id: id ?? "" };
+    case "level":
+      return { kind: "level", id: id ?? "" };
     default:
       return { kind: "library" };
   }

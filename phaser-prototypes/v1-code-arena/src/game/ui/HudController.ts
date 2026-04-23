@@ -1,4 +1,4 @@
-import Phaser from "phaser";
+import * as Phaser from "phaser";
 import type { GameTranslator } from "../i18n/GameTranslator";
 import { campaign as defaultCampaignCopy } from "../../app/i18n/locales/en/campaign";
 import type { HudTextBlockSettings, PrototypeSettings } from "../../settings/prototypeSettings";

@@ -1,4 +1,4 @@
-import Phaser from "phaser";
+import * as Phaser from "phaser";
 import type { RuntimeAnimationSource, RuntimeTextureSource } from "../content/runtimeContent";
 
 export function preloadGameAssets(scene: Phaser.Scene, textures: RuntimeTextureSource[]): void {

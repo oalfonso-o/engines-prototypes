@@ -1,4 +1,4 @@
-import Phaser from "phaser";
+import * as Phaser from "phaser";
 import { preloadGameAssets, createGameAnimations, createGameTextures } from "../assets/gameAssets";
 import type { RuntimeAnimationSource, RuntimeTextureSource } from "../content/runtimeContent";
 import { SCENE_KEYS } from "./sceneKeys";

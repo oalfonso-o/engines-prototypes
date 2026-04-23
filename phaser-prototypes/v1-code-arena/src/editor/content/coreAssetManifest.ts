@@ -1,4 +1,5 @@
 import type { FolderRecord, RawAssetKind, RawAssetRecord } from "../domain/editorTypes";
+import { GENERATED_CORE_FOLDER_SEEDS, GENERATED_CORE_RAW_ASSET_SEEDS } from "./generatedCoreBiomeManifest";
 
 export const ROOT_FOLDER_IDS = {
   core: "folder:root:core",
@@ -43,6 +44,7 @@ const CORE_FOLDER_SEEDS: CoreFolderSeed[] = [
   { id: "folder:core:pickups:coin:sources", name: "Sources", slug: "sources", parentFolderId: "folder:core:pickups:coin" },
   { id: "folder:core:pickups:coin:sprite-sheets", name: "Sprite Sheets", slug: "sprite-sheets", parentFolderId: "folder:core:pickups:coin" },
   { id: "folder:core:pickups:coin:animations", name: "Animations", slug: "animations", parentFolderId: "folder:core:pickups:coin" },
+  ...GENERATED_CORE_FOLDER_SEEDS,
 ];
 
 const CORE_RAW_ASSET_SEEDS: CoreRawAssetSeed[] = [
@@ -189,6 +191,7 @@ const CORE_RAW_ASSET_SEEDS: CoreRawAssetSeed[] = [
     folderId: "folder:core:pickups:coin:sources",
     filename: "coin.png",
   },
+  ...GENERATED_CORE_RAW_ASSET_SEEDS,
 ];
 
 export function createRootFolderRecords(now: string): FolderRecord[] {

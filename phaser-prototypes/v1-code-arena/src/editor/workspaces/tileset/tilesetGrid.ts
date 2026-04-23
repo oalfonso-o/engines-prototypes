@@ -56,11 +56,6 @@ export function mountTilesetGridPreview(options: GridPreviewOptions): () => void
     const offsetY = Math.round((PREVIEW_HEIGHT - drawHeight) / 2);
 
     context.clearRect(0, 0, width, PREVIEW_HEIGHT);
-    context.fillStyle = "#0a1020";
-    context.fillRect(0, 0, width, PREVIEW_HEIGHT);
-    context.strokeStyle = "#2a355e";
-    context.lineWidth = 1;
-    context.strokeRect(9, 9, width - 18, PREVIEW_HEIGHT - 18);
 
     if (image.complete) {
       context.drawImage(image, offsetX, offsetY, drawWidth, drawHeight);

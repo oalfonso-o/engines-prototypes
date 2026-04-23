@@ -3,6 +3,7 @@ import { importPngAsset } from "../import/importPngAsset";
 import type { EditorStore } from "../state/EditorStore";
 import { clearElement, createButton, createElement } from "../shared/dom";
 import { createSelectFieldController, createTextFieldController } from "../shared/formControls";
+import { openAssetSelection } from "../shared/openAssetSelection";
 import { normalizeAssetName } from "../domain/editorValidators";
 import { AssetDetailsPanel } from "./AssetDetailsPanel";
 import { buildRawAssetRows, filterLibraryRows } from "./AssetLibraryFilters";
@@ -57,7 +58,7 @@ export class AssetLibraryView {
     const state = this.store.getState();
     this.renderToolbar();
     this.renderList();
-    this.detailsPanel.update(state);
+    this.detailsPanel.update(state, null);
     this.renderImportModal();
   }
 
@@ -124,6 +125,7 @@ export class AssetLibraryView {
       { label: this.translator.t("editor.common.selectOne"), value: "" },
       { label: this.translator.t("editor.library.modal.tilesetSource"), value: "tileset-source" },
       { label: this.translator.t("editor.library.modal.spritesheetSource"), value: "spritesheet-source" },
+      { label: this.translator.t("editor.library.modal.imageSource"), value: "image-source" },
     ], "", false);
 
     this.importForm.append(
@@ -200,7 +202,10 @@ export class AssetLibraryView {
           row.id === state.selectedAssetId ? "library-row library-row-button is-selected" : "library-row library-row-button",
         ) as HTMLButtonElement;
         button.type = "button";
-        button.addEventListener("click", () => this.store.selectAsset(row.id));
+        button.addEventListener("click", () => {
+          openAssetSelection(this.store, row.id);
+          this.store.setPropertiesTab("properties");
+        });
 
         const nameCell = createElement("span", "cell-name");
         nameCell.append(createElement("strong", "row-name", row.name));
@@ -244,6 +249,7 @@ export class AssetLibraryView {
       { label: this.translator.t("editor.common.selectOne"), value: "" },
       { label: this.translator.t("editor.library.modal.tilesetSource"), value: "tileset-source" },
       { label: this.translator.t("editor.library.modal.spritesheetSource"), value: "spritesheet-source" },
+      { label: this.translator.t("editor.library.modal.imageSource"), value: "image-source" },
     ], draft.sourceKind ?? "", false);
     if (!draft.file && this.importFileInput.value !== "") {
       this.importFileInput.value = "";

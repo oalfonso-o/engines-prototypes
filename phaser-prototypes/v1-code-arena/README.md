@@ -5,7 +5,16 @@ Standard workflow:
 ```bash
 npm install
 npm run dev
+npm run test:e2e
 ```
+
+Playwright workflow:
+
+- `npm run test:e2e`: headless smoke suite with auto-started Vite dev server
+- `npm run test:e2e:ui`: Playwright UI mode for local iteration
+- `npm run test:e2e:headed`: headed browser run
+
+The browser runtime is managed locally by Playwright, so editor layout checks and interaction tests can run without depending on your personal Chrome/Brave profile.
 
 Controls:
 

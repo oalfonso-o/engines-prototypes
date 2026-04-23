@@ -1,4 +1,4 @@
-import Phaser from "phaser";
+import * as Phaser from "phaser";
 import type { i18n as I18nInstance } from "i18next";
 import type { GameRuntimeHandle } from "../bridge/GameBridge";
 import type { GameCommand } from "../bridge/bridgeCommands";

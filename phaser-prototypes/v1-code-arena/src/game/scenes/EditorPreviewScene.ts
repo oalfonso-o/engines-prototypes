@@ -1,4 +1,4 @@
-import Phaser from "phaser";
+import * as Phaser from "phaser";
 import type { EditorPreviewState } from "../../bridge/bridgeCommands";
 import type { GameTranslator } from "../i18n/GameTranslator";
 import { SCENE_KEYS } from "./sceneKeys";

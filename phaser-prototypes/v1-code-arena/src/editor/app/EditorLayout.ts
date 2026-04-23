@@ -1,13 +1,17 @@
+import type { WorkspaceRoute } from "../domain/editorTypes";
 import type { EditorStore } from "../state/EditorStore";
 import { clearElement, createButton, createElement } from "../shared/dom";
 import { ExplorerPane } from "../explorer/ExplorerPane";
 import { AssetPreviewPane } from "../preview/AssetPreviewPane";
-import { AssetDetailsPanel } from "../library/AssetDetailsPanel";
+import { PropertiesPanel } from "../properties/PropertiesPanel";
+import { isWorkspacePropertiesContributor } from "../properties/WorkspacePropertiesContributor";
 import { TilesetMappingWorkspace } from "../workspaces/tileset/TilesetMappingWorkspace";
 import { SpriteSheetMappingWorkspace } from "../workspaces/spritesheet/SpriteSheetMappingWorkspace";
 import { AnimationEditorPanel } from "../workspaces/spritesheet/AnimationEditorPanel";
 import { CharacterEditorView } from "../workspaces/character/CharacterEditorView";
 import { MapEditorWorkspace } from "../workspaces/map/MapEditorWorkspace";
+import { RawAssetWorkspace } from "../workspaces/raw/RawAssetWorkspace";
+import { LevelWorkspace } from "../workspaces/level/LevelWorkspace";
 import type { EditorTranslator } from "../i18n/EditorTranslator";
 import { createIcon } from "../shared/icons";
 
@@ -21,7 +25,7 @@ export interface EditorLayoutOptions {
   onReturnToMainMenu?: () => void;
 }
 
-type PaneSide = "explorer" | "inspector";
+type PaneSide = "explorer" | "properties";
 
 interface EditorPaneLayoutState {
   explorerWidth: number;
@@ -55,6 +59,9 @@ export class EditorLayout {
   private readonly explorerSlot = createElement("div", "editor-pane-slot editor-pane-slot-explorer");
   private readonly explorerDivider = createElement("div", "editor-pane-divider");
   private readonly centerSlot = createElement("div", "editor-pane-slot editor-pane-slot-center");
+  private readonly workspaceShell = createElement("div", "editor-workspace-shell");
+  private readonly workspaceTabBar = createElement("div", "workspace-tabbar");
+  private readonly workspaceContent = createElement("div", "editor-workspace-content");
   private readonly inspectorDivider = createElement("div", "editor-pane-divider");
   private readonly inspectorSlot = createElement("div", "editor-pane-slot editor-pane-slot-inspector");
   private readonly explorerToggleButton = createButton("", "editor-pane-toggle");
@@ -63,7 +70,7 @@ export class EditorLayout {
   private readonly createCharacterButton = createButton("", "icon-button");
   private readonly createMapButton = createButton("", "icon-button");
   private readonly explorerPane: ExplorerPane;
-  private readonly detailsPanel: AssetDetailsPanel;
+  private readonly propertiesPanel: PropertiesPanel;
   private screen: ScreenController | null = null;
   private screenKey = "";
   private paneLayout = loadPaneLayoutState();
@@ -78,13 +85,26 @@ export class EditorLayout {
     private readonly store: EditorStore,
     private readonly options: EditorLayoutOptions,
   ) {
+    this.shell.dataset.testid = "editor-shell";
+    this.main.dataset.testid = "editor-main";
+    this.explorerSlot.dataset.testid = "editor-explorer-pane";
+    this.centerSlot.dataset.testid = "editor-workspace-pane";
+    this.workspaceShell.dataset.testid = "editor-workspace-shell";
+    this.workspaceTabBar.dataset.testid = "workspace-tabbar";
+    this.workspaceContent.dataset.testid = "editor-center-pane";
+    this.inspectorSlot.dataset.testid = "editor-properties-pane";
+    this.backButton.dataset.testid = "editor-back-button";
+    this.createCharacterButton.dataset.testid = "editor-create-character-button";
+    this.createMapButton.dataset.testid = "editor-create-map-button";
     this.root.append(this.shell);
     this.shell.append(this.topBar, this.main);
     this.buildTopBar();
     this.buildPaneChrome();
+    this.workspaceShell.append(this.workspaceTabBar, this.workspaceContent);
+    this.centerSlot.append(this.workspaceShell);
     this.main.append(this.explorerSlot, this.explorerDivider, this.centerSlot, this.inspectorDivider, this.inspectorSlot);
     this.explorerPane = new ExplorerPane(this.explorerSlot, this.store, this.options.translator);
-    this.detailsPanel = new AssetDetailsPanel(this.inspectorSlot, this.store, this.options.translator);
+    this.propertiesPanel = new PropertiesPanel(this.inspectorSlot, this.store, this.options.translator);
     window.addEventListener("resize", this.handleWindowResize);
     this.unsubscribe = this.store.subscribe((state) => this.render(state));
   }
@@ -101,18 +121,22 @@ export class EditorLayout {
   private render(state: ReturnType<EditorStore["getState"]>): void {
     this.renderTopBar();
     this.renderPaneLayout();
+    this.renderWorkspaceTabs(state);
     this.explorerPane.update();
-    this.detailsPanel.update(state);
 
     const nextKey = state.route.kind === "library" ? "library" : `${state.route.kind}:${state.route.id}`;
     if (nextKey !== this.screenKey) {
       this.screen?.destroy();
-      clearElement(this.centerSlot);
+      clearElement(this.workspaceContent);
       this.screen = this.createScreen();
       this.screenKey = nextKey;
     }
 
     this.screen?.update?.();
+    this.propertiesPanel.update(
+      state,
+      isWorkspacePropertiesContributor(this.screen) ? this.screen : null,
+    );
   }
 
   private renderTopBar(): void {
@@ -149,11 +173,11 @@ export class EditorLayout {
     });
     this.inspectorToggleButton.addEventListener("click", (event) => {
       event.stopPropagation();
-      this.togglePane("inspector");
+      this.togglePane("properties");
     });
 
     this.explorerDivider.addEventListener("pointerdown", (event) => this.startDragging(event, "explorer"));
-    this.inspectorDivider.addEventListener("pointerdown", (event) => this.startDragging(event, "inspector"));
+    this.inspectorDivider.addEventListener("pointerdown", (event) => this.startDragging(event, "properties"));
   }
 
   private renderPaneLayout(): void {
@@ -167,7 +191,7 @@ export class EditorLayout {
     this.explorerDivider.classList.toggle("is-collapsed", this.paneLayout.explorerCollapsed);
     this.inspectorDivider.classList.toggle("is-collapsed", this.paneLayout.inspectorCollapsed);
     this.explorerDivider.classList.toggle("is-dragging", this.dragPane === "explorer");
-    this.inspectorDivider.classList.toggle("is-dragging", this.dragPane === "inspector");
+    this.inspectorDivider.classList.toggle("is-dragging", this.dragPane === "properties");
 
     const explorerToggleLabel = this.options.translator.t(
       this.paneLayout.explorerCollapsed ? "editor.shell.expandExplorer" : "editor.shell.collapseExplorer",
@@ -179,13 +203,22 @@ export class EditorLayout {
     this.explorerToggleButton.setAttribute("aria-label", explorerToggleLabel);
 
     const inspectorToggleLabel = this.options.translator.t(
-      this.paneLayout.inspectorCollapsed ? "editor.shell.expandDetails" : "editor.shell.collapseDetails",
+      this.paneLayout.inspectorCollapsed ? "editor.shell.expandProperties" : "editor.shell.collapseProperties",
     );
     this.inspectorToggleButton.replaceChildren(
       createIcon(this.paneLayout.inspectorCollapsed ? "chevron-left" : "chevron-right"),
     );
     this.inspectorToggleButton.title = inspectorToggleLabel;
     this.inspectorToggleButton.setAttribute("aria-label", inspectorToggleLabel);
+  }
+
+  private renderWorkspaceTabs(state: ReturnType<EditorStore["getState"]>): void {
+    const tabs = state.workspaceTabs.map((route) =>
+      this.createWorkspaceTabButton(route, this.resolveWorkspaceTabLabel(route), state.route),
+    );
+
+    this.workspaceTabBar.hidden = tabs.length === 0;
+    this.workspaceTabBar.replaceChildren(...tabs);
   }
 
   private togglePane(pane: PaneSide): void {
@@ -211,7 +244,7 @@ export class EditorLayout {
       return;
     }
 
-    if ((pane === "explorer" && this.paneLayout.explorerCollapsed) || (pane === "inspector" && this.paneLayout.inspectorCollapsed)) {
+    if ((pane === "explorer" && this.paneLayout.explorerCollapsed) || (pane === "properties" && this.paneLayout.inspectorCollapsed)) {
       return;
     }
 
@@ -247,7 +280,7 @@ export class EditorLayout {
       const nextWidth = clamp(
         mainBounds.right - event.clientX,
         INSPECTOR_MIN_WIDTH,
-        this.computeMaxPaneWidth("inspector", applied.explorer),
+        this.computeMaxPaneWidth("properties", applied.explorer),
       );
       this.paneLayout.inspectorWidth = nextWidth;
     }
@@ -282,7 +315,7 @@ export class EditorLayout {
       : clamp(this.paneLayout.explorerWidth, EXPLORER_MIN_WIDTH, this.computeMaxPaneWidth("explorer", inspector));
     const inspectorApplied = this.paneLayout.inspectorCollapsed
       ? 0
-      : clamp(this.paneLayout.inspectorWidth, INSPECTOR_MIN_WIDTH, this.computeMaxPaneWidth("inspector", explorerFirstPass));
+      : clamp(this.paneLayout.inspectorWidth, INSPECTOR_MIN_WIDTH, this.computeMaxPaneWidth("properties", explorerFirstPass));
     const explorerApplied = this.paneLayout.explorerCollapsed
       ? 0
       : clamp(this.paneLayout.explorerWidth, EXPLORER_MIN_WIDTH, this.computeMaxPaneWidth("explorer", inspectorApplied));
@@ -305,23 +338,87 @@ export class EditorLayout {
     const route = this.store.getState().route;
     switch (route.kind) {
       case "library":
-        return new AssetPreviewPane(this.centerSlot, this.store, this.options.translator);
+      return new AssetPreviewPane(this.workspaceContent, this.store, this.options.translator);
+      case "raw-asset":
+        return new RawAssetWorkspace(this.workspaceContent, this.store, this.options.translator, route.id);
       case "tileset":
-        return new TilesetMappingWorkspace(this.centerSlot, this.store, this.options.translator, route.id);
+        return new TilesetMappingWorkspace(this.workspaceContent, this.store, this.options.translator, route.id);
       case "spritesheet":
-        return new SpriteSheetMappingWorkspace(this.centerSlot, this.store, this.options.translator, route.id);
+        return new SpriteSheetMappingWorkspace(this.workspaceContent, this.store, this.options.translator, route.id);
       case "animation":
-        return new AnimationEditorPanel(this.centerSlot, this.store, this.options.translator, route.id);
+        return new AnimationEditorPanel(this.workspaceContent, this.store, this.options.translator, route.id);
       case "character":
-        return new CharacterEditorView(this.centerSlot, this.store, this.options.translator, route.id);
+        return new CharacterEditorView(this.workspaceContent, this.store, this.options.translator, route.id);
       case "map":
-        return new MapEditorWorkspace(this.centerSlot, this.store, this.options.translator, route.id);
+        return new MapEditorWorkspace(this.workspaceContent, this.store, this.options.translator, route.id);
+      case "level":
+        return new LevelWorkspace(this.workspaceContent, this.store, this.options.translator, route.id);
     }
+  }
+
+  private createWorkspaceTabButton(
+    route: WorkspaceRoute,
+    label: string,
+    activeRoute: ReturnType<EditorStore["getState"]>["route"],
+  ): HTMLElement {
+    const tab = createElement(
+      "div",
+      areRoutesEqual(route, activeRoute) ? "workspace-tab is-active" : "workspace-tab",
+    );
+    tab.dataset.testid = "workspace-tab";
+    tab.dataset.routeKey = `${route.kind}:${route.id}`;
+
+    const button = createButton("", "workspace-tab-button");
+    button.dataset.testid = "workspace-tab-button";
+    button.append(createElement("span", "workspace-tab-label", label));
+    button.title = label;
+    button.addEventListener("click", () => this.store.activateWorkspaceTab(route));
+    tab.append(button);
+
+    const closeButton = createButton("x", "workspace-tab-close");
+    closeButton.dataset.testid = "workspace-tab-close";
+    closeButton.title = this.options.translator.t("editor.shell.closeTab", { name: label });
+    closeButton.setAttribute("aria-label", this.options.translator.t("editor.shell.closeTab", { name: label }));
+    closeButton.addEventListener("click", (event) => {
+      event.stopPropagation();
+      this.store.closeWorkspaceTab(route);
+    });
+    tab.append(closeButton);
+
+    return tab;
+  }
+
+  private resolveWorkspaceTabLabel(route: WorkspaceRoute): string {
+    if (route.id === "new") {
+      if (route.kind === "character") {
+        return this.options.translator.t("editor.workspaceTabs.newCharacter");
+      }
+      if (route.kind === "map") {
+        return this.options.translator.t("editor.workspaceTabs.newMap");
+      }
+      if (route.kind === "animation") {
+        return this.options.translator.t("editor.workspaceTabs.newAnimation");
+      }
+      if (route.kind === "level") {
+        return this.options.translator.t("editor.workspaceTabs.newLevel");
+      }
+      return this.options.translator.formatEntityType(route.kind);
+    }
+
+    return this.store.getAssetById(route.id)?.name ?? this.options.translator.formatEntityType(route.kind);
   }
 }
 
 function clamp(value: number, min: number, max: number): number {
   return Math.min(Math.max(value, min), max);
+}
+
+function areRoutesEqual(left: { kind: string; id?: string }, right: { kind: string; id?: string }): boolean {
+  if (left.kind !== right.kind) {
+    return false;
+  }
+
+  return "id" in left && "id" in right && left.id === right.id;
 }
 
 function loadPaneLayoutState(): EditorPaneLayoutState {

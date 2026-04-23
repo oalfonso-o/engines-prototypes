@@ -12,18 +12,15 @@ import { clearElement, createButton, createElement } from "../../shared/dom";
 import { createSelectFieldController, createTextFieldController } from "../../shared/formControls";
 import { mountAnimationPreview } from "../spritesheet/animationPreview";
 import type { EditorTranslator } from "../../i18n/EditorTranslator";
+import type { WorkspacePropertiesContributor } from "../../properties/WorkspacePropertiesContributor";
 import { buildRelativeFilePath, joinRelativePath } from "../../storage/pathNaming";
 
 type PreviewSlot = "idle" | "run_side" | "jump" | "attack";
 
-export class CharacterEditorView {
+export class CharacterEditorView implements WorkspacePropertiesContributor {
   private readonly root = createElement("section", "workspace-screen");
   private readonly emptyStateHost = createElement("div");
-  private readonly header = createElement("div", "workspace-header");
-  private readonly copy = createElement("div", "workspace-copy");
-  private readonly title = createElement("h2", "workspace-title");
-  private readonly subtitle = createElement("p", "workspace-subtitle");
-  private readonly body = createElement("div", "workspace-body");
+  private readonly body = createElement("div", "workspace-body workspace-body-single");
   private readonly controls = createElement("div", "workspace-sidebar");
   private readonly previewCard = createElement("div", "workspace-preview-card");
   private readonly previewHost = createElement("div", "animation-preview");
@@ -69,9 +66,7 @@ export class CharacterEditorView {
   private readonly previewButton = createButton("", "secondary-button");
   private readonly pauseButton = createButton("", "secondary-button");
   private readonly saveButton = createButton("", "primary-button");
-  private readonly backButton = createButton("", "secondary-button");
   private destroyPreview: (() => void) | null = null;
-  private readonly existingCharacter: CharacterDefinition | null;
   private readonly readOnly: boolean;
   private draftName: string;
   private idleAnimationId: string | null;
@@ -90,7 +85,6 @@ export class CharacterEditorView {
   ) {
     const asset = this.store.getAssetById(routeId);
     if (asset && "idleAnimationId" in asset) {
-      this.existingCharacter = asset;
       this.readOnly = true;
       this.draftName = asset.name;
       this.idleAnimationId = asset.idleAnimationId;
@@ -99,7 +93,6 @@ export class CharacterEditorView {
       this.jumpAnimationId = asset.jumpAnimationId;
       this.attackAnimationId = asset.attackAnimationId;
     } else if (routeId === "new") {
-      this.existingCharacter = null;
       this.readOnly = false;
       this.draftName = buildUniqueAssetName("character", this.store.getAllAssets());
       this.idleAnimationId = null;
@@ -108,7 +101,6 @@ export class CharacterEditorView {
       this.jumpAnimationId = null;
       this.attackAnimationId = null;
     } else {
-      this.existingCharacter = null;
       this.readOnly = true;
       this.draftName = "";
       this.idleAnimationId = null;
@@ -129,9 +121,6 @@ export class CharacterEditorView {
   }
 
   private buildShell(): void {
-    this.copy.append(this.title, this.subtitle);
-    this.header.append(this.copy);
-
     (["idle", "run_side", "jump", "attack"] as CharacterSlot[]).forEach((slot) => {
       this.previewSlotButtons[slot].addEventListener("click", () => {
         this.previewSlot = slot;
@@ -180,8 +169,6 @@ export class CharacterEditorView {
       this.store.selectAsset(definition.id);
       this.store.navigate({ kind: "character", id: definition.id });
     });
-    this.backButton.addEventListener("click", () => this.store.navigate({ kind: "library" }));
-
     this.controls.append(
       this.nameField.field,
       this.idleField.field,
@@ -192,19 +179,17 @@ export class CharacterEditorView {
       this.previewButtons,
       this.playbackButtons,
       this.saveButton,
-      this.backButton,
     );
 
     this.previewCard.append(this.previewHost);
-    this.body.append(this.controls, this.previewCard);
-    this.root.append(this.emptyStateHost, this.header, this.body);
+    this.body.append(this.previewCard);
+    this.root.append(this.emptyStateHost, this.body);
   }
 
   private render(): void {
     this.destroyGame();
 
     if (!this.readOnly && this.getAvailableAnimations().length === 0) {
-      this.header.hidden = true;
       this.body.hidden = true;
       clearElement(this.emptyStateHost);
       this.emptyStateHost.append(
@@ -217,7 +202,6 @@ export class CharacterEditorView {
     }
 
     clearElement(this.emptyStateHost);
-    this.header.hidden = false;
     this.body.hidden = false;
     this.nameField.label.textContent = this.translator.t("editor.workspace.character.labels.name");
     this.idleField.label.textContent = this.translator.t("editor.workspace.character.labels.idle");
@@ -232,13 +216,6 @@ export class CharacterEditorView {
     this.previewButton.textContent = this.translator.t("editor.workspace.character.preview");
     this.pauseButton.textContent = this.translator.t("editor.workspace.character.pause");
     this.saveButton.textContent = this.translator.t("editor.workspace.character.save");
-    this.backButton.textContent = this.translator.t("editor.common.backToLibrary");
-    this.title.textContent = this.readOnly
-      ? this.existingCharacter?.name ?? this.translator.t("editor.workspace.character.titleReadOnly")
-      : this.translator.t("editor.workspace.character.titleCreate");
-    this.subtitle.textContent = this.readOnly
-      ? this.translator.t("editor.workspace.character.subtitleReadOnly")
-      : this.translator.t("editor.workspace.character.subtitleCreate");
     this.nameField.sync(this.draftName, this.readOnly);
 
     const animationOptions = this.getAnimationOptions().map((entry) => ({ label: entry.name, value: entry.id }));
@@ -261,7 +238,6 @@ export class CharacterEditorView {
       this.previewSlotButtons[slot].className = this.previewSlot === slot ? "tab-button is-active" : "tab-button";
     });
     this.saveButton.hidden = this.readOnly;
-    this.backButton.hidden = !this.readOnly;
 
     clearElement(this.previewCard);
     this.previewCard.append(this.previewHost);
@@ -284,6 +260,10 @@ export class CharacterEditorView {
       loop: playback.animation.loop,
       playing: this.playing,
     });
+  }
+
+  renderProperties(container: HTMLElement): void {
+    container.append(this.controls);
   }
 
   private getAnimationOptions(): AnimationDefinition[] {

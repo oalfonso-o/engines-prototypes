@@ -1,4 +1,4 @@
-import Phaser from "phaser";
+import * as Phaser from "phaser";
 import type { GameBridge } from "../../bridge/GameBridge";
 import type { IntroSettings } from "../../settings/prototypeSettings";
 import { SCENE_KEYS } from "./sceneKeys";

@@ -46,3 +46,5 @@ unity-prototypes/**/.vs/
 phaser-prototypes/**/node_modules/
 phaser-prototypes/**/dist/
 phaser-prototypes/**/.vite/
+phaser-prototypes/**/playwright-report/
+phaser-prototypes/**/test-results/

@@ -6,7 +6,8 @@ export type AssetEntityType = "raw-asset" | DerivedAssetType;
 export type AssetStatus = "active" | "archived" | "uses-archived-dependencies" | "missing-dependencies";
 export type DependencyStatus = "active" | "archived" | "missing";
 export type LibraryTab = "raw" | "game";
-export type DetailTab = "overview" | "used-by" | "dependencies";
+export type PropertiesTab = "properties" | "tiles" | "used-by" | "dependencies";
+export type DetailTab = PropertiesTab;
 export type TileFitMode = "crop" | "scale-to-fit";
 export type CharacterSlot = "idle" | "run_side" | "jump" | "attack";
 export type RunSideFacing = "left" | "right";
@@ -189,11 +190,15 @@ export interface AssetDependencyEntry {
 
 export type EditorRoute =
   | { kind: "library" }
+  | { kind: "raw-asset"; id: string }
   | { kind: "tileset"; id: string }
   | { kind: "spritesheet"; id: string }
   | { kind: "animation"; id: string }
   | { kind: "character"; id: string }
-  | { kind: "map"; id: string };
+  | { kind: "map"; id: string }
+  | { kind: "level"; id: string };
+
+export type WorkspaceRoute = Exclude<EditorRoute, { kind: "library" }>;
 
 export interface EditorState {
   isReady: boolean;
@@ -201,9 +206,10 @@ export interface EditorState {
   snapshot: EditorSnapshot;
   searchQuery: string;
   libraryTab: LibraryTab;
-  detailTab: DetailTab;
+  propertiesTab: PropertiesTab;
   selectedAssetId: string | null;
   selectedFolderId: string | null;
+  workspaceTabs: WorkspaceRoute[];
   importModalOpen: boolean;
 }
 

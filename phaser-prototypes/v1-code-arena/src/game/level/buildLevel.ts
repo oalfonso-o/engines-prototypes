@@ -1,4 +1,4 @@
-import Phaser from "phaser";
+import * as Phaser from "phaser";
 import type { ColliderSystem } from "../colliders/createColliderSystem";
 import { TILE_FRAME } from "./levelData";
 import type { FloatingPlatform, GroundSegment, PrototypeSettings, WaterStrip } from "../../settings/prototypeSettings";

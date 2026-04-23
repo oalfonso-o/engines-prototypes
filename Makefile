@@ -1,15 +1,11 @@
 PHASER_V1_DIR := phaser-prototypes/v1-code-arena
 
 .PHONY: \
-	install-phaser-v1 \
-	run-phaser-v1 \
-	build-phaser-v1
+	run \
+	resetseed
 
-install-phaser-v1:
-	cd "$(PHASER_V1_DIR)" && npm install
-
-run-phaser-v1:
+run:
 	cd "$(PHASER_V1_DIR)" && npm run dev
 
-build-phaser-v1:
-	cd "$(PHASER_V1_DIR)" && npm run build
+resetseed:
+	cd "$(PHASER_V1_DIR)" && npm run reset-editor-db

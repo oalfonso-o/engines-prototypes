@@ -14,10 +14,12 @@ import type {
   LibraryTab,
   LevelCompositionRecord,
   MapDefinition,
+  PropertiesTab,
   RawAssetBlobRecord,
   RawAssetRecord,
   SpriteSheetDefinition,
   TilesetDefinition,
+  WorkspaceRoute,
 } from "../domain/editorTypes";
 import { normalizeAssetName } from "../domain/editorValidators";
 import type { EditorRouteController } from "../app/EditorRouter";
@@ -49,17 +51,36 @@ const EMPTY_SNAPSHOT: EditorSnapshot = {
   levelCompositions: [],
 };
 
+const SESSION_STORAGE_KEY = "canuter:phaser-v1-code-arena:editor-session:v1";
+
+interface PersistedEditorSession {
+  route?: EditorRoute;
+  searchQuery?: string;
+  libraryTab?: LibraryTab;
+  propertiesTab?: PropertiesTab;
+  detailTab?: DetailTab;
+  selectedAssetId?: string | null;
+  selectedFolderId?: string | null;
+  workspaceTabs?: WorkspaceRoute[];
+}
+
+type ExplorerRevealTarget =
+  | { kind: "asset"; id: string }
+  | { kind: "folder"; id: string };
+
 export class EditorStore {
   private readonly listeners = new Set<StoreListener>();
+  private pendingExplorerReveal: ExplorerRevealTarget | null = null;
   private state: EditorState = {
     isReady: false,
     route: { kind: "library" },
     snapshot: EMPTY_SNAPSHOT,
     searchQuery: "",
     libraryTab: "raw",
-    detailTab: "overview",
+    propertiesTab: "properties",
     selectedAssetId: null,
     selectedFolderId: null,
+    workspaceTabs: [],
     importModalOpen: false,
   };
 
@@ -78,11 +99,47 @@ export class EditorStore {
   ) {}
 
   async init(): Promise<void> {
+    const persistedSession = loadEditorSessionState();
+    const currentRoute = this.router.getCurrentRoute();
+    const initialRoute = resolveInitialRoute(currentRoute, persistedSession?.route);
+    const persistedWorkspaceTabs = sanitizeWorkspaceRoutes(persistedSession?.workspaceTabs);
+    const activeInitialRoute = normalizeRouteForTabs(
+      initialRoute,
+      ensureWorkspaceRoute(persistedWorkspaceTabs, initialRoute),
+    );
+
+    this.state = {
+      ...this.state,
+      route: activeInitialRoute,
+      searchQuery: persistedSession?.searchQuery ?? this.state.searchQuery,
+      libraryTab: persistedSession?.libraryTab ?? this.state.libraryTab,
+      propertiesTab: persistedSession?.propertiesTab ?? persistedSession?.detailTab ?? this.state.propertiesTab,
+      selectedAssetId: activeInitialRoute.kind === "library"
+        ? persistedSession?.selectedAssetId ?? null
+        : activeInitialRoute.id || null,
+      selectedFolderId: activeInitialRoute.kind === "library"
+        ? persistedSession?.selectedFolderId ?? null
+        : null,
+      workspaceTabs: ensureWorkspaceRoute(persistedWorkspaceTabs, activeInitialRoute),
+    };
+
+    if (!areRoutesEqual(currentRoute, activeInitialRoute)) {
+      this.router.navigate(activeInitialRoute);
+    }
+
     this.router.subscribe((route) => {
+      const normalizedRoute = normalizeRouteForTabs(route, this.state.workspaceTabs);
+      if (!areRoutesEqual(route, normalizedRoute)) {
+        this.router.navigate(normalizedRoute);
+        return;
+      }
+
       this.state = {
         ...this.state,
-        route,
-        selectedAssetId: route.kind === "library" ? this.state.selectedAssetId : route.id || null,
+        route: normalizedRoute,
+        selectedAssetId: normalizedRoute.kind === "library" ? this.state.selectedAssetId : normalizedRoute.id || null,
+        selectedFolderId: normalizedRoute.kind === "library" ? this.state.selectedFolderId : null,
+        workspaceTabs: ensureWorkspaceRoute(this.state.workspaceTabs, normalizedRoute),
       };
       this.emit();
     });
@@ -100,6 +157,14 @@ export class EditorStore {
 
   getState(): EditorState {
     return this.state;
+  }
+
+  peekExplorerReveal(): ExplorerRevealTarget | null {
+    return this.pendingExplorerReveal;
+  }
+
+  consumeExplorerReveal(): void {
+    this.pendingExplorerReveal = null;
   }
 
   getImportDraft(): ImportDraft {
@@ -162,12 +227,16 @@ export class EditorStore {
     this.emit();
   }
 
-  setDetailTab(detailTab: DetailTab): void {
+  setPropertiesTab(propertiesTab: PropertiesTab): void {
     this.state = {
       ...this.state,
-      detailTab,
+      propertiesTab,
     };
     this.emit();
+  }
+
+  setDetailTab(detailTab: DetailTab): void {
+    this.setPropertiesTab(detailTab);
   }
 
   selectAsset(assetId: string | null): void {
@@ -221,11 +290,17 @@ export class EditorStore {
 
   async reload(): Promise<void> {
     const snapshot = await this.repository.loadSnapshot();
+    const nextTabs = this.state.workspaceTabs.filter((route) => routeExistsInSnapshot(snapshot, route));
+    const nextBaseRoute = routeExistsInSnapshot(snapshot, this.state.route)
+      ? this.state.route
+      : nextTabs[nextTabs.length - 1] ?? { kind: "library" as const };
+    const nextRoute = normalizeRouteForTabs(nextBaseRoute, nextTabs);
     this.state = {
       ...this.state,
       isReady: true,
       snapshot,
-      route: this.router.getCurrentRoute(),
+      route: nextRoute,
+      workspaceTabs: nextTabs,
     };
     if (
       this.state.selectedFolderId
@@ -239,11 +314,48 @@ export class EditorStore {
     ) {
       this.state.selectedAssetId = null;
     }
+    if (nextRoute.kind !== "library") {
+      this.state.selectedAssetId = nextRoute.id;
+      this.state.selectedFolderId = null;
+    }
+    if (!areRoutesEqual(this.router.getCurrentRoute(), nextRoute)) {
+      this.router.navigate(nextRoute);
+    }
     this.emit();
   }
 
   navigate(route: EditorRoute): void {
+    this.router.navigate(normalizeRouteForTabs(route, this.state.workspaceTabs));
+  }
+
+  activateWorkspaceTab(route: EditorRoute): void {
+    if (areRoutesEqual(this.state.route, route)) {
+      return;
+    }
+
     this.router.navigate(route);
+  }
+
+  closeWorkspaceTab(route: WorkspaceRoute): void {
+    const index = this.state.workspaceTabs.findIndex((entry) => areRoutesEqual(entry, route));
+    if (index < 0) {
+      return;
+    }
+
+    const nextTabs = this.state.workspaceTabs.filter((_, entryIndex) => entryIndex !== index);
+    const isClosingActiveRoute = areRoutesEqual(this.state.route, route);
+    this.state = {
+      ...this.state,
+      workspaceTabs: nextTabs,
+    };
+    this.emit();
+
+    if (!isClosingActiveRoute) {
+      return;
+    }
+
+    const fallbackRoute = nextTabs[index - 1] ?? nextTabs[index] ?? { kind: "library" as const };
+    this.router.navigate(fallbackRoute);
   }
 
   async archiveAsset(asset: EditorEntityRecord): Promise<void> {
@@ -254,6 +366,7 @@ export class EditorStore {
 
     await this.moveAssetToFolder(asset, archivedRoot);
     await this.reload();
+    this.selectAssetAndReveal(asset.id);
   }
 
   async renameAsset(asset: EditorEntityRecord, name: string): Promise<void> {
@@ -299,6 +412,7 @@ export class EditorStore {
 
     await this.moveAssetToFolder(asset, userRoot);
     await this.reload();
+    this.selectAssetAndReveal(asset.id);
   }
 
   async saveRawAsset(record: RawAssetRecord, blobRecord?: RawAssetBlobRecord | null): Promise<void> {
@@ -375,6 +489,7 @@ export class EditorStore {
     );
     await this.moveFolderSubtree(folder, archivedRoot, nextRelativePath);
     await this.reload();
+    this.selectFolderAndReveal(folder.id);
   }
 
   async unarchiveFolder(folder: FolderRecord): Promise<void> {
@@ -389,6 +504,7 @@ export class EditorStore {
     );
     await this.moveFolderSubtree(folder, userRoot, nextRelativePath);
     await this.reload();
+    this.selectFolderAndReveal(folder.id);
   }
 
   async moveAssetToFolder(asset: EditorEntityRecord, targetFolder: FolderRecord): Promise<void> {
@@ -448,7 +564,28 @@ export class EditorStore {
   }
 
   private emit(): void {
+    persistEditorSessionState(this.state);
     this.listeners.forEach((listener) => listener(this.state));
+  }
+
+  private selectAssetAndReveal(assetId: string): void {
+    this.pendingExplorerReveal = { kind: "asset", id: assetId };
+    this.state = {
+      ...this.state,
+      selectedAssetId: assetId,
+      selectedFolderId: null,
+    };
+    this.emit();
+  }
+
+  private selectFolderAndReveal(folderId: string): void {
+    this.pendingExplorerReveal = { kind: "folder", id: folderId };
+    this.state = {
+      ...this.state,
+      selectedFolderId: folderId,
+      selectedAssetId: null,
+    };
+    this.emit();
   }
 
   private async moveFolderSubtree(
@@ -601,4 +738,101 @@ export class EditorStore {
 
 function shouldMoveEntityFile(asset: EditorEntityRecord): boolean {
   return !isRawAsset(asset) || asset.storageMode === "disk";
+}
+
+function loadEditorSessionState(): PersistedEditorSession | null {
+  try {
+    const raw = window.localStorage.getItem(SESSION_STORAGE_KEY);
+    if (!raw) {
+      return null;
+    }
+
+    return JSON.parse(raw) as PersistedEditorSession;
+  } catch {
+    return null;
+  }
+}
+
+function persistEditorSessionState(state: EditorState): void {
+  try {
+    const payload: PersistedEditorSession = {
+      route: state.route,
+      searchQuery: state.searchQuery,
+      libraryTab: state.libraryTab,
+      propertiesTab: state.propertiesTab,
+      selectedAssetId: state.selectedAssetId,
+      selectedFolderId: state.selectedFolderId,
+      workspaceTabs: state.workspaceTabs,
+    };
+    window.localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(payload));
+  } catch {
+    // Ignore storage failures and keep the in-memory editor session working.
+  }
+}
+
+function resolveInitialRoute(currentRoute: EditorRoute, persistedRoute?: EditorRoute): EditorRoute {
+  if (currentRoute.kind !== "library") {
+    return currentRoute;
+  }
+
+  return persistedRoute ?? currentRoute;
+}
+
+function sanitizeWorkspaceRoutes(routes: WorkspaceRoute[] | undefined): WorkspaceRoute[] {
+  if (!Array.isArray(routes)) {
+    return [];
+  }
+
+  const result: WorkspaceRoute[] = [];
+  routes.forEach((route) => {
+    if (!isWorkspaceRoute(route) || result.some((entry) => areRoutesEqual(entry, route))) {
+      return;
+    }
+    result.push(route);
+  });
+  return result;
+}
+
+function ensureWorkspaceRoute(routes: WorkspaceRoute[], route: EditorRoute): WorkspaceRoute[] {
+  if (!isWorkspaceRoute(route) || routes.some((entry) => areRoutesEqual(entry, route))) {
+    return routes;
+  }
+
+  return [...routes, route];
+}
+
+function normalizeRouteForTabs(route: EditorRoute, workspaceTabs: WorkspaceRoute[]): EditorRoute {
+  if (route.kind !== "library" || workspaceTabs.length === 0) {
+    return route;
+  }
+
+  return workspaceTabs[workspaceTabs.length - 1];
+}
+
+function isWorkspaceRoute(route: EditorRoute | WorkspaceRoute | undefined): route is WorkspaceRoute {
+  return Boolean(route && route.kind !== "library" && typeof route.id === "string");
+}
+
+function routeExistsInSnapshot(snapshot: EditorSnapshot, route: EditorRoute): boolean {
+  if (route.kind === "library") {
+    return true;
+  }
+
+  if (route.id === "new") {
+    return true;
+  }
+
+  return resolveAssetById(snapshot, route.id)?.asset != null;
+}
+
+function areRoutesEqual(left: EditorRoute, right: EditorRoute): boolean {
+  if (left.kind !== right.kind) {
+    return false;
+  }
+
+  if (left.kind === "library" && right.kind === "library") {
+    return true;
+  }
+
+  return "id" in left && "id" in right && left.id === right.id;
 }

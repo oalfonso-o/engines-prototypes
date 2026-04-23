@@ -1,4 +1,4 @@
-import Phaser from "phaser";
+import * as Phaser from "phaser";
 import type { GameBridge } from "../../bridge/GameBridge";
 import { CoinField } from "../collectibles/CoinField";
 import type { ColliderSystem } from "../colliders/createColliderSystem";

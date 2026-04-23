@@ -8,17 +8,14 @@ import { createEditorId } from "../../domain/editorIds";
 import type { GridPreviewCell } from "../tileset/tilesetGrid";
 import { mountSpriteSheetGridPreview } from "./spritesheetGrid";
 import type { EditorTranslator } from "../../i18n/EditorTranslator";
+import type { WorkspacePropertiesContributor } from "../../properties/WorkspacePropertiesContributor";
 import { buildRelativeFilePath, joinRelativePath } from "../../storage/pathNaming";
 
-export class SpriteSheetMappingWorkspace {
+export class SpriteSheetMappingWorkspace implements WorkspacePropertiesContributor {
   private readonly root = createElement("section", "workspace-screen");
   private readonly emptyStateHost = createElement("div");
-  private readonly header = createElement("div", "workspace-header");
-  private readonly copy = createElement("div", "workspace-copy");
-  private readonly title = createElement("h2", "workspace-title");
-  private readonly subtitle = createElement("p", "workspace-subtitle");
   private readonly overflowBadge = createElement("span", "status-badge badge-warning");
-  private readonly body = createElement("div", "workspace-body");
+  private readonly body = createElement("div", "workspace-body workspace-body-single");
   private readonly controls = createElement("div", "workspace-sidebar");
   private readonly previewCard = createElement("div", "workspace-preview-card");
   private readonly previewHost = createElement("div", "workspace-preview");
@@ -67,7 +64,6 @@ export class SpriteSheetMappingWorkspace {
   private readonly generateButton = createButton("", "secondary-button");
   private readonly saveButton = createButton("", "primary-button");
   private readonly createAnimationButton = createButton("", "primary-button");
-  private readonly backButton = createButton("", "secondary-button");
   private destroyPreview: (() => void) | null = null;
   private readonly sourceRawAsset: RawAssetRecord | null;
   private readonly existingSpriteSheet: SpriteSheetDefinition | null;
@@ -133,9 +129,6 @@ export class SpriteSheetMappingWorkspace {
   }
 
   private buildShell(): void {
-    this.copy.append(this.title, this.subtitle);
-    this.header.append(this.copy, this.overflowBadge);
-
     this.generateButton.addEventListener("click", () => {
       this.generateGrid();
       this.render();
@@ -187,9 +180,7 @@ export class SpriteSheetMappingWorkspace {
         this.store.navigate({ kind: "animation", id: this.existingSpriteSheet.id });
       }
     });
-    this.backButton.addEventListener("click", () => this.store.navigate({ kind: "library" }));
-
-    this.actionRow.append(this.generateButton, this.saveButton, this.createAnimationButton, this.backButton);
+    this.actionRow.append(this.generateButton, this.saveButton, this.createAnimationButton);
     this.controls.append(
       this.nameField.field,
       this.cellWidthField.field,
@@ -201,15 +192,14 @@ export class SpriteSheetMappingWorkspace {
     );
 
     this.previewCard.append(this.previewHost);
-    this.body.append(this.controls, this.previewCard);
-    this.root.append(this.emptyStateHost, this.header, this.body);
+    this.body.append(this.previewCard);
+    this.root.append(this.emptyStateHost, this.body);
   }
 
   private render(): void {
     this.destroyGame();
 
     if (!this.sourceRawAsset) {
-      this.header.hidden = true;
       this.body.hidden = true;
       clearElement(this.emptyStateHost);
       this.emptyStateHost.append(
@@ -222,7 +212,6 @@ export class SpriteSheetMappingWorkspace {
     }
 
     clearElement(this.emptyStateHost);
-    this.header.hidden = false;
     this.body.hidden = false;
     this.overflowBadge.textContent = this.translator.t("editor.workspace.spritesheet.overflowIgnored");
     this.nameField.label.textContent = this.translator.t("editor.workspace.spritesheet.labels.name");
@@ -233,13 +222,6 @@ export class SpriteSheetMappingWorkspace {
     this.generateButton.textContent = this.translator.t("editor.workspace.spritesheet.generateGrid");
     this.saveButton.textContent = this.translator.t("editor.workspace.spritesheet.save");
     this.createAnimationButton.textContent = this.translator.t("editor.workspace.spritesheet.createAnimation");
-    this.backButton.textContent = this.translator.t("editor.common.backToLibrary");
-    this.title.textContent = this.readOnly
-      ? this.existingSpriteSheet?.name ?? this.translator.t("editor.workspace.spritesheet.titleReadOnly")
-      : this.translator.t("editor.workspace.spritesheet.titleCreate");
-    this.subtitle.textContent = this.readOnly
-      ? this.translator.t("editor.workspace.spritesheet.subtitleReadOnly", { count: this.cells.length })
-      : this.translator.t("editor.workspace.spritesheet.subtitleCreate", { name: this.sourceRawAsset.name });
     this.overflowBadge.hidden = !this.hasOverflow || this.readOnly;
     this.nameField.sync(this.draftName, this.readOnly);
     this.cellWidthField.sync(this.cellWidth, this.readOnly);
@@ -253,7 +235,6 @@ export class SpriteSheetMappingWorkspace {
     this.saveButton.hidden = this.readOnly;
     this.createAnimationButton.hidden = !this.readOnly;
     this.createAnimationButton.disabled = Boolean(this.existingSpriteSheet?.archivedAt);
-    this.backButton.hidden = !this.readOnly;
 
     clearElement(this.previewCard);
     this.previewCard.append(this.previewHost);
@@ -284,6 +265,10 @@ export class SpriteSheetMappingWorkspace {
         ),
       );
     }
+  }
+
+  renderProperties(container: HTMLElement): void {
+    container.append(this.controls);
   }
 
   private generateGrid(): void {

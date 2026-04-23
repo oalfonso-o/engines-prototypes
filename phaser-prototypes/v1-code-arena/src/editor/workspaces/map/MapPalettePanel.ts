@@ -26,6 +26,7 @@ export class MapPalettePanel {
     const token = this.renderToken;
     clearElement(this.root);
     this.root.className = "map-palette";
+    this.root.dataset.testid = "map-palette";
 
     if (options.tilesets.length === 0) {
       this.root.append(
@@ -37,19 +38,20 @@ export class MapPalettePanel {
       return;
     }
 
-    const tilesetBar = createElement("div", "palette-tileset-bar");
-    options.tilesets.forEach((tileset) => {
-      const button = createElement(
-        "button",
-        tileset.id === options.selectedTilesetId ? "palette-tileset is-selected" : "palette-tileset",
-        tileset.name,
-      ) as HTMLButtonElement;
-      button.type = "button";
-      button.disabled = options.readOnly;
-      button.addEventListener("click", () => options.onSelectTileset(tileset.id));
-      tilesetBar.append(button);
-    });
-    this.root.append(tilesetBar);
+    if (options.tilesets.length > 1) {
+      const tilesetBar = createElement("div", "palette-tileset-bar");
+      options.tilesets.forEach((tileset) => {
+        const button = createElement(
+          "button",
+          tileset.id === options.selectedTilesetId ? "palette-tileset is-selected" : "palette-tileset",
+          tileset.name,
+        ) as HTMLButtonElement;
+        button.type = "button";
+        button.addEventListener("click", () => options.onSelectTileset(tileset.id));
+        tilesetBar.append(button);
+      });
+      this.root.append(tilesetBar);
+    }
 
     const selectedTileset = options.tilesets.find((entry) => entry.id === options.selectedTilesetId) ?? options.tilesets[0];
     if (!selectedTileset) {
@@ -80,10 +82,9 @@ export class MapPalettePanel {
           tile.id === options.selectedTileId ? "palette-tile is-selected" : "palette-tile",
         ) as HTMLButtonElement;
         button.type = "button";
-        button.disabled = options.readOnly;
-        button.append(createCroppedThumbnail(image, tile.rect, 72, 72));
-        const caption = createElement("span", "palette-tile-label", tile.label ?? tile.id.slice(0, 6));
-        button.append(caption);
+        button.title = tile.label ?? tile.id;
+        button.setAttribute("aria-label", tile.label ?? tile.id);
+        button.append(createCroppedThumbnail(image, tile.rect, 32, 32));
         button.addEventListener("click", () => options.onSelectTile(tile.id));
         tileGrid.append(button);
       });

@@ -1,4 +1,4 @@
-import Phaser from "phaser";
+import * as Phaser from "phaser";
 import type { ColliderSystem } from "../colliders/createColliderSystem";
 import type { CoinPosition, PrototypeSettings } from "../../settings/prototypeSettings";
 

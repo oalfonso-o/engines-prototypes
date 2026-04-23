@@ -44,10 +44,6 @@ export function mountAnimationPreview(options: AnimationPreviewOptions): () => v
 
   const drawFrame = (): void => {
     context.clearRect(0, 0, PREVIEW_WIDTH, PREVIEW_HEIGHT);
-    context.fillStyle = "#09111d";
-    context.fillRect(0, 0, PREVIEW_WIDTH, PREVIEW_HEIGHT);
-    context.strokeStyle = "#2d3f60";
-    context.strokeRect(6, 6, PREVIEW_WIDTH - 12, PREVIEW_HEIGHT - 12);
 
     if (options.frames.length === 0) {
       context.fillStyle = "#9fb5d9";

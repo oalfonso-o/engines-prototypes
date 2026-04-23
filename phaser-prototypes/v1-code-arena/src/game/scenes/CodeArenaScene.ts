@@ -1,4 +1,4 @@
-import Phaser from "phaser";
+import * as Phaser from "phaser";
 import { preloadGameAssets, createGameAnimations, createGameTextures } from "../assets/gameAssets";
 import { createColliderSystem } from "../colliders/createColliderSystem";
 import { createOneWayPlatformSystem } from "../colliders/createOneWayPlatformSystem";

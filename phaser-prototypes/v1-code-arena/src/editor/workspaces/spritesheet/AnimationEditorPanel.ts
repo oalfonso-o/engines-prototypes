@@ -8,16 +8,13 @@ import { createCheckboxFieldController, createTextFieldController } from "../../
 import { createCroppedThumbnail, loadImage } from "../../shared/loadImage";
 import { mountAnimationPreview } from "./animationPreview";
 import type { EditorTranslator } from "../../i18n/EditorTranslator";
+import type { WorkspacePropertiesContributor } from "../../properties/WorkspacePropertiesContributor";
 import { buildRelativeFilePath, joinRelativePath } from "../../storage/pathNaming";
 
-export class AnimationEditorPanel {
+export class AnimationEditorPanel implements WorkspacePropertiesContributor {
   private readonly root = createElement("section", "workspace-screen");
   private readonly emptyStateHost = createElement("div");
-  private readonly header = createElement("div", "workspace-header");
-  private readonly copy = createElement("div", "workspace-copy");
-  private readonly title = createElement("h2", "workspace-title");
-  private readonly subtitle = createElement("p", "workspace-subtitle");
-  private readonly body = createElement("div", "workspace-body");
+  private readonly body = createElement("div", "workspace-body workspace-body-single");
   private readonly controls = createElement("div", "workspace-sidebar");
   private readonly previewCard = createElement("div", "workspace-preview-card");
   private readonly previewHost = createElement("div", "animation-preview");
@@ -42,10 +39,8 @@ export class AnimationEditorPanel {
   private readonly previewButton = createButton("", "secondary-button");
   private readonly pauseButton = createButton("", "secondary-button");
   private readonly saveButton = createButton("", "primary-button");
-  private readonly backButton = createButton("", "secondary-button");
   private destroyPreview: (() => void) | null = null;
   private readonly sourceSpriteSheet: SpriteSheetDefinition | null;
-  private readonly existingAnimation: AnimationDefinition | null;
   private readonly imageUrl: string | null;
   private sourceImage: HTMLImageElement | null = null;
   private readonly readOnly: boolean;
@@ -63,7 +58,6 @@ export class AnimationEditorPanel {
   ) {
     const asset = this.store.getAssetById(routeId);
     if (asset && isAnimation(asset)) {
-      this.existingAnimation = asset;
       this.sourceSpriteSheet = this.store.getState().snapshot.spritesheets.find((entry) => entry.id === asset.spriteSheetId) ?? null;
       this.readOnly = true;
       this.draftName = asset.name;
@@ -71,7 +65,6 @@ export class AnimationEditorPanel {
       this.loop = asset.loop;
       this.frameIds = [...asset.frameIds];
     } else if (asset && isSpriteSheet(asset)) {
-      this.existingAnimation = null;
       this.sourceSpriteSheet = asset.archivedAt ? null : asset;
       this.readOnly = false;
       this.draftName = buildUniqueAssetName(`${asset.name}-animation`, this.store.getAllAssets());
@@ -79,7 +72,6 @@ export class AnimationEditorPanel {
       this.loop = true;
       this.frameIds = [];
     } else {
-      this.existingAnimation = null;
       this.sourceSpriteSheet = null;
       this.readOnly = true;
       this.draftName = "";
@@ -112,9 +104,6 @@ export class AnimationEditorPanel {
   }
 
   private buildShell(): void {
-    this.copy.append(this.title, this.subtitle);
-    this.header.append(this.copy);
-
     this.previewButton.addEventListener("click", () => {
       this.playing = true;
       this.render();
@@ -154,27 +143,23 @@ export class AnimationEditorPanel {
       this.store.selectAsset(definition.id);
       this.store.navigate({ kind: "animation", id: definition.id });
     });
-    this.backButton.addEventListener("click", () => this.store.navigate({ kind: "library" }));
-
     this.controls.append(
       this.nameField.field,
       this.frameDurationField.field,
       this.loopField.field,
       this.playbackRow,
       this.saveButton,
-      this.backButton,
     );
 
     this.previewCard.append(this.previewHost, this.frameStrip);
-    this.body.append(this.controls, this.previewCard);
-    this.root.append(this.emptyStateHost, this.header, this.body);
+    this.body.append(this.previewCard);
+    this.root.append(this.emptyStateHost, this.body);
   }
 
   private render(): void {
     this.destroyGame();
 
     if (!this.sourceSpriteSheet || !this.imageUrl) {
-      this.header.hidden = true;
       this.body.hidden = true;
       clearElement(this.emptyStateHost);
       this.emptyStateHost.append(
@@ -187,7 +172,6 @@ export class AnimationEditorPanel {
     }
 
     clearElement(this.emptyStateHost);
-    this.header.hidden = false;
     this.body.hidden = false;
     this.nameField.label.textContent = this.translator.t("editor.workspace.animation.labels.name");
     this.frameDurationField.label.textContent = this.translator.t("editor.workspace.animation.labels.frameDuration");
@@ -195,18 +179,10 @@ export class AnimationEditorPanel {
     this.previewButton.textContent = this.translator.t("editor.workspace.animation.preview");
     this.pauseButton.textContent = this.translator.t("editor.workspace.animation.pause");
     this.saveButton.textContent = this.translator.t("editor.workspace.animation.save");
-    this.backButton.textContent = this.translator.t("editor.common.backToLibrary");
-    this.title.textContent = this.readOnly
-      ? this.existingAnimation?.name ?? this.translator.t("editor.workspace.animation.titleReadOnly")
-      : this.translator.t("editor.workspace.animation.titleCreate");
-    this.subtitle.textContent = this.readOnly
-      ? this.translator.t("editor.workspace.animation.subtitleReadOnly", { count: this.frameIds.length })
-      : this.translator.t("editor.workspace.animation.subtitleCreate");
     this.nameField.sync(this.draftName, this.readOnly);
     this.frameDurationField.sync(this.frameDurationMs, this.readOnly);
     this.loopField.sync(this.loop, this.readOnly);
     this.saveButton.hidden = this.readOnly;
-    this.backButton.hidden = !this.readOnly;
     clearElement(this.previewCard);
     this.previewCard.append(this.previewHost, this.frameStrip);
 
@@ -235,6 +211,10 @@ export class AnimationEditorPanel {
       loop: this.loop,
       playing: this.playing,
     });
+  }
+
+  renderProperties(container: HTMLElement): void {
+    container.append(this.controls);
   }
 
   private buildFrameCard(frame: SpriteFrameRecord): HTMLElement {

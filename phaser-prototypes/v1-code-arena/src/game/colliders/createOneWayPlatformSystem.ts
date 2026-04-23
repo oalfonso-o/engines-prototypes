@@ -1,4 +1,4 @@
-import Phaser from "phaser";
+import * as Phaser from "phaser";
 import type { OneWayPlatformSettings } from "../../settings/prototypeSettings";
 
 type DynamicArcadeActor = Phaser.GameObjects.GameObject & {

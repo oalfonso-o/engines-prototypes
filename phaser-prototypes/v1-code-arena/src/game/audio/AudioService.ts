@@ -1,4 +1,4 @@
-import type Phaser from "phaser";
+import * as Phaser from "phaser";
 import type { AudioSettings } from "../../settings/prototypeSettings";
 
 export type MusicTrackId = "music.intro" | "music.menu" | "music.campaign";
