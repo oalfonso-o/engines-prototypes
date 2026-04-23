@@ -2,12 +2,14 @@ import { createCoreRawAssetRecords, createRootFolderRecords, ROOT_FOLDER_IDS } f
 import {
   createCoreAnimationRecords,
   createCoreCharacterRecords,
+  createCoreGameRecords,
   createCoreLevelCompositionRecords,
   createCoreMapRecords,
+  createCoreSceneRecords,
   createCoreSpriteSheetRecords,
   createCoreTilesetRecords,
 } from "../content/coreDerivedManifest";
-import type { EditorEntityRecord, FolderRecord } from "../domain/editorTypes";
+import type { ActionDefinition, EditorEntityRecord, FolderRecord, GameDefinition, SceneDefinition } from "../domain/editorTypes";
 import { EditorRepository } from "../storage/editorRepository";
 import { writeJsonOnDisk } from "../storage/devFsClient";
 
@@ -90,6 +92,22 @@ export async function bootstrapEditorData(repository: EditorRepository): Promise
     }
   }
 
+  const existingSceneIds = new Set(snapshot.scenes.map((entry) => entry.id));
+  const coreScenes = createCoreSceneRecords(now);
+  for (const record of coreScenes) {
+    if (!existingSceneIds.has(record.id)) {
+      await repository.saveScene(record);
+    }
+  }
+
+  const existingGameIds = new Set(snapshot.games.map((entry) => entry.id));
+  const coreGames = createCoreGameRecords(now);
+  for (const record of coreGames) {
+    if (!existingGameIds.has(record.id)) {
+      await repository.saveGame(record);
+    }
+  }
+
   if (import.meta.env.DEV) {
     await persistCoreDefinitionsOnDisk([
       ...coreTilesets,
@@ -98,6 +116,8 @@ export async function bootstrapEditorData(repository: EditorRepository): Promise
       ...coreCharacters,
       ...coreMaps,
       ...coreLevels,
+      ...coreScenes,
+      ...coreGames,
     ]);
   }
 
@@ -147,7 +167,9 @@ async function migrateLegacyAssets<TAsset extends EditorEntityRecord>(
   }
 }
 
-async function persistCoreDefinitionsOnDisk(records: EditorEntityRecord[]): Promise<void> {
+async function persistCoreDefinitionsOnDisk(
+  records: Array<EditorEntityRecord | SceneDefinition | GameDefinition | ActionDefinition>,
+): Promise<void> {
   for (const record of records) {
     if (record.storageRoot !== "core") {
       continue;

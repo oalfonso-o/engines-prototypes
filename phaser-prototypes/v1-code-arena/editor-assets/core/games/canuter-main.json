@@ -1,0 +1,14 @@
+{
+  "id": "core:game:canuter-main",
+  "name": "Canuter Main",
+  "storageRoot": "core",
+  "folderId": null,
+  "relativePath": "games/canuter-main.json",
+  "entrySceneId": "core:scene:swamp-campaign-v1",
+  "entryPointId": null,
+  "defaultPlayerCharacterId": "core:character:player-shinobi",
+  "initialFlags": [],
+  "archivedAt": null,
+  "createdAt": "2026-04-23T21:15:58.704Z",
+  "updatedAt": "2026-04-23T21:15:58.704Z"
+}

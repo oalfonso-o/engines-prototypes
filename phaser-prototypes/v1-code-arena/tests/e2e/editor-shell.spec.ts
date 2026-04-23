@@ -64,6 +64,43 @@ test("editor database includes stores for games, scenes and actions", async ({ p
   expect(storeNames).toContain("actions");
 });
 
+test("editor seeds a core game and scene migration baseline", async ({ page }) => {
+  await openEditor(page);
+
+  const snapshot = await page.evaluate(async () => {
+    const database = await new Promise<IDBDatabase>((resolve, reject) => {
+      const request = indexedDB.open("canuter-phaser-v1-editor");
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error ?? new Error("Could not open editor database"));
+    });
+
+    const readAll = <T,>(storeName: string) => new Promise<T[]>((resolve, reject) => {
+      const transaction = database.transaction(storeName, "readonly");
+      const store = transaction.objectStore(storeName);
+      const request = store.getAll();
+      request.onsuccess = () => resolve(request.result as T[]);
+      request.onerror = () => reject(request.error ?? new Error(`Could not read ${storeName}`));
+    });
+
+    const [games, scenes] = await Promise.all([
+      readAll<{ id: string; entrySceneId: string }>("games"),
+      readAll<{ id: string; defaultPlayerCharacterId: string | null; layers: Array<{ kind: string }> }>("scenes"),
+    ]);
+
+    database.close();
+    return { games, scenes };
+  });
+
+  expect(snapshot.games.some((entry) => entry.id === "core:game:canuter-main")).toBe(true);
+  expect(snapshot.scenes.some((entry) => entry.id === "core:scene:swamp-campaign-v1")).toBe(true);
+
+  const swampScene = snapshot.scenes.find((entry) => entry.id === "core:scene:swamp-campaign-v1");
+  expect(swampScene?.defaultPlayerCharacterId).toBe("core:character:player-shinobi");
+  expect(swampScene?.layers.some((entry) => entry.kind === "tiles")).toBe(true);
+  expect(swampScene?.layers.some((entry) => entry.kind === "collision")).toBe(true);
+  expect(swampScene?.layers.some((entry) => entry.kind === "objects")).toBe(true);
+});
+
 test("folder properties keep archive in the header and no footer action buttons", async ({ page }) => {
   await openEditor(page);
 

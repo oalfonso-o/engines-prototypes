@@ -1,10 +1,18 @@
 import type {
+  GameDefinition,
   AnimationDefinition,
   CharacterDefinition,
   LevelCompositionRecord,
   LevelPlacementRecord,
   MapCellRecord,
   MapDefinition,
+  SceneBackgroundLayerRecord,
+  SceneCollisionCellRecord,
+  SceneCollisionLayerRecord,
+  SceneDefinition,
+  SceneObjectLayerRecord,
+  SceneObjectRecord,
+  SceneTileLayerRecord,
   SpriteFrameRecord,
   SpriteSheetDefinition,
   TilesetDefinition,
@@ -34,6 +42,8 @@ export const CORE_DERIVED_IDS = {
   characterPlayerShinobi: "core:character:player-shinobi",
   mapSwampCampaignV1: "core:map:swamp-campaign-v1",
   levelCampaignV1: "core:level:campaign-v1",
+  sceneSwampCampaignV1: "core:scene:swamp-campaign-v1",
+  gameCanuterMain: "core:game:canuter-main",
 } as const;
 
 const CORE_FOLDERS = {
@@ -154,6 +164,57 @@ export function createCoreLevelCompositionRecords(now: string): LevelComposition
       floatingPlatforms: SETTINGS.level.floating_platforms.map((segment) => ({ ...segment })),
       waterStrips: SETTINGS.level.water_strips.map((strip) => ({ ...strip })),
       placements: SETTINGS.level.coin_positions.map((position, index) => createCoinPlacement(index, position.x, position.y)),
+    },
+  ];
+}
+
+export function createCoreSceneRecords(now: string): SceneDefinition[] {
+  const map = createCoreMapRecords(now)[0];
+  const level = createCoreLevelCompositionRecords(now)[0];
+
+  return [
+    {
+      id: CORE_DERIVED_IDS.sceneSwampCampaignV1,
+      name: "Swamp Campaign Scene",
+      storageRoot: "core",
+      folderId: CORE_FOLDERS.swampLevels,
+      relativePath: "worlds/swamp/scenes/swamp-campaign-v1.json",
+      widthInCells: map.widthInCells,
+      heightInCells: map.heightInCells,
+      tileWidth: map.tileWidth,
+      tileHeight: map.tileHeight,
+      tileFitMode: map.tileFitMode,
+      defaultPlayerCharacterId: level.playerCharacterId,
+      layers: [
+        ...createSwampBackgroundLayers(),
+        createSwampTileLayer(map.cells),
+        createSwampSolidCollisionLayer(),
+        createSwampPlatformCollisionLayer(),
+        createSwampWaterCollisionLayer(),
+        createSwampObjectLayer(level),
+      ],
+      archivedAt: null,
+      createdAt: now,
+      updatedAt: now,
+    },
+  ];
+}
+
+export function createCoreGameRecords(now: string): GameDefinition[] {
+  return [
+    {
+      id: CORE_DERIVED_IDS.gameCanuterMain,
+      name: "Canuter Main",
+      storageRoot: "core",
+      folderId: null,
+      relativePath: "games/canuter-main.json",
+      entrySceneId: CORE_DERIVED_IDS.sceneSwampCampaignV1,
+      entryPointId: null,
+      defaultPlayerCharacterId: CORE_DERIVED_IDS.characterPlayerShinobi,
+      initialFlags: [],
+      archivedAt: null,
+      createdAt: now,
+      updatedAt: now,
     },
   ];
 }
@@ -307,5 +368,127 @@ function createCoinPlacement(index: number, x: number, y: number): LevelPlacemen
     assetId: CORE_DERIVED_IDS.animationCoinSpin,
     x,
     y,
+  };
+}
+
+function createSwampBackgroundLayers(): SceneBackgroundLayerRecord[] {
+  return [
+    createBackgroundLayer("bg-layer-1", "Background 1", "core:raw:swamp:bg-1", 0.04),
+    createBackgroundLayer("bg-layer-2", "Background 2", "core:raw:swamp:bg-2", 0.08),
+    createBackgroundLayer("bg-layer-3", "Background 3", "core:raw:swamp:bg-3", 0.12),
+    createBackgroundLayer("bg-layer-4", "Background 4", "core:raw:swamp:bg-4", 0.18),
+    createBackgroundLayer("bg-layer-5", "Background 5", "core:raw:swamp:bg-5", 0.26),
+  ];
+}
+
+function createBackgroundLayer(
+  id: string,
+  name: string,
+  assetId: string,
+  parallaxX: number,
+): SceneBackgroundLayerRecord {
+  return {
+    id,
+    name,
+    kind: "background",
+    visible: true,
+    locked: false,
+    assetId,
+    parallaxX,
+    parallaxY: 0,
+    fitMode: "cover",
+    offsetX: 0,
+    offsetY: 0,
+  };
+}
+
+function createSwampTileLayer(cells: MapCellRecord[]): SceneTileLayerRecord {
+  return {
+    id: "terrain-layer",
+    name: "Terrain",
+    kind: "tiles",
+    visible: true,
+    locked: false,
+    cells: cells.map((cell) => ({ ...cell })),
+  };
+}
+
+function createSwampSolidCollisionLayer(): SceneCollisionLayerRecord {
+  return {
+    id: "solid-layer",
+    name: "Solid",
+    kind: "collision",
+    visible: true,
+    locked: false,
+    collisionKind: "solid",
+    cells: buildCollisionCells().map((cell) => ({ ...cell })),
+  };
+}
+
+function createSwampPlatformCollisionLayer(): SceneCollisionLayerRecord {
+  const cells: SceneCollisionCellRecord[] = [];
+  SETTINGS.level.floating_platforms.forEach((segment) => {
+    for (let x = segment.start; x <= segment.end; x += 1) {
+      cells.push({ x, y: segment.y });
+    }
+  });
+
+  return {
+    id: "platform-layer",
+    name: "Platforms",
+    kind: "collision",
+    visible: true,
+    locked: false,
+    collisionKind: "one-way",
+    cells,
+  };
+}
+
+function createSwampWaterCollisionLayer(): SceneCollisionLayerRecord {
+  const cells: SceneCollisionCellRecord[] = [];
+  SETTINGS.level.water_strips.forEach((strip) => {
+    for (let x = strip.start; x <= strip.end; x += 1) {
+      for (let row = 0; row < strip.rows; row += 1) {
+        cells.push({ x, y: strip.top + row });
+      }
+    }
+  });
+
+  return {
+    id: "water-layer",
+    name: "Water",
+    kind: "collision",
+    visible: true,
+    locked: false,
+    collisionKind: "water",
+    cells,
+  };
+}
+
+function createSwampObjectLayer(level: LevelCompositionRecord): SceneObjectLayerRecord {
+  const objects: SceneObjectRecord[] = [
+    {
+      id: "player-spawn-default",
+      type: "player-spawn",
+      x: level.spawnX,
+      y: level.spawnY,
+      characterId: level.playerCharacterId,
+    },
+    ...level.placements.map((placement) => ({
+      id: placement.id,
+      type: "pickup" as const,
+      x: placement.x,
+      y: placement.y,
+      assetId: placement.assetId ?? null,
+    })),
+  ];
+
+  return {
+    id: "objects-layer",
+    name: "Objects",
+    kind: "objects",
+    visible: true,
+    locked: false,
+    objects,
   };
 }
