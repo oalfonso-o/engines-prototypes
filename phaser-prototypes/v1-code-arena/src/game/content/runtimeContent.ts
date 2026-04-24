@@ -94,6 +94,7 @@ export interface RuntimePlayerContent {
   spawnX: number;
   spawnY: number;
   idleTextureKey: string;
+  sideFacing: "left" | "right";
   animationKeys: {
     idle: string;
     run: string;
@@ -207,6 +208,7 @@ function createFallbackRuntimeContent(settings: PrototypeSettings): RuntimeConte
       spawnX: settings.player.spawn_x,
       spawnY: settings.player.spawn_y,
       idleTextureKey: "player-idle-texture",
+      sideFacing: "right",
       animationKeys: {
         idle: "player-idle",
         run: "player-run",
@@ -448,6 +450,7 @@ function buildRuntimePlayer(
     spawnX: spawnObject?.x ?? 0,
     spawnY: spawnObject?.y ?? 0,
     idleTextureKey: idle.textureKey,
+    sideFacing: character.runSideFacing ?? "right",
     animationKeys: {
       idle: idle.animationKey,
       run: run.animationKey,

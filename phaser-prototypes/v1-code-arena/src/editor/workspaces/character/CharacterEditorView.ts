@@ -258,7 +258,9 @@ export class CharacterEditorView implements WorkspacePropertiesContributor {
       frames: playback.frames,
       frameDurationMs: playback.animation.frameDurationMs,
       loop: playback.animation.loop,
+      previewLoop: true,
       playing: this.playing,
+      flipX: playback.flipX,
     });
   }
 
@@ -282,6 +284,7 @@ export class CharacterEditorView implements WorkspacePropertiesContributor {
     | {
       animation: AnimationDefinition;
       imageUrl: string;
+      flipX: boolean;
       frames: Array<{ id: string; rect: AnimationDefinition extends never ? never : { x: number; y: number; width: number; height: number } }>;
     }
     | null {
@@ -304,6 +307,7 @@ export class CharacterEditorView implements WorkspacePropertiesContributor {
     return {
       animation,
       imageUrl,
+      flipX: this.previewSlot === "run_side" && this.runSideFacing === "left",
       frames,
     };
   }

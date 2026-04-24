@@ -69,6 +69,7 @@ function createFallbackPlayer(settings: PrototypeSettings): RuntimePlayerContent
     spawnX: settings.player.spawn_x,
     spawnY: settings.player.spawn_y,
     idleTextureKey: "player-idle-texture",
+    sideFacing: "right",
     animationKeys: {
       idle: "player-idle",
       run: "player-run",

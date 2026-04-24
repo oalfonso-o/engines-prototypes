@@ -195,9 +195,9 @@ export class PlayerController {
     }
 
     if (horizontal < 0) {
-      this.playerSprite.setFlipX(true);
+      this.playerSprite.setFlipX(this.runtimePlayer.sideFacing === "right");
     } else if (horizontal > 0) {
-      this.playerSprite.setFlipX(false);
+      this.playerSprite.setFlipX(this.runtimePlayer.sideFacing === "left");
     }
 
     this.updateAnimation();

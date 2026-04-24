@@ -209,6 +209,7 @@ export class AnimationEditorPanel implements WorkspacePropertiesContributor {
       frames: playbackFrames,
       frameDurationMs: Number.parseInt(this.frameDurationMs, 10) || 120,
       loop: this.loop,
+      previewLoop: true,
       playing: this.playing,
     });
   }

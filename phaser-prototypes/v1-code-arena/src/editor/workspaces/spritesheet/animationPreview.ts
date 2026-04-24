@@ -11,7 +11,9 @@ export interface AnimationPreviewOptions {
   frames: AnimationPreviewFrame[];
   frameDurationMs: number;
   loop: boolean;
+  previewLoop?: boolean;
   playing: boolean;
+  flipX?: boolean;
   emptyLabel?: string;
 }
 
@@ -41,6 +43,7 @@ export function mountAnimationPreview(options: AnimationPreviewOptions): () => v
   let animationFrameId = 0;
   let frameIndex = 0;
   let lastAdvance = performance.now();
+  const shouldLoop = options.previewLoop ?? options.loop;
 
   const drawFrame = (): void => {
     context.clearRect(0, 0, PREVIEW_WIDTH, PREVIEW_HEIGHT);
@@ -60,17 +63,35 @@ export function mountAnimationPreview(options: AnimationPreviewOptions): () => v
     const drawX = (PREVIEW_WIDTH - drawWidth) / 2;
     const drawY = (PREVIEW_HEIGHT - drawHeight) / 2;
     if (image.complete) {
-      context.drawImage(
-        image,
-        frame.rect.x,
-        frame.rect.y,
-        frame.rect.width,
-        frame.rect.height,
-        drawX,
-        drawY,
-        drawWidth,
-        drawHeight,
-      );
+      if (options.flipX) {
+        context.save();
+        context.translate(drawX + drawWidth / 2, 0);
+        context.scale(-1, 1);
+        context.drawImage(
+          image,
+          frame.rect.x,
+          frame.rect.y,
+          frame.rect.width,
+          frame.rect.height,
+          -drawWidth / 2,
+          drawY,
+          drawWidth,
+          drawHeight,
+        );
+        context.restore();
+      } else {
+        context.drawImage(
+          image,
+          frame.rect.x,
+          frame.rect.y,
+          frame.rect.width,
+          frame.rect.height,
+          drawX,
+          drawY,
+          drawWidth,
+          drawHeight,
+        );
+      }
     }
   };
 
@@ -82,7 +103,7 @@ export function mountAnimationPreview(options: AnimationPreviewOptions): () => v
     if (options.playing && options.frames.length > 1 && time - lastAdvance >= options.frameDurationMs) {
       lastAdvance = time;
       if (frameIndex === options.frames.length - 1) {
-        if (options.loop) {
+        if (shouldLoop) {
           frameIndex = 0;
         }
       } else {
