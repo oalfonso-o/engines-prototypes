@@ -25,6 +25,7 @@ Este plan está aterrizado sobre el estado actual del proyecto:
 - [editor-shell.spec.ts](/Users/oalfonso/pipprojects/canuter/phaser-prototypes/v1-code-arena/tests/e2e/editor-shell.spec.ts)
 - [2026-04-23-scene-unification-defaults.md](/Users/oalfonso/pipprojects/canuter/phaser-prototypes/v1-code-arena/docs/plans/2026-04-23-scene-unification-defaults.md)
 - [2026-04-23-scene-graph-runtime-plan.md](/Users/oalfonso/pipprojects/canuter/phaser-prototypes/v1-code-arena/docs/plans/2026-04-23-scene-graph-runtime-plan.md)
+- [2026-04-24-editor-authoring-backlog.md](/Users/oalfonso/pipprojects/canuter/phaser-prototypes/v1-code-arena/docs/plans/2026-04-24-editor-authoring-backlog.md)
 
 ## Execution Rules
 

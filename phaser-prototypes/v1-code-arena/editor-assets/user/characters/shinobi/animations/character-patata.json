@@ -1,0 +1,15 @@
+{
+  "id": "a05389c1-6199-4260-b858-3eee4f0e7d8d",
+  "name": "character-patata",
+  "storageRoot": "user",
+  "folderId": "folder:core:characters:shinobi:animations",
+  "relativePath": "characters/shinobi/animations/character-patata.json",
+  "idleAnimationId": "core:animation:player-idle",
+  "runSideAnimationId": "core:animation:player-run",
+  "runSideFacing": "right",
+  "jumpAnimationId": "core:animation:player-jump",
+  "attackAnimationId": "core:animation:player-attack-1",
+  "archivedAt": null,
+  "createdAt": "2026-04-24T13:32:09.035Z",
+  "updatedAt": "2026-04-24T13:32:09.035Z"
+}
